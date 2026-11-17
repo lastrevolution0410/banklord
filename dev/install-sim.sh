@@ -3,7 +3,7 @@
 # empty database. Usage: sh dev/install-sim.sh
 set -e
 cd "$(dirname "$0")/.."; SIM=$(mktemp -d); J=$SIM/cookies
-trap 'docker rm -f bl-instsim >/dev/null 2>&1; rm -rf "$SIM"' EXIT
+trap 'docker exec bl-instsim rm -rf /srv/private >/dev/null 2>&1; docker rm -f bl-instsim >/dev/null 2>&1; rm -rf "$SIM"' EXIT
 for d in public src sql bin; do cp -R "backend/$d" "$SIM/"; done
 docker compose -f dev/docker-compose.yml up -d --wait >/dev/null 2>&1
 docker compose -f dev/docker-compose.yml exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS blinst; CREATE DATABASE blinst; GRANT ALL ON blinst.* TO 'banklord'@'%'"
@@ -20,7 +20,7 @@ post() { curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install --data-urlen
   -d guild=Testgilde -d realm=Everlook -d region=EU -d email=admin@example.org -d name=Admin "$@"; }
 post -d password=short -d password2=short | grep -q 'mindestens 14' && echo "PASS: weak password rejected"
 post -d password=a-long-test-password -d password2=a-long-test-password | grep -q 'Fertig' && echo "PASS: setup completed"
-test -f "$SIM/private/config.local.php" && grep -q "'DB_NAME' => 'blinst'" "$SIM/private/config.local.php" && echo "PASS: configuration written"
+docker exec bl-instsim grep -q "'DB_NAME' => 'blinst'" /srv/private/config.local.php && echo "PASS: configuration written"
 curl -s -H 'Accept-Language: de' $B/install | grep -q 'Banklord einrichten' && echo "FAIL: setup page still reachable" || echo "PASS: setup locked afterwards"
 C=$(curl -s -c $J -b $J $B/api/v1/session | sed -n 's/.*"csrf":"\([a-f0-9]*\)".*/\1/p')
 curl -s -c $J -b $J -H "X-CSRF-Token: $C" -H 'Content-Type: application/json' -d '{"email":"admin@example.org","password":"a-long-test-password"}' $B/api/v1/login | grep -q '"ok"\|user' && echo "PASS: admin can log in"
