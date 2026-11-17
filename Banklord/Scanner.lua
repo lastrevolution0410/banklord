@@ -108,8 +108,9 @@ function A:AbortScan(reason)
     capturedAt = time(), status = "aborted", reason = reason,
     finished = run.completed, eligible = #run.queue,
   }
-  self:Message("Gesamtscan abgebrochen: " .. tostring(reason) ..
-    ". Keine neuen Daten als Gesamtbestand gespeichert.")
+  -- The stored reason stays German (stable data); only the chat line is translated.
+  self:Message(A:Tr("Gesamtscan abgebrochen: %s. Keine neuen Daten als Gesamtbestand gespeichert."):format(
+    A:TrReason(reason)))
   self:RefreshScanProgress()
 end
 
@@ -158,12 +159,11 @@ function A:_FinishScan()
     -- Snapshot replacement, not addition. Retain only the 3 most recent attempts.
     table.insert(self.db.fullScans, result)
     while #self.db.fullScans > MAX_STORED_RUNS do table.remove(self.db.fullScans, 1) end
-    self:Message("Scan beendet: " .. result.scannedTabs .. "/" .. result.eligibleTabs ..
-      " lesbare Fächer, " .. result.occupiedSlots .. " belegte Slots, " ..
-      #result.items .. " unterschiedliche Item-Varianten. Status=" .. result.quality .. ".")
-    self:Message("Lokal erfasst. Companion überträgt automatisch nach /reload oder Logout.")
+    self:Message(A:Tr("Scan beendet: %d/%d lesbare Fächer, %d belegte Slots, %d unterschiedliche Item-Varianten. Status=%s."):format(
+      result.scannedTabs, result.eligibleTabs, result.occupiedSlots, #result.items, result.quality))
+    self:Message(A:Tr("Lokal erfasst. Companion überträgt automatisch nach /reload oder Logout."))
   else
-    self:Message("Scan fehlgeschlagen: keine vollständigen Fach-Daten empfangen. Alter Snapshot bleibt bestehen.")
+    self:Message(A:Tr("Scan fehlgeschlagen: keine vollständigen Fach-Daten empfangen. Alter Snapshot bleibt bestehen."))
   end
   if run.completed > 0 and self.EnrichSnapshotWithClientMetadata then
     self:EnrichSnapshotWithClientMetadata(result)
@@ -191,7 +191,7 @@ function A:_TabFailed(reason)
   run.token = run.token + 1 -- invalidate late callbacks for this failed request
   run.errors[#run.errors + 1] = {tab = tab, reason = reason}
   run.tabs[tab] = {tab = tab, tabName = (GetTabDetails(tab)), status = "failed", reason = reason}
-  self:Message("Fach " .. tab .. " konnte nicht verlässlich erfasst werden (" .. reason .. ").")
+  self:Message(A:Tr("Fach %s konnte nicht verlässlich erfasst werden (%s)."):format(tostring(tab), A:TrReason(reason)))
   local id = run.id
   if not Schedule(RETRY_DELAY_SECONDS, function()
     if self.scanRun and self.scanRun.id == id then self:_ScanNextTab() end
@@ -224,8 +224,8 @@ function A:_RequestTab()
   run.settleSerial = 0
   run.retries = run.retries + 1
   self.pendingTab = tab
-  self:Message("Lese Fach " .. run.cursor .. "/" .. #run.queue .. ": " ..
-    tabName .. " (#" .. tab .. "; Versuch " .. run.retries .. ").")
+  self:Message(A:Tr("Lese Fach %d/%d: %s (#%d; Versuch %d)."):format(
+    run.cursor, #run.queue, tostring(tabName), tab, run.retries))
   self:RefreshScanProgress()
   local ok, err = pcall(QueryGuildBankTab, tab)
   if not ok then return self:_TabFailed("Bankabfrage fehlgeschlagen: " .. tostring(err)) end
@@ -233,7 +233,7 @@ function A:_RequestTab()
     local current = self.scanRun
     if not current or current.id ~= runId or current.token ~= token or not current.waiting then return end
     if current.retries <= MAX_TAB_RETRIES then
-      self:Message("Fach " .. tab .. ": keine eindeutige Datenaktualisierung; erneuter Versuch.")
+      self:Message(A:Tr("Fach %s: keine eindeutige Datenaktualisierung; erneuter Versuch."):format(tostring(tab)))
       self:_RequestTab()
     else
       self:_TabFailed("Timeout ohne bestätigtes Bankereignis")
@@ -272,7 +272,7 @@ function A:ScanEvent()
       local second = ScanSlotData(rr.currentTab)
       if first.signature ~= second.signature then
         -- Wait for another update or timeout/retry, never save shifting data.
-        self:Message("Fach " .. rr.currentTab .. ": Daten noch in Änderung, warte weiter.")
+        self:Message(A:Tr("Fach %s: Daten noch in Änderung, warte weiter."):format(tostring(rr.currentTab)))
         return
       end
       local tab = rr.currentTab
@@ -288,8 +288,8 @@ function A:ScanEvent()
         quality = second.uncertain and "partial" or "unverified",
         items = second.items,
       }
-      self:Message("Fach " .. tab .. ": " .. #second.items .. " belegte Slots (" ..
-        rr.tabs[tab].quality .. ").")
+      self:Message(A:Tr("Fach %s: %d belegte Slots (%s)."):format(tostring(tab), #second.items,
+        rr.tabs[tab].quality))
       if not Schedule(RETRY_DELAY_SECONDS, function()
         if self.scanRun and self.scanRun.id == runId then self:_ScanNextTab() end
       end) then self:AbortScan("C_Timer.After nicht verfügbar") end
@@ -299,35 +299,35 @@ end
 
 function A:StartScan(mode)
   mode = mode or "all"
-  if self.scanRun then return self:Message("Ein Scan läuft bereits. /banklord stop zum Abbrechen.") end
-  if not self.db then return self:Message("Datenbank noch nicht bereit.") end
-  if not self:IsGuildBankOpen() then return self:Message("Bitte zuerst die Gildenbank öffnen. /banklord debug") end
+  if self.scanRun then return self:Message(A:Tr("Ein Scan läuft bereits. /banklord stop zum Abbrechen.")) end
+  if not self.db then return self:Message(A:Tr("Datenbank noch nicht bereit.")) end
+  if not self:IsGuildBankOpen() then return self:Message(A:Tr("Bitte zuerst die Gildenbank öffnen. /banklord debug")) end
   local guild = GetGuildInfo and GetGuildInfo("player")
   local realm = GetRealmName and GetRealmName()
   if not guild or guild == "" or not realm or realm == "" then
-    return self:Message("Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet.")
+    return self:Message(A:Tr("Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet."))
   end
   local count = GetNumGuildBankTabs and GetNumGuildBankTabs()
   if type(count) ~= "number" or count < 1 or count > 16 then
-    return self:Message("Anzahl der Bankfächer ist ungültig/nicht verfügbar: " .. tostring(count))
+    return self:Message(A:Tr("Anzahl der Bankfächer ist ungültig/nicht verfügbar: %s"):format(tostring(count)))
   end
   local selected = GetCurrentGuildBankTab and GetCurrentGuildBankTab()
   local queue, skipped = {}, 0
   local first, last = 1, count
   if mode == "current" then
     if not selected or selected < 1 or selected > count then
-      return self:Message("Bitte ein gültiges Bankfach auswählen.")
+      return self:Message(A:Tr("Bitte ein gültiges Bankfach auswählen."))
     end
     first, last = selected, selected
   end
   for tab = first, last do
     local _, viewable, infoError = GetTabDetails(tab)
     if viewable then queue[#queue + 1] = tab else skipped = skipped + 1 end
-    if infoError then self:Message("Fach " .. tab .. ": Informationen fehlen (" .. infoError .. ").") end
+    if infoError then self:Message(A:Tr("Fach %s: Informationen fehlen (%s)."):format(tostring(tab), infoError)) end
   end
-  if #queue == 0 then return self:Message("Keine lesbaren Bankfächer gefunden.") end
+  if #queue == 0 then return self:Message(A:Tr("Keine lesbaren Bankfächer gefunden.")) end
   if not C_Timer or type(C_Timer.After) ~= "function" then
-    return self:Message("Dieser Client bietet keinen geeigneten Timer für sichere Scans.")
+    return self:Message(A:Tr("Dieser Client bietet keinen geeigneten Timer für sichere Scans."))
   end
   self.scanIdCounter = (self.scanIdCounter or 0) + 1
   self.scanRun = {
@@ -337,29 +337,29 @@ function A:StartScan(mode)
     realm = realm, character = UnitName("player"),
     originalTab = selected, mode = mode, startedAt = time(),
   }
-  self:Message("Starte " .. (mode == "current" and "Einzelfachscan" or "Gesamtscan") ..
-    ": " .. #queue .. " lesbare Fächer, " .. skipped .. " übersprungen.")
+  self:Message(A:Tr(mode == "current" and "Starte Einzelfachscan: %d lesbare Fächer, %d übersprungen."
+    or "Starte Gesamtscan: %d lesbare Fächer, %d übersprungen."):format(#queue, skipped))
   self:_ScanNextTab()
 end
 
 function A:StartSingleScan() self:StartScan("current") end
 
 function A:Status()
-  if not self.db then return self:Message("Nicht geladen.") end
+  if not self.db then return self:Message(A:Tr("Nicht geladen.")) end
   local run = self.scanRun
   if run then
-    self:Message("Gesamtscan läuft: " .. run.completed .. "/" .. #run.queue ..
-      " fertig; aktuelles Fach " .. tostring(run.currentTab) .. ".")
+    self:Message(A:Tr("Gesamtscan läuft: %d/%d fertig; aktuelles Fach %s."):format(
+      run.completed, #run.queue, tostring(run.currentTab)))
   end
   local list = self.db.fullScans or {}
-  self:Message("Gesamtscan-Snapshots lokal: " .. #list .. " (max. " .. MAX_STORED_RUNS .. ")")
+  self:Message(A:Tr("Gesamtscan-Snapshots lokal: %d (max. %d)"):format(#list, MAX_STORED_RUNS))
   local latest = list[#list]
   if latest then
-    self:Message("Letzter Snapshot: " .. latest.guild .. " / " .. latest.scannedTabs ..
-      "/" .. latest.eligibleTabs .. " Fächer / " .. latest.occupiedSlots ..
-      " Slots / " .. #latest.items .. " Varianten / " .. latest.quality .. ".")
+    self:Message(A:Tr("Letzter Snapshot: %s / %s/%s Fächer / %s Slots / %d Varianten / %s."):format(
+      tostring(latest.guild), tostring(latest.scannedTabs), tostring(latest.eligibleTabs),
+      tostring(latest.occupiedSlots), #(latest.items or {}), tostring(latest.quality)))
   end
   local legacy = self.db.scans or {}
-  if #legacy > 0 then self:Message("Vorherige Einzeltest-Scans: " .. #legacy) end
-  self:Message("Alle Snapshots sind lokal und NICHT serverbestätigt.")
+  if #legacy > 0 then self:Message(A:Tr("Vorherige Einzeltest-Scans: %d"):format(#legacy)) end
+  self:Message(A:Tr("Alle Snapshots sind lokal und NICHT serverbestätigt."))
 end

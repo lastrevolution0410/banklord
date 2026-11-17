@@ -4,7 +4,7 @@ Banklord = Banklord or {}
 local A = Banklord
 A.version = "0.7.0"
 A.bankOpen = false
-A.lastBankEvent = "noch keines"
+A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
 local F = A.frame
 
@@ -131,11 +131,14 @@ function A:OnEvent(event, ...)
     BanklordDB.localCartDraft = type(BanklordDB.localCartDraft) == "table" and BanklordDB.localCartDraft or {}
     BanklordDB.peerInbox = type(BanklordDB.peerInbox) == "table" and BanklordDB.peerInbox or {}
     BanklordDB.peerOutbox = type(BanklordDB.peerOutbox) == "table" and BanklordDB.peerOutbox or {}
+    local lang = BanklordDB.settings.locale
+    if lang ~= "deDE" and lang ~= "enUS" then BanklordDB.settings.locale = nil end
     A.db = BanklordDB
+    if A.ApplyUILocale then A:ApplyUILocale() end
     if A.InitPeer then A:InitPeer() end
     if A.ReconcileOrderOutbox then A:ReconcileOrderOutbox() end
     if A.InitMinimapButton then A:InitMinimapButton() end
-    A:Message("v" .. A.version .. " geladen. /banklord zeigt die Befehle.")
+    A:Message(A:Tr("v%s geladen. /banklord zeigt die Befehle."):format(A.version))
   elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" or
          event == "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" then
     local interactionType = ...
@@ -166,29 +169,28 @@ F:SetScript("OnEvent", function(_, event, ...) A:OnEvent(event, ...) end)
 
 function A:Debug()
   local bank = self:IsGuildBankOpen()
-  local selected = GetCurrentGuildBankTab and GetCurrentGuildBankTab() or "nicht verfügbar"
+  local selected = GetCurrentGuildBankTab and GetCurrentGuildBankTab() or A:Tr("nicht verfügbar")
   local bankType = GuildBankerType()
-  local queryResult = "nicht verfügbar"
+  local queryResult = A:Tr("nicht verfügbar")
   if C_PlayerInteractionManager and
       type(C_PlayerInteractionManager.IsInteractingWithNpcOfType) == "function" then
     local ok, value = pcall(C_PlayerInteractionManager.IsInteractingWithNpcOfType, bankType)
-    queryResult = ok and tostring(value) or "API-Fehler"
+    queryResult = ok and tostring(value) or A:Tr("API-Fehler")
   end
-  local tabInfo = "unbekannt"
+  local tabInfo = A:Tr("unbekannt")
   if bank and type(selected) == "number" and selected > 0 and GetGuildBankTabInfo then
     local ok, name, _, viewable = pcall(GetGuildBankTabInfo, selected)
-    if ok then tabInfo = tostring(name) .. "/Leserecht=" .. tostring(viewable) end
+    if ok then tabInfo = A:Tr("%s/Leserecht=%s"):format(tostring(name), tostring(viewable)) end
   end
-  self:Message("DEBUG v" .. self.version .. ": Bank=" .. tostring(bank) ..
-    ", API=" .. queryResult .. ", Fach=" .. tostring(selected))
+  self:Message(A:Tr("DEBUG v%s: Bank=%s, API=%s, Fach=%s"):format(self.version,
+    tostring(bank), tostring(queryResult), tostring(selected)))
   local uiVisible = self:GetVisibleGuildBankFrame()
-  self:Message("DEBUG Quelle=" .. tostring(self.bankDetection) .. ", UI sichtbar=" ..
-    tostring(uiVisible) .. ", letztes Bankereignis=" .. tostring(self.lastBankEvent))
-  self:Message("DEBUG Fachinfo=" .. tabInfo .. ", Scan ausstehend=" .. tostring(self.pendingTab))
+  self:Message(A:Tr("DEBUG Quelle=%s, UI sichtbar=%s, letztes Bankereignis=%s"):format(
+    tostring(self.bankDetection), tostring(uiVisible), A:Tr(tostring(self.lastBankEvent))))
+  self:Message(A:Tr("DEBUG Fachinfo=%s, Scan ausstehend=%s"):format(tabInfo, tostring(self.pendingTab)))
   if self.scanRun then
-    self:Message("DEBUG Gesamtscan: " .. self.scanRun.completed .. "/" .. #self.scanRun.queue ..
-      ", Fach=" .. tostring(self.scanRun.currentTab) ..
-      ", Versuch=" .. tostring(self.scanRun.retries))
+    self:Message(A:Tr("DEBUG Gesamtscan: %d/%d, Fach=%s, Versuch=%s"):format(self.scanRun.completed,
+      #self.scanRun.queue, tostring(self.scanRun.currentTab), tostring(self.scanRun.retries)))
   end
 end
 
@@ -202,7 +204,7 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "scanfach" or cmd == "scan tab" then
     A:StartSingleScan()
   elseif cmd == "stop" then
-    if A.scanRun then A:AbortScan("Manuell abgebrochen") else A:Message("Kein Scan aktiv.") end
+    if A.scanRun then A:AbortScan("Manuell abgebrochen") else A:Message(A:Tr("Kein Scan aktiv.")) end
   elseif cmd == "status" then
     A:Status()
   elseif cmd == "debug" then
@@ -233,9 +235,11 @@ SlashCmdList.BANKLORD = function(text)
     if A.RetryPendingPeers then A:RetryPendingPeers(true) end
   elseif cmd == "minimap" then
     if A.ToggleMinimapButton then A:ToggleMinimapButton() end
+  elseif cmd == "lang" or cmd:match("^lang%s") then
+    A:SetLanguage(cmd:match("^lang%s+(%S+)") or "")
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, debug, minimap")
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, debug, minimap, lang de|en|auto"))
   end
 end

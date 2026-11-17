@@ -30,7 +30,8 @@ local meta;meta={__index=function(self,key)
  if key=='GetNumChildren' then return function()return 0 end end
  return function() end
 end}
-function CreateFrame(_,name,parent) local t=setmetatable({shown=true},meta);if name then frames[name]=t;_G[name]=t end;return t end
+local allFrames={}
+function CreateFrame(_,name,parent) local t=setmetatable({shown=true},meta);allFrames[#allFrames+1]=t;if name then frames[name]=t;_G[name]=t end;return t end
 UIParent=setmetatable({width=1400,height=1000},meta)
 Minimap=setmetatable({},meta)
 DEFAULT_CHAT_FRAME=setmetatable({},meta)
@@ -124,3 +125,65 @@ assert(#rows==2 and rows[2].order and rows[2].order.id==42,'server order must be
 local ok7,err7=pcall(A.RefreshUI,A);assert(ok7,err7)
 local ok8,err8=pcall(A.ShowOrderTooltip,A,UIParent,rows[2]);assert(ok8,err8)
 print('PASS: in-game order outbox, server state reconciliation and overview')
+
+-- Localization: client language decides, BanklordDB.settings.locale overrides.
+local EN=assert(A._localeEN,'EN table not exposed')
+-- 1) Every literal A:Tr('...') in the addon has an English entry.
+local literalCount=0
+for _,name in ipairs(modules) do
+  local fh=assert(io.open(root..'/'..name,'rb'));local src=fh:read('*a');fh:close()
+  for quote,body in src:gmatch("A:Tr%((['\"])(.-)%1%)") do
+    local value=assert(loadstring('return '..quote..body..quote))()
+    assert(EN[value],name..': missing English text for '..value)
+    literalCount=literalCount+1
+  end
+end
+assert(literalCount>=100,'too few translated literals found: '..literalCount)
+local chat={}
+DEFAULT_CHAT_FRAME.AddMessage=function(_,m) chat[#chat+1]=m end
+local function lastChat() return chat[#chat] or '' end
+-- 2) English client: key texts in English, every display string reached has an entry.
+local missing={}
+setmetatable(EN,{__index=function(_,k) if type(k)=='string' and k:find('%a%a') then missing[k]=true end end})
+GetLocale=function() return 'enUS' end
+A.db.settings.locale=nil
+assert(A:Tr('Warenkorb')=='Cart' and A:Tr('Bankverwaltung')=='Bank management','enUS must give English')
+assert(A:Tr('%d Positionen  ·  %d Stück  ·  lokal'):format(2,7)=='2 lines  ·  7 pcs.  ·  local','format string')
+A:ApplyUILocale()
+local function captions()
+  local set={}
+  for _,f in ipairs(allFrames) do local c=rawget(f,'caption');if c and c.text then set[c.text]=f end end
+  return set
+end
+local cap=captions()
+assert(cap['Add to cart'] and cap['Scan all tabs'] and cap['Submit order'],'UI buttons must be English after ApplyUILocale')
+for _,tabName in ipairs({'Items','Cart','Bank management','Sync','Advanced'}) do
+  local b=assert(cap[tabName],'tab button missing: '..tabName)
+  local okc,errc=pcall(b.scripts.OnClick,b);assert(okc,errc)
+end
+for _,cmd in ipairs({'status','stop','korb','liste','eingang','ausgang','debug','unknown-cmd','scan'}) do
+  local okc,errc=pcall(SlashCmdList.BANKLORD,cmd);assert(okc,errc)
+end
+assert(lastChat():find('guild bank first',1,true),'scan without bank must answer in English: '..lastChat())
+for _,row in ipairs(A:GetOrderOverview()) do A:ShowOrderTooltip(UIParent,row) end
+local list={};for k in pairs(missing) do list[#list+1]=k end;table.sort(list)
+assert(#list==0,'untranslated display texts: '..table.concat(list,' | '))
+setmetatable(EN,nil)
+assert(A:TrReason('Bankabfrage fehlgeschlagen: boom')=='bank query failed: boom','reason prefix translation')
+-- 3) German client: German.
+GetLocale=function() return 'deDE' end
+assert(A:Tr('Warenkorb')=='Warenkorb' and A:Tr('Zum Warenkorb')=='Zum Warenkorb','deDE must stay German')
+-- 4) Override wins in both directions, set via slash command.
+local okl,errl=pcall(SlashCmdList.BANKLORD,'lang en');assert(okl,errl)
+assert(A.db.settings.locale=='enUS' and A:Tr('Warenkorb')=='Cart','override enUS must win over deDE client')
+assert(lastChat():find('/reload',1,true) and lastChat():find('Language',1,true),'lang change must mention /reload in English')
+assert(captions()['Add to cart'],'lang en must relabel the UI')
+GetLocale=function() return 'frFR' end
+SlashCmdList.BANKLORD('lang de')
+assert(A.db.settings.locale=='deDE' and A:Tr('Warenkorb')=='Warenkorb','override deDE must win over frFR client')
+assert(captions()['Zum Warenkorb'],'lang de must relabel the UI')
+SlashCmdList.BANKLORD('lang auto')
+assert(A.db.settings.locale==nil and A:Tr('Warenkorb')=='Cart','auto must follow the client (frFR -> English)')
+A.db.settings.locale='xxXX';initEvent(A.frame,'ADDON_LOADED','Banklord')
+assert(A.db.settings.locale==nil,'invalid saved locale must be dropped')
+print('PASS: locale (client language, /banklord lang override, '..literalCount..' translated literals)')

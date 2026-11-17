@@ -38,10 +38,10 @@ end
 function A:SubmitCartOrder()
   if not self.db then return end
   local code,err=self:BuildCartTransferCode()
-  if not code then return self:Message(err or 'Bestellung nicht möglich.') end
+  if not code then return self:Message(err or A:Tr('Bestellung nicht möglich.')) end
   self.db.orderOutbox=self.db.orderOutbox or {}
   if #self.db.orderOutbox>=MAX_OUTBOX then
-    return self:Message('Zu viele Bestellungen warten auf Übertragung. Bitte /reload ausführen und den Companion laufen lassen.')
+    return self:Message(A:Tr('Zu viele Bestellungen warten auf Übertragung. Bitte /reload ausführen und den Companion laufen lassen.'))
   end
   local realm=type(GetRealmName)=='function' and GetRealmName() or ''
   local name=type(UnitName)=='function' and UnitName('player') or ''
@@ -49,7 +49,7 @@ function A:SubmitCartOrder()
     clientKey=('ig-%d-%s'):format(time(),randomTag()),
     code=code,character=clean(name..(realm~='' and '-'..realm or ''),80),note='',createdAt=time()})
   self.db.localCartDraft={}
-  self:Message('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.')
+  self:Message(A:Tr('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.'))
   if self.RefreshUI then self:RefreshUI() end
 end
 
@@ -87,22 +87,22 @@ end
 function A:GetOrderOverview()
   local rows={}
   for _,e in ipairs(self.db and self.db.orderOutbox or {}) do
-    rows[#rows+1]={title='Neu · '..(e.createdAt and date('%d.%m. %H:%M',e.createdAt) or ''),
-      status='|cffffaa44Wartet auf Übertragung (/reload)|r',code=e.code}
+    rows[#rows+1]={title=A:Tr('Neu · %s'):format(e.createdAt and date(A:Tr('%d.%m. %H:%M'),e.createdAt) or ''),
+      status='|cffffaa44'..A:Tr('Wartet auf Übertragung (/reload)')..'|r',code=e.code}
   end
   for _,f in ipairs(self.db and self.db.orderFailures or {}) do
-    rows[#rows+1]={title='Nicht angenommen',status='|cffff7a6a'..(ERRORS[f.error] or f.error or 'Fehler')..'|r',failure=true}
+    rows[#rows+1]={title=A:Tr('Nicht angenommen'),status='|cffff7a6a'..(ERRORS[f.error] and A:Tr(ERRORS[f.error]) or f.error or A:Tr('Fehler'))..'|r',failure=true}
   end
   local st=Banklord_ServerState
   for _,o in ipairs(type(st)=='table' and type(st.orders)=='table' and st.orders or {}) do
     if type(o)=='table' then
       local color=STATUS_COLOR[o.status] or 'ffffff'
-      rows[#rows+1]={title='#'..tostring(o.id)..' · '..(o.createdAt and date('%d.%m. %H:%M',o.createdAt) or ''),
-        status='|cff'..color..(A.ORDER_STATUS[o.status] or tostring(o.status))..'|r',order=o}
+      rows[#rows+1]={title='#'..tostring(o.id)..' · '..(o.createdAt and date(A:Tr('%d.%m. %H:%M'),o.createdAt) or ''),
+        status='|cff'..color..(A.ORDER_STATUS[o.status] and A:Tr(A.ORDER_STATUS[o.status]) or tostring(o.status))..'|r',order=o}
     end
   end
   local stamp=type(st)=='table' and tonumber(st.generatedAt)
-  return rows,stamp and date('%d.%m.%Y %H:%M',stamp) or nil
+  return rows,stamp and date(A:Tr('%d.%m.%Y %H:%M'),stamp) or nil
 end
 
 function A:ShowOrderTooltip(owner,row)
@@ -112,19 +112,19 @@ function A:ShowOrderTooltip(owner,row)
   GameTooltip:AddLine(row.status,1,1,1,true)
   if row.order then
     for _,l in ipairs(type(row.order.lines)=='table' and row.order.lines or {}) do
-      local detail=('%d bestellt'):format(l.requested or 0)
-      if (l.approved or 0)>0 then detail=detail..(' · %d genehmigt'):format(l.approved) end
-      if (l.fulfilled or 0)>0 then detail=detail..(' · %d ausgegeben'):format(l.fulfilled) end
-      GameTooltip:AddDoubleLine(l.name or ('Item '..tostring(l.itemId)),detail,.98,.97,.92,.87,.84,.78)
+      local detail=A:Tr('%d bestellt'):format(l.requested or 0)
+      if (l.approved or 0)>0 then detail=detail..A:Tr(' · %d genehmigt'):format(l.approved) end
+      if (l.fulfilled or 0)>0 then detail=detail..A:Tr(' · %d ausgegeben'):format(l.fulfilled) end
+      GameTooltip:AddDoubleLine(l.name or A:Tr('Item %s'):format(tostring(l.itemId)),detail,.98,.97,.92,.87,.84,.78)
     end
   elseif row.code then
     for part in tostring(row.code):sub(6):gmatch('[^|]+') do
       local id,qty=part:match('^(%d+),(%d+),')
-      local name=id and type(GetItemInfo)=='function' and GetItemInfo(tonumber(id)) or ('Item '..tostring(id))
-      GameTooltip:AddDoubleLine(name,(qty or '?')..' Stück',.98,.97,.92,.87,.84,.78)
+      local name=id and type(GetItemInfo)=='function' and GetItemInfo(tonumber(id)) or A:Tr('Item %s'):format(tostring(id))
+      GameTooltip:AddDoubleLine(name,A:Tr('%s Stück'):format(qty or '?'),.98,.97,.92,.87,.84,.78)
     end
   elseif row.failure then
-    GameTooltip:AddLine('Rechtsklick in der Liste entfernt die Meldungen.',.87,.84,.78,true)
+    GameTooltip:AddLine(A:Tr('Rechtsklick in der Liste entfernt die Meldungen.'),.87,.84,.78,true)
   end
   GameTooltip:Show()
 end

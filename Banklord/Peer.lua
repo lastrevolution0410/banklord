@@ -66,7 +66,7 @@ local function sendQueued(self,row)
       local accepted=send(row.target,packet)
       if not accepted then
         row.status='retry_pending';row.sending=false
-        self:Message('Entwurf an '..row.target..' zurzeit nicht zustellbar. Bleibt lokal vorgemerkt.')
+        self:Message(A:Tr('Entwurf an %s zurzeit nicht zustellbar. Bleibt lokal vorgemerkt.'):format(row.target))
       elseif index==total then
         row.status='waiting_peer_ack';row.sending=false
       end
@@ -95,7 +95,7 @@ function A:InitPeer()
     ok=pcall(RegisterAddonMessagePrefix,PREFIX)
   end
   self.peerEnabled=ok
-  if not ok then self:Message('Ingame-Kommunikation nicht verfügbar; Entwürfe bleiben lokal.') end
+  if not ok then self:Message(A:Tr('Ingame-Kommunikation nicht verfügbar; Entwürfe bleiben lokal.')) end
   -- Initial retry AFTER login; and periodic bounded retry while WoW is running.
   -- Does not rely on a permanent online bank administrator.
   if C_Timer and type(C_Timer.After)=='function' then
@@ -109,20 +109,20 @@ function A:InitPeer()
 end
 function A:SendCartToPeer(target)
   target=tostring(target or ''):match('^%s*(.-)%s*$')
-  if not safeName(target) then return self:Message('Empfänger ungültig. Syntax: /banklord senden Charakter-Realm') end
+  if not safeName(target) then return self:Message(A:Tr('Empfänger ungültig. Syntax: /banklord senden Charakter-Realm')) end
   local transfer,reason=self:BuildCartTransferCode()
-  if not transfer then return self:Message(reason or 'Warenkorb leer.') end
-  if not validTransfer(transfer) then return self:Message('Warenkorbcode ungültig.') end
+  if not transfer then return self:Message(reason or A:Tr('Warenkorb leer.')) end
+  if not validTransfer(transfer) then return self:Message(A:Tr('Warenkorbcode ungültig.')) end
   local rows=outbox(self)
-  if not rows then return self:Message('Lokaler Speicher noch nicht geladen.') end
+  if not rows then return self:Message(A:Tr('Lokaler Speicher noch nicht geladen.')) end
   local active=0
   for _,row in ipairs(rows) do if row.status~='peer_ack' and row.status~='cancelled' then active=active+1 end end
-  if active>=MAX_PENDING then return self:Message('Ausgang voll. Bitte offene Entwürfe prüfen.') end
+  if active>=MAX_PENDING then return self:Message(A:Tr('Ausgang voll. Bitte offene Entwürfe prüfen.')) end
   self.db.peerSequence=((tonumber(self.db.peerSequence) or 0)%999999)+1
   local id=tostring(now())..'-'..string.format('%06d',self.db.peerSequence)
   local row={messageId=id,target=target,code=transfer,createdAt=now(),status='pending',attempts=0,lastAttempt=0}
   table.insert(rows,row)
-  self:Message('Entwurf '..id..' lokal vorgemerkt. KEINE Serverbestellung. Automatische Ingame-Zustellversuche laufen.')
+  self:Message(A:Tr('Entwurf %s lokal vorgemerkt. KEINE Serverbestellung. Automatische Ingame-Zustellversuche laufen.'):format(id))
   self:RetryPendingPeers(true)
 end
 function A:ReceivePeerMessage(prefix,payload,channel,sender)
@@ -133,7 +133,7 @@ function A:ReceivePeerMessage(prefix,payload,channel,sender)
     for _,row in ipairs(outbox(self) or {}) do
       if row.messageId==id and peerNameEquals(row.target,sender) and row.status~='cancelled' then
         row.status='peer_ack';row.sending=false;row.receivedByPeerAt=now()
-        self:Message('Ingame-Empfang durch '..sender..' bestätigt. Noch NICHT auf der Website eingegangen.')
+        self:Message(A:Tr('Ingame-Empfang durch %s bestätigt. Noch NICHT auf der Website eingegangen.'):format(sender))
       end
     end
     return
@@ -162,19 +162,19 @@ function A:ReceivePeerMessage(prefix,payload,channel,sender)
   end
   if #self.db.peerInbox>=MAX_PEER_ROWS then
     -- Crucial: DO NOT ACK, and never evict an unprocessed message.
-    self:Message('Ingame-Eingang voll; neuer Entwurf NICHT angenommen. Bitte zuerst Eingänge im Web prüfen.')
+    self:Message(A:Tr('Ingame-Eingang voll; neuer Entwurf NICHT angenommen. Bitte zuerst Eingänge im Web prüfen.'))
     return
   end
   table.insert(self.db.peerInbox,{sender=sender,messageId=id,code=code,receivedAt=now(),status='unverified_draft'})
   send(sender,'A|'..id..'|OK')
-  self:Message('Ungeprüfter Entwurf von '..sender..' gespeichert. Noch keine Webbestellung!')
+  self:Message(A:Tr('Ungeprüfter Entwurf von %s gespeichert. Noch keine Webbestellung!'):format(sender))
 end
 function A:ShowPeerInbox()
   local rows=self.db and self.db.peerInbox or {}
-  self:Message('Ingame-Eingang: '..#rows..' von '..MAX_PEER_ROWS..' Entwürfen; Webannahme UNBESTÄTIGT.')
+  self:Message(A:Tr('Ingame-Eingang: %d von %d Entwürfen; Webannahme UNBESTÄTIGT.'):format(#rows,MAX_PEER_ROWS))
   for n=math.max(1,#rows-9),#rows do
     local r=rows[n]
-    if r then self:Message(n..' · '..r.sender..' · '..r.messageId..' · '..#r.code..' Zeichen') end
+    if r then self:Message(A:Tr('%d · %s · %s · %d Zeichen'):format(n,tostring(r.sender),tostring(r.messageId),#tostring(r.code or ''))) end
   end
 end
 function A:ShowPeerOutbox()
@@ -182,9 +182,9 @@ function A:ShowPeerOutbox()
   for _,r in ipairs(rows) do
     if r.status~='cancelled' then
       n=n+1
-      self:Message(r.messageId..' · '..r.target..' · '..r.status..' · Versuche '..tostring(r.attempts))
+      self:Message(A:Tr('%s · %s · %s · Versuche %s'):format(tostring(r.messageId),tostring(r.target),tostring(r.status),tostring(r.attempts)))
     end
   end
-  if n==0 then self:Message('Keine gespeicherten Ingame-Sendeaufträge.') end
-  self:Message('Peer-ACK bedeutet nicht Serverannahme. Bei fehlender Verbindung: direkt im Web bestellen.')
+  if n==0 then self:Message(A:Tr('Keine gespeicherten Ingame-Sendeaufträge.')) end
+  self:Message(A:Tr('Peer-ACK bedeutet nicht Serverannahme. Bei fehlender Verbindung: direkt im Web bestellen.'))
 end

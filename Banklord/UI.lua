@@ -45,13 +45,22 @@ local function panelSurface(parent,x,y,w,h,bright)
   rule(3,-h+4,w-6,1,.07,.06,.05,.88)
   return fill
 end
+-- Static labels keep their German source text so the language can be switched
+-- after SavedVariables load (ADDON_LOADED) or via /banklord lang.
+local localized={}
+local function track(font,source,fitWidth)
+  if type(source)=='string' and source~='' then
+    localized[#localized+1]={font=font,source=source,fit=fitWidth}
+  end
+end
 local function text(parent,size,x,y,w,message,color)
   local f=parent:CreateFontString(nil,'OVERLAY',size or 'GameFontNormal')
   f:SetPoint('TOPLEFT',parent,'TOPLEFT',x,y)
   f:SetWidth(w)
   f:SetJustifyH('LEFT')
   if type(f.SetJustifyV)=='function' then f:SetJustifyV('TOP') end
-  f:SetText(message or '')
+  f:SetText(A:Tr(message or ''))
+  track(f,message)
   if color then f:SetTextColor(rgb(color)) end
   return f
 end
@@ -109,7 +118,8 @@ local function push(parent,caption,x,y,w,h,handler)
   b.caption:SetSize(w-18,h)
   b.caption:SetJustifyH('CENTER')
   b.caption:SetJustifyV('MIDDLE')
-  fitText(b.caption,caption,w-19)
+  fitText(b.caption,A:Tr(caption),w-19)
+  track(b.caption,caption,w-19)
   -- Suppress Blizzard's HIGHLIGHT overlay which obscures custom label fonts.
   local oldHighlight=type(b.GetHighlightTexture)=='function' and b:GetHighlightTexture() or nil
   if oldHighlight and type(oldHighlight.SetAlpha)=='function' then oldHighlight:SetAlpha(0) end
@@ -222,7 +232,7 @@ local function itemName(item)
     local ok,name=pcall(GetItemInfo,item.itemID)
     if ok and name then return name end
   end
-  return 'Gegenstand #'..tostring(item.itemID)
+  return A:Tr('Gegenstand #%s'):format(tostring(item.itemID))
 end
 local function itemProperties(id)
   if type(GetItemInfo)~='function' then return nil,nil,nil,nil end
@@ -247,12 +257,12 @@ local function itemColor(quality)
   return .94,.94,.94
 end
 local function snapshotTime(scan)
-  if not scan then return 'Keine Inventur' end
+  if not scan then return A:Tr('Keine Inventur') end
   local stamp=tonumber(scan.capturedAt)
   if stamp and stamp>0 and type(date)=='function' then
-    return date('%d.%m.%Y %H:%M',stamp)
+    return date(A:Tr('%d.%m.%Y %H:%M'),stamp)
   end
-  return 'Zeitpunkt unbekannt'
+  return A:Tr('Zeitpunkt unbekannt')
 end
 local function cartInfo()
   local rows,n,total={},0,0
@@ -352,7 +362,7 @@ local function refreshGuildTitle()
     local ok,name=pcall(GetGuildInfo,'player')
     if ok and type(name)=='string' and name~='' then guildName=name end
   end
-  fitText(titleLabel,'Gildenbank - '..(guildName or 'Gilde')..' - Banklord',WINDOW_W-170,92)
+  fitText(titleLabel,A:Tr('Gildenbank - %s - Banklord'):format(guildName or A:Tr('Gilde')),WINDOW_W-170,92)
 end
 refreshGuildTitle()
 local subtitle=text(window,'GameFontHighlightSmall',23,-45,780,'Inventur wird geladen ...',COLORS.muted)
@@ -370,7 +380,7 @@ local function updateWindowBackdrop()
   opaqueFill:SetAlpha(settings and settings.solidBackground==true and .98 or 0)
 end
 
-local tabDefs={{'items',A:Tr('Gegenstände')},{'cart',A:Tr('Warenkorb')},{'bank',A:Tr('Bankverwaltung')},{'help',A:Tr('Synchronisierung')},{'advanced','Erweitert'}}
+local tabDefs={{'items','Gegenstände'},{'cart','Warenkorb'},{'bank','Bankverwaltung'},{'help','Synchronisierung'},{'advanced','Erweitert'}}
 for i,t in ipairs(tabDefs) do
   local key,caption=t[1],t[2]
   local b=push(window,caption,18+(i-1)*161,-72,153,29,function()
@@ -385,7 +395,7 @@ end
 backdrop(window,20,-599,987,1,.59,.47,.23,1)
 local footerLeft=text(window,'GameFontNormalSmall',22,-612,745,
   'Lokale Daten • nicht live • Bestellungen werden erst durch den Server verbindlich.',COLORS.warn)
-local footerCart=push(window,A:Tr('Warenkorb öffnen'),803,-606,199,30,function()
+local footerCart=push(window,'Warenkorb öffnen',803,-606,199,30,function()
   active='cart';A:RefreshUI()
 end)
 
@@ -396,7 +406,7 @@ panelSurface(catalog,202,0,534,469)
 panelSurface(catalog,744,0,260,469,true)
 text(catalog,'GameFontNormalLarge',17,-14,164,'Kategorien',COLORS.gold)
 text(catalog,'GameFontNormalLarge',220,-14,480,'Gildenbank durchsuchen',COLORS.gold)
-text(catalog,'GameFontNormalLarge',763,-14,225,A:Tr('Gegenstand'),COLORS.gold)
+text(catalog,'GameFontNormalLarge',763,-14,225,'Gegenstand',COLORS.gold)
 
 -- Custom unobstructed scroll track. The stock UIPanelScrollFrameTemplate
 -- anchors arrow buttons outside the scroll region, across our panel border;
@@ -473,7 +483,7 @@ local categoryCounts={}
 local function buildCategories(items)
   local count,byClass={},{}
   for _,item in ipairs(items) do
-    local class=item.class or 'Weitere Gegenstände'
+    local class=item.class or A:Tr('Weitere Gegenstände')
     local sub=item.subclass
     count[class]=(count[class] or 0)+1
     if sub and sub~='' and sub~=class then
@@ -501,15 +511,15 @@ local function buildCategories(items)
   end
   return result
 end
-local searchLabel=text(catalog,'GameFontNormalSmall',220,-46,55,A:Tr('Suche:'),COLORS.muted)
+local searchLabel=text(catalog,'GameFontNormalSmall',220,-46,55,'Suche:',COLORS.muted)
 local search=entry(catalog,280,-40,256,90)
 local reset=push(catalog,'X',547,-40,32,24,function()search:SetText('');activeCategory='all';A:RefreshUI()end)
 local sortMode='name'
 local sortButton=push(catalog,'Name',589,-40,130,24,function()
   sortMode=sortMode=='name' and 'stock' or 'name';A:RefreshUI()
 end)
-text(catalog,'GameFontHighlightSmall',225,-82,340,A:Tr('Gegenstand'),COLORS.gold)
-text(catalog,'GameFontHighlightSmall',640,-82,74,A:Tr('Bestand'),COLORS.gold)
+text(catalog,'GameFontHighlightSmall',225,-82,340,'Gegenstand',COLORS.gold)
+text(catalog,'GameFontHighlightSmall',640,-82,74,'Bestand',COLORS.gold)
 backdrop(catalog,214,-99,516,1,.55,.47,.29,.9)
 local results,filtered,catalogItems,selectedKey={},{},{},nil
 local itemOffset=0
@@ -564,7 +574,7 @@ catalog:SetScript('OnMouseWheel',function(_,delta)
   A:RefreshUI()
 end)
 local pager=text(catalog,'GameFontNormalSmall',221,-436,301,'',COLORS.muted)
-local prev=push(catalog,A:Tr('Zurück'),537,-430,89,26,function()
+local prev=push(catalog,'Zurück',537,-430,89,26,function()
   itemOffset=math.max(0,itemOffset-ROWS);A:RefreshUI()
 end)
 local nextButton=push(catalog,'Weiter',630,-430,95,26,function()
@@ -590,7 +600,7 @@ end)
 detailTooltipButton:SetScript('OnLeave',function()
   if GameTooltip then GameTooltip:Hide() end
 end)
-local detailName=text(catalog,'GameFontHighlight',819,-54,172,A:Tr('Gegenstand auswählen'),COLORS.bright)
+local detailName=text(catalog,'GameFontHighlight',819,-54,172,'Gegenstand auswählen',COLORS.bright)
 detailName:SetHeight(44)
 if type(detailName.SetMaxLines)=='function' then detailName:SetMaxLines(2) end
 if type(detailName.SetWordWrap)=='function' then detailName:SetWordWrap(true) end
@@ -607,13 +617,13 @@ end)
 push(catalog,'+',899,-262,33,26,function()
   qty:SetText(tostring(math.min(1000000,(tonumber(qty:GetText()) or 1)+1)))
 end)
-local addButton=push(catalog,A:Tr('Zum Warenkorb'),761,-307,225,33,function()
+local addButton=push(catalog,'Zum Warenkorb',761,-307,225,33,function()
   local chosen
   for _,item in ipairs(catalogItems) do if item.key==selectedKey then chosen=item;break end end
-  if not chosen then A:Message('Zuerst einen Gegenstand auswählen.');return end
+  if not chosen then A:Message(A:Tr('Zuerst einen Gegenstand auswählen.'));return end
   local number=tonumber(qty:GetText())
   if not number or number<1 or number>1000000 or number%1~=0 then
-    A:Message('Bitte eine gültige Menge zwischen 1 und 1000000 angeben.');return
+    A:Message(A:Tr('Bitte eine gültige Menge zwischen 1 und 1000000 angeben.'));return
   end
   A:AddCartDraftByKey(chosen.key,number)
   A:RefreshUI()
@@ -625,9 +635,9 @@ local detailSnapshot=text(catalog,'GameFontNormalSmall',763,-418,230,'',COLORS.m
 -- Cart: position list, individual removal, existing transfer and peer functions.
 local cart=panels.cart
 panelSurface(cart,0,0,1004,469)
-text(cart,'GameFontNormalLarge',16,-12,560,A:Tr('Mein Warenkorb'),COLORS.gold)
+text(cart,'GameFontNormalLarge',16,-12,560,'Mein Warenkorb',COLORS.gold)
 local cartSummary=text(cart,'GameFontNormalSmall',600,-15,385,'',COLORS.muted)
-text(cart,'GameFontNormalSmall',18,-51,533,A:Tr('Gegenstand'),COLORS.muted)
+text(cart,'GameFontNormalSmall',18,-51,533,'Gegenstand',COLORS.muted)
 text(cart,'GameFontNormalSmall',478,-51,100,'Menge',COLORS.muted)
 text(cart,'GameFontNormalSmall',740,-52,240,'Status',COLORS.muted)
 backdrop(cart,14,-71,974,1,.42,.38,.27,1)
@@ -666,8 +676,8 @@ push(cart,'<',258,-390,35,25,function()cartOffset=math.max(0,cartOffset-8);A:Ref
 push(cart,'>',301,-390,35,25,function()
   local items=cartInfo();cartOffset=math.min(math.max(0,#items-8),cartOffset+8);A:RefreshUI()
 end)
-push(cart,A:Tr('Zurück zum Katalog'),355,-390,202,26,function()active='items';A:RefreshUI()end)
-push(cart,A:Tr('Warenkorb leeren'),560,-390,157,26,function()
+push(cart,'Zurück zum Katalog',355,-390,202,26,function()active='items';A:RefreshUI()end)
+push(cart,'Warenkorb leeren',560,-390,157,26,function()
   A:ClearCartDraft();A:RefreshUI()
 end)
 panelSurface(cart,726,-78,262,344)
@@ -696,9 +706,9 @@ local transfer=entry(cart,20,-438,488,4000)
 transfer:SetScript('OnEditFocusGained',function(self)self:HighlightText()end)
 push(cart,'Code erzeugen',519,-437,155,27,function()
   local code,err=A:BuildCartTransferCode()
-  if not code then A:Message(err or 'Übertragung nicht möglich.');return end
+  if not code then A:Message(err or A:Tr('Übertragung nicht möglich.'));return end
   transfer:SetText(code);transfer:SetFocus();transfer:HighlightText()
-  A:Message('Übertragungscode markiert: mit Strg+C kopieren. Keine Serverbestellung!')
+  A:Message(A:Tr('Übertragungscode markiert: mit Strg+C kopieren. Keine Serverbestellung!'))
 end)
 local peerTarget=entry(cart,743,-438,140,95)
 push(cart,'An Spieler',895,-437,96,27,function()
@@ -716,7 +726,8 @@ backgroundOption:SetPoint('TOPLEFT',advanced,'TOPLEFT',28,-114)
 backgroundOption:SetSize(28,28)
 local backgroundText=advanced:CreateFontString(nil,'OVERLAY','GameFontHighlight')
 backgroundText:SetPoint('LEFT',backgroundOption,'RIGHT',11,0)
-backgroundText:SetText('Ausgefüllter, blickdichter Hintergrund')
+backgroundText:SetText(A:Tr('Ausgefüllter, blickdichter Hintergrund'))
+track(backgroundText,'Ausgefüllter, blickdichter Hintergrund')
 local checkHighlight=backgroundOption:CreateTexture(nil,'OVERLAY')
 checkHighlight:SetTexture('Interface\\Buttons\\WHITE8X8')
 checkHighlight:SetPoint('TOPLEFT',backgroundOption,'TOPLEFT',1,-1)
@@ -743,7 +754,7 @@ panelSurface(bank,0,0,1004,469)
 text(bank,'GameFontNormalLarge',22,-20,760,'Inventur & Bankscanner',COLORS.gold)
 local bankState=text(bank,'GameFontHighlight',24,-70,927,'',COLORS.bright)
 local bankProgress=text(bank,'GameFontHighlightSmall',24,-161,917,'',COLORS.muted)
-push(bank,A:Tr('Alle Fächer scannen'),25,-225,268,35,function()A:StartScan('all');A:RefreshUI()end)
+push(bank,'Alle Fächer scannen',25,-225,268,35,function()A:StartScan('all');A:RefreshUI()end)
 push(bank,'Aktuelles Fach scannen',311,-225,268,35,function()A:StartSingleScan();A:RefreshUI()end)
 push(bank,'Scan abbrechen',597,-225,211,35,function()
   if A.scanRun then A:AbortScan('Manuell abgebrochen')end
@@ -757,7 +768,7 @@ text(bank,'GameFontHighlightSmall',26,-296,890,
 -- Sync: instructions and existing peer inbox/outbox without making live promises.
 local help=panels.help
 panelSurface(help,0,0,1004,469)
-text(help,'GameFontNormalLarge',22,-20,760,A:Tr('Synchronisierung & Übertragung'),COLORS.gold)
+text(help,'GameFontNormalLarge',22,-20,760,'Synchronisierung & Übertragung',COLORS.gold)
 text(help,'GameFontNormal',26,-76,925,
   'Dein Addon speichert Scans und Entwürfe lokal. Erst nach Prüfung im Web gelten sie als bestätigt.',COLORS.warn)
 text(help,'GameFontHighlightSmall',26,-121,943,
@@ -784,7 +795,7 @@ local function buildItemIndex(scan)
     items[#items+1]={
       id=raw.itemID,key=raw.itemKey,link=raw.itemLink,name=itemName(raw),
       count=tonumber(raw.count) or 0,quality=quality,level=level,
-      class=class or 'Weitere Gegenstände',subclass=subclass,
+      class=class or A:Tr('Weitere Gegenstände'),subclass=subclass,
       iconTexture=raw.iconTexture,
     }
   end
@@ -848,11 +859,11 @@ function A:RefreshUI()
   local scan=latestScan()
   refreshGuildTitle()
   fitText(subtitle,scan and
-    ('Letzte Inventur: '..snapshotTime(scan)..'   |   '..tostring(scan.scannedTabs or '?')..'/'..tostring(scan.totalTabs or '?')..' Fächer') or
-    'Noch keine lokale Inventur. Zum Scannen bitte die Gildenbank öffnen.',775,104)
+    A:Tr('Letzte Inventur: %s   |   %s/%s Fächer'):format(snapshotTime(scan),tostring(scan.scannedTabs or '?'),tostring(scan.totalTabs or '?')) or
+    A:Tr('Noch keine lokale Inventur. Zum Scannen bitte die Gildenbank öffnen.'),775,104)
   local cartRows,positions,units=cartInfo()
-  fitText(footerCart.caption,'Warenkorb: '..positions..' Pos. / '..units..' Stk.',footerCart:GetWidth()-22,40)
-  footerLeft:SetText('LOKALER SNAPSHOT  -  kein Live-Bestand · Übertragung nach WoW-Speicherung  ·  Addon 0.5.16')
+  fitText(footerCart.caption,A:Tr('Warenkorb: %d Pos. / %d Stk.'):format(positions,units),footerCart:GetWidth()-22,40)
+  footerLeft:SetText(A:Tr('LOKALER SNAPSHOT  -  kein Live-Bestand · Übertragung nach WoW-Speicherung  ·  Addon %s'):format(tostring(A.version)))
   for key,panel in pairs(panels) do if key==active then panel:Show()else panel:Hide()end end
   for key,b in pairs(tabs) do
     b.blSelected=key==active
@@ -879,16 +890,16 @@ function A:RefreshUI()
       return an<bn
     end)
     itemOffset=math.max(0,math.min(itemOffset,math.max(0,#filtered-ROWS)))
-    sortButton.caption:SetText(sortMode=='stock' and A:Tr('Bestand') or 'Name')
-    pager:SetText(#filtered==0 and 'Keine Treffer' or
-      ('Treffer '..(itemOffset+1)..'–'..math.min(#filtered,itemOffset+ROWS)..' von '..#filtered))
+    sortButton.caption:SetText(sortMode=='stock' and A:Tr('Bestand') or A:Tr('Name'))
+    pager:SetText(#filtered==0 and A:Tr('Keine Treffer') or
+      A:Tr('Treffer %d–%d von %d'):format(itemOffset+1,math.min(#filtered,itemOffset+ROWS),#filtered))
     for i,r in ipairs(results) do
       local item=filtered[itemOffset+i]
       if item then
         r.icon:SetTexture(itemIcon(item.id,item.iconTexture))
         fitText(r.name,item.name,365,65)
         r.name:SetTextColor(itemColor(item.quality))
-        r.stock:SetText(tostring(item.count)..' Stk.')
+        r.stock:SetText(A:Tr('%s Stk.'):format(tostring(item.count)))
         r.bg:SetVertexColor(item.key==selectedKey and .30 or (i%2==0 and .092 or .12),
           item.key==selectedKey and .23 or .093,item.key==selectedKey and .11 or .088,.91)
         r:Show()
@@ -903,22 +914,22 @@ function A:RefreshUI()
       detailTooltipButton.currentItem=chosen
       fitText(detailName,chosen.name,nil,31)
       detailName:SetTextColor(itemColor(chosen.quality))
-      detailType:SetText('Kategorie: '..prefixChars(chosen.class,25)..'\n'..prefixChars(chosen.subclass or '',26))
-      detailLevel:SetText('Stufe '..tostring(chosen.level or '?')..'  -  Item-ID '..tostring(chosen.id))
-      detailStock:SetText('Inventur: '..tostring(chosen.count)..' Stück')
+      detailType:SetText(A:Tr('Kategorie: %s'):format(prefixChars(chosen.class,25))..'\n'..prefixChars(chosen.subclass or '',26))
+      detailLevel:SetText(A:Tr('Stufe %s  -  Item-ID %s'):format(tostring(chosen.level or '?'),tostring(chosen.id)))
+      detailStock:SetText(A:Tr('Inventur: %s Stück'):format(tostring(chosen.count)))
       addButton:Enable()
     else
       lastDetailKey=nil
       detailIcon:SetTexture('Interface\\Icons\\INV_Misc_QuestionMark')
       detailTooltipButton.currentItem=nil
-      detailName:SetText('Kein Gegenstand ausgewählt')
+      detailName:SetText(A:Tr('Kein Gegenstand ausgewählt'))
       detailType:SetText('');detailLevel:SetText('');detailStock:SetText('')
       addButton:Disable()
     end
-    detailSnapshot:SetText('Snapshot: '..snapshotTime(scan)..'\nMengen können inzwischen abweichen.')
+    detailSnapshot:SetText(A:Tr('Snapshot: %s\nMengen können inzwischen abweichen.'):format(snapshotTime(scan)))
   elseif active=='cart' then
     cartOffset=math.max(0,math.min(cartOffset,math.max(0,#cartRows-8)))
-    cartSummary:SetText(positions..' Positionen  ·  '..units..' Stück  ·  lokal')
+    cartSummary:SetText(A:Tr('%d Positionen  ·  %d Stück  ·  lokal'):format(positions,units))
     for i,r in ipairs(cartButtons) do
       local row=cartRows[cartOffset+i]
       if row then
@@ -928,29 +939,37 @@ function A:RefreshUI()
         r:Show()
       else r:Hide()end
     end
-    cartPage:SetText(positions==0 and 'Warenkorb ist leer.' or
-      ('Positionen '..(cartOffset+1)..'–'..math.min(#cartRows,cartOffset+8)..' von '..#cartRows))
+    cartPage:SetText(positions==0 and A:Tr('Warenkorb ist leer.') or
+      A:Tr('Positionen %d–%d von %d'):format(cartOffset+1,math.min(#cartRows,cartOffset+8),#cartRows))
     local orders,stamp=A:GetOrderOverview()
     for i,r in ipairs(orderRows) do
       local row=orders[i];r.row=row
       if row then r.title:SetText(row.title);r.status:SetText(row.status);r:Show() else r:Hide() end
     end
     if #orders==0 then orderEmpty:Show() else orderEmpty:Hide() end
-    orderStamp:SetText(stamp and ('Serverstand: '..stamp) or 'Serverstand: noch keiner (Companion?)')
+    orderStamp:SetText(stamp and A:Tr('Serverstand: %s'):format(stamp) or A:Tr('Serverstand: noch keiner (Companion?)'))
     if positions==0 then submitButton:Disable() else submitButton:Enable() end
   elseif active=='bank' then
-    local opened=self:IsGuildBankOpen() and 'geöffnet' or 'geschlossen'
+    local opened=self:IsGuildBankOpen() and A:Tr('geöffnet') or A:Tr('geschlossen')
     local run=self.scanRun
-    bankState:SetText('Gildenbank: '..opened..'\n\n'..(
-      scan and ('Letzter Scan: '..tostring(scan.scannedTabs)..'/'..tostring(scan.totalTabs)..' Fächer · '..
-      tostring(scan.occupiedSlots)..' belegte Slots · '..tostring(scan.quality)) or 'Noch keine Inventur vorhanden.'))
-    bankProgress:SetText(run and ('Aktiver Scan: '..tostring(run.completed)..'/'..tostring(#run.queue)..' Fächer') or
-      'Kein aktiver Scan · SavedVariables werden beim /reload oder Ausloggen gespeichert.')
+    bankState:SetText(A:Tr('Gildenbank: %s'):format(opened)..'\n\n'..(
+      scan and A:Tr('Letzter Scan: %s/%s Fächer · %s belegte Slots · %s'):format(tostring(scan.scannedTabs),
+      tostring(scan.totalTabs),tostring(scan.occupiedSlots),tostring(scan.quality)) or A:Tr('Noch keine Inventur vorhanden.')))
+    bankProgress:SetText(run and A:Tr('Aktiver Scan: %s/%s Fächer'):format(tostring(run.completed),tostring(#run.queue)) or
+      A:Tr('Kein aktiver Scan · SavedVariables werden beim /reload oder Ausloggen gespeichert.'))
   elseif active=='help' then
-    peerStatus:SetText('Ingame-Eingänge: '..#(self.db.peerInbox or {})..
-      '   |   Ingame-Ausgänge: '..#(self.db.peerOutbox or {})..
-      '   |   Keine Serverbestätigung')
+    peerStatus:SetText(A:Tr('Ingame-Eingänge: %d   |   Ingame-Ausgänge: %d   |   Keine Serverbestätigung'):format(
+      #(self.db.peerInbox or {}),#(self.db.peerOutbox or {})))
   end
+end
+-- Re-applies every static label in the active language (see A:Tr).
+function A:ApplyUILocale()
+  for _,entry in ipairs(localized) do
+    if entry.fit then fitText(entry.font,A:Tr(entry.source),entry.fit)
+    else entry.font:SetText(A:Tr(entry.source)) end
+  end
+  refreshGuildTitle()
+  if window:IsShown() then self:RefreshUI() end
 end
 function A:ToggleUI()
   if window:IsShown() then window:Hide()

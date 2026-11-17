@@ -119,8 +119,8 @@ function A:EnrichSnapshotWithClientMetadata(scan)
       scan.metadataCapturedAt=time()
       local captured=0
       for _ in pairs(scan.itemMetadata) do captured=captured+1 end
-      A:Message('Item-Daten erfasst: '..captured..'/'..math.min(#scan.items,MAX_PER_SCAN)..
-        ' Varianten. /reload oder Ausloggen speichert die Daten für den Companion.')
+      A:Message(A:Tr('Item-Daten erfasst: %d/%d Varianten. /reload oder Ausloggen speichert die Daten für den Companion.'):format(
+        captured,math.min(#scan.items,MAX_PER_SCAN)))
       if A.RefreshUI then A:RefreshUI() end
       return
     end

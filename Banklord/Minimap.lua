@@ -44,17 +44,17 @@ function A:ToggleMinimapButton()
   cfg.minimapHidden=not cfg.minimapHidden
   if cfg.minimapHidden then
     button:Hide()
-    A:Message('Minimap-Symbol ausgeblendet. Mit /banklord minimap wieder anzeigen.')
+    A:Message(A:Tr('Minimap-Symbol ausgeblendet. Mit /banklord minimap wieder anzeigen.'))
   else
     button:Show()
     place(cfg.minimapAngle)
-    A:Message('Minimap-Symbol eingeblendet.')
+    A:Message(A:Tr('Minimap-Symbol eingeblendet.'))
   end
 end
 button:SetScript('OnClick',function(_,which)
   if which=='RightButton' and A.OpenCartUI then A:OpenCartUI()
   elseif A.ToggleUI then A:ToggleUI()
-  else A:Message('Addon-Fenster nicht geladen. /reload und Lua-Fehler mit /console scriptErrors 1 pruefen.') end
+  else A:Message(A:Tr('Addon-Fenster nicht geladen. /reload und Lua-Fehler mit /console scriptErrors 1 pruefen.')) end
 end)
 button:SetScript('OnEnter',function(self)
   if not GameTooltip then return end
