@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-addon:
+    name: Website, database and addon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run all checks in Docker
+        run: sh dev/run-tests.sh
+
+  app:
+    name: Desktop app (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Package test assets
+        run: |
+          mkdir -p assets
+          python3 -c "import zipfile,pathlib; z=zipfile.ZipFile('assets/addon.zip','w',zipfile.ZIP_DEFLATED); [z.write(p, 'Banklord/'+p.name) for p in sorted(pathlib.Path('../Banklord').iterdir()) if p.is_file() and not p.name.startswith('.')]; z.close()"
+          GOOS=windows GOARCH=amd64 go build -o assets/companion.exe ./cmd/companion
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Cross-build all platforms
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          for t in windows/amd64 darwin/arm64 darwin/amd64 linux/amd64 linux/arm64; do
+            GOOS=${t%/*} GOARCH=${t#*/} go build -o /dev/null . || exit 1
+          done

@@ -1,0 +1,190 @@
+package companion
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// In-game order status. The server answers JSON; the companion alone turns it
+// into Lua, so a compromised server can never inject code into the addon.
+
+type ingameLine struct {
+	ItemID    int64  `json:"item_id"`
+	Name      string `json:"name"`
+	Requested int64  `json:"requested"`
+	Approved  int64  `json:"approved"`
+	Fulfilled int64  `json:"fulfilled"`
+	Decision  string `json:"decision"`
+}
+type ingameOrder struct {
+	ID        int64        `json:"id"`
+	ClientKey string       `json:"client_key"`
+	Status    string       `json:"status"`
+	CreatedAt int64        `json:"created_at"`
+	Lines     []ingameLine `json:"lines"`
+}
+type outboxResult struct {
+	OrderID int64  `json:"order_id,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+type ingameState struct {
+	GeneratedAt int64                   `json:"generated_at"`
+	Orders      []ingameOrder           `json:"orders"`
+	Outbox      map[string]outboxResult `json:"outbox"`
+}
+
+var (
+	clientKeyPattern = regexp.MustCompile(`^ig-[0-9]{6,12}-[a-z0-9]{6}$`)
+	codeWordPattern  = regexp.MustCompile(`^[A-Za-z_]{1,40}$`)
+)
+
+func decodeState(raw any) (ingameState, error) {
+	var st ingameState
+	if raw == nil {
+		return st, errors.New("Kein Bestellstatus in der Antwort")
+	}
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return st, err
+	}
+	if err := json.Unmarshal(b, &st); err != nil {
+		return st, errors.New("Bestellstatus unlesbar")
+	}
+	if len(st.Orders) > 50 {
+		return st, errors.New("Bestellstatus zu groß")
+	}
+	return st, nil
+}
+
+func fetchState(ctx context.Context, p Profile, token string) (ingameState, error) {
+	_, v, err := request(ctx, p, token, http.MethodGet, "/state", nil)
+	if err != nil {
+		return ingameState{}, err
+	}
+	return decodeState(v["ingame_state"])
+}
+
+// addonDir derives <client>/Interface/AddOns/Banklord from
+// <client>/WTF/Account/<NAME>/SavedVariables/Banklord.lua.
+func addonDir(source string) (string, error) {
+	sv := filepath.Dir(source)
+	account := filepath.Dir(filepath.Dir(sv))
+	wtf := filepath.Dir(account)
+	if !strings.EqualFold(filepath.Base(sv), "SavedVariables") || !strings.EqualFold(filepath.Base(account), "Account") || !strings.EqualFold(filepath.Base(wtf), "WTF") {
+		return "", errors.New("SavedVariables-Pfad hat nicht die erwartete WTF-Struktur")
+	}
+	dir := filepath.Join(filepath.Dir(wtf), "Interface", "AddOns", "Banklord")
+	if fi, err := os.Stat(filepath.Join(dir, "Banklord.toc")); err != nil || !fi.Mode().IsRegular() {
+		return "", errors.New("Addon-Ordner Banklord nicht gefunden")
+	}
+	return dir, nil
+}
+
+// luaString quotes s for Lua and neutralises WoW's | escape sequences.
+func luaString(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '\\':
+			b.WriteString(`\\`)
+		case r == '"':
+			b.WriteString(`\"`)
+		case r == '|':
+			b.WriteString("||")
+		case r < 0x20 || r == 0x7f:
+			b.WriteString(`\` + strconv.Itoa(int(r)))
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
+func word(s string) string {
+	if codeWordPattern.MatchString(s) {
+		return s
+	}
+	return "unknown"
+}
+
+func renderState(st ingameState) string {
+	var b strings.Builder
+	b.WriteString("-- Automatisch vom Banklord-Companion erzeugt. Nicht bearbeiten.\n")
+	fmt.Fprintf(&b, "Banklord_ServerState = {\n  generatedAt = %d,\n  orders = {\n", st.GeneratedAt)
+	for _, o := range st.Orders {
+		if !clientKeyPattern.MatchString(o.ClientKey) && o.ClientKey != "" {
+			o.ClientKey = ""
+		}
+		fmt.Fprintf(&b, "    { id = %d, clientKey = %s, status = %s, createdAt = %d, lines = {\n",
+			o.ID, luaString(o.ClientKey), luaString(word(o.Status)), o.CreatedAt)
+		for _, l := range o.Lines {
+			name := l.Name
+			if len([]rune(name)) > 80 {
+				name = string([]rune(name)[:80])
+			}
+			fmt.Fprintf(&b, "      { itemId = %d, name = %s, requested = %d, approved = %d, fulfilled = %d, decision = %s },\n",
+				l.ItemID, luaString(name), l.Requested, l.Approved, l.Fulfilled, luaString(word(l.Decision)))
+		}
+		b.WriteString("    } },\n")
+	}
+	b.WriteString("  },\n  outbox = {\n")
+	keys := make([]string, 0, len(st.Outbox))
+	for k := range st.Outbox {
+		if clientKeyPattern.MatchString(k) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		r := st.Outbox[k]
+		if r.OrderID > 0 {
+			fmt.Fprintf(&b, "    [%s] = { orderId = %d },\n", luaString(k), r.OrderID)
+		} else {
+			fmt.Fprintf(&b, "    [%s] = { error = %s },\n", luaString(k), luaString(word(r.Error)))
+		}
+	}
+	b.WriteString("  },\n}\n")
+	return b.String()
+}
+
+// writeServerState replaces ServerState.lua atomically; returns false if unchanged.
+func writeServerState(source string, st ingameState) (bool, error) {
+	dir, err := addonDir(source)
+	if err != nil {
+		return false, err
+	}
+	target := filepath.Join(dir, "ServerState.lua")
+	content := []byte(renderState(st))
+	if old, err := os.ReadFile(target); err == nil && stripGenerated(old) == stripGenerated(content) {
+		return false, nil
+	}
+	tmp, err := os.CreateTemp(dir, ".ServerState-*.tmp")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(content); err != nil {
+		tmp.Close()
+		return false, err
+	}
+	if err := tmp.Close(); err != nil {
+		return false, err
+	}
+	return true, os.Rename(tmp.Name(), target)
+}
+
+// stripGenerated ignores the timestamp so identical states do not rewrite the file.
+var generatedLine = regexp.MustCompile(`(?m)^  generatedAt = [0-9]+,$`)
+
+func stripGenerated(b []byte) string { return generatedLine.ReplaceAllString(string(b), "") }

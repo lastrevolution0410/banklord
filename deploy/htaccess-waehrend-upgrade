@@ -1,0 +1,35 @@
+Options -Indexes -MultiViews
+DirectoryIndex app.html
+RewriteEngine On
+# Redirect to HTTPS before any routes are processed.
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=302,L,NE]
+# Forward the Authorization header for narrow bearer API endpoints.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+# Application and API.
+RewriteRule ^$ app.html [L]
+RewriteRule ^api/v1(?:/.*)?$ index.php [QSA,L]
+RewriteRule ^(?:index\.php|app\.html|app\.css|app\.js|locales\.js|import\.html|import\.css|import\.js)$ - [L]
+# TEMPORAER: geschuetzter Update-Assistent, nach Update automatisch wieder gesperrt.
+RewriteRule ^upgrade-web\.php$ - [L]
+# Public fan-site artwork cropped from the user-provided Auction House screenshot.
+RewriteRule ^bl-auction-(?:stone|metal)\.webp$ - [L]
+# Public, signed preview-update channel; other files remain hidden.
+RewriteRule ^updates/preview/(?:manifest\.json|events\.php|files/[a-f0-9]{64}\.(?:zip|exe))$ index.php [QSA,L]
+# Deny anything not explicitly listed above.
+RewriteRule ^ - [R=404,L]
+# Only API entry point and bounded preview-event handler may run as PHP.
+<FilesMatch "^(?!(?:index|events|upgrade-web)\.php$).+\.php$">
+  Require all denied
+</FilesMatch>
+# Deny dotfiles anywhere below public/.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+ Header always set X-Content-Type-Options "nosniff"
+ Header always set Referrer-Policy "no-referrer"
+ Header always set X-Frame-Options "DENY"
+ Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>

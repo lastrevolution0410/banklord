@@ -1,0 +1,20 @@
+package companion
+
+import (
+	"encoding/base64"
+	"testing"
+)
+
+func TestParseConnectCode(t *testing.T) {
+	tok := "wgb1_" + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	code := "WGB1C:" + base64.RawURLEncoding.EncodeToString([]byte(`{"s":"https://wow-bank.mgc-nom.net/","g":1,"t":"`+tok+`"}`))
+	c, err := parseConnectCode(code)
+	if err != nil || c.Server != "https://wow-bank.mgc-nom.net" || c.Guild != 1 || c.Token != tok {
+		t.Fatalf("%+v %v", c, err)
+	}
+	for _, bad := range []string{"", "WGB1C:%%%", "WGB1C:" + base64.RawURLEncoding.EncodeToString([]byte(`{"s":"x","g":1,"t":"nope"}`))} {
+		if _, err := parseConnectCode(bad); err == nil {
+			t.Fatalf("accepted %q", bad)
+		}
+	}
+}

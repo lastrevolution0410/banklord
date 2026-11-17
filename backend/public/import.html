@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'">
+<title>Banklord – Scanner-Import (Entwicklung)</title>
+<link href="import.css" rel="stylesheet">
+<script src="import.js" defer></script>
+</head>
+<body>
+<main>
+<header><small>WoW GUILD BANK · ENTWICKLUNGSPROTOTYP</small><h1>Bankscan importieren</h1>
+<p>Gespeicherte Bankdaten prüfen und als <strong>ausstehende Inventur</strong> hinterlegen. Der Lagerbestand wird dabei <strong>nicht</strong> verändert.</p></header>
+<section class="panel" id="loginPanel">
+<h2>Bankverwaltung anmelden</h2>
+<form id="loginForm"><label>E-Mail <input id="email" type="email" autocomplete="username" required></label>
+<label>Passwort <input id="password" type="password" autocomplete="current-password" required></label>
+<button type="submit">Anmelden</button></form>
+</section>
+<section class="panel hidden" id="importPanel">
+<div class="headrow"><h2>Inventurdatei</h2><button type="button" id="logout" class="secondary">Abmelden</button></div>
+<label>Gilde <select id="guild" required></select></label>
+<p class="tip">In WoW einen <strong>vollständigen</strong> Scan mit <code>/banklord scan</code> durchführen, danach <code>/reload</code> ausführen. Unter <code>WTF/Account/DEIN-ACCOUNT/SavedVariables/</code> die Datei <code>Banklord.lua</code> auswählen.</p>
+<form id="uploadForm"><label>Gespeicherte Addon-Daten <input id="savedvars" type="file" accept=".lua" required></label>
+<button type="submit" id="upload">Als unbestätigten Scan vormerken</button></form>
+<p class="warning">Diese Funktion prüft Dateiformat und Vollständigkeit. Sie bestätigt weder die tatsächliche Existenz der Gegenstände noch die Identität des abfragenden Charakters. Kein automatisches Bestandsupdate und keine Reservierung.</p>
+<h3>Letzte Importe</h3><div id="history" aria-live="polite"></div>
+<div id="review" class="hidden" aria-live="polite"><h3>Inventur-Vorschau (ohne Bestandsänderung)</h3><div id="reviewItems"></div><button id="more" type="button" class="secondary hidden">Weitere Positionen laden</button></div>
+</section>
+<div id="message" role="status" aria-live="polite"></div>
+<footer>Nur Entwicklungs-/Testumgebung · Keine Echtgeld-, Blizzard-Login- oder Spielautomatisierungsfunktionen</footer>
+</main>
+</body></html>
