@@ -3,3 +3,4 @@ dist/
 app/assets/
 backend/private/
 deploy/private/
+/private/
