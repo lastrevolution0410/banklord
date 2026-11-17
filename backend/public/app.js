@@ -51,7 +51,7 @@ function switchGuild(){
   if(!state.guild)return;
   state.cart.clear();state.pendingOrder=null;state.details.clear();state.appearances.clear();state.appearanceRequests.clear();state.selectedStockId=null;state.inventoryFilter='all';state.categoryKey='all';state.expandedCategories.clear();state.catalogPage=0;appearanceLoading.queue=[];appearanceLoading.queued.clear();iconLookupByItemId.clear();updateCartBadge();
   $('guildTitle').textContent=state.guild.name;
-  document.title='Gildenbank – '+state.guild.name+' – Banklord';
+  document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
   $('guildSub').textContent=`${state.guild.realm} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2);$('bellBtn').classList.remove('hidden');
   $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
   state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
@@ -452,7 +452,7 @@ const ORDER_STATUS={submitted:['Eingereicht','wait'],partial:['Teilweise genehmi
 function statusBadge(status){const [text,kind]=ORDER_STATUS[status]||[status,'wait'];return el('span','badge badge-'+kind,text);}
 function when(utc){const d=new Date(String(utc).replace(' ','T')+'Z');if(Number.isNaN(d.getTime()))return String(utc);const loc=webLocale()==='enUS'?'en-US':'de-DE';
   const time=d.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'});const day=new Date();day.setHours(0,0,0,0);const diff=Math.round((day-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000);
-  return diff===0?'heute '+time:diff===1?'gestern '+time:d.toLocaleDateString(loc,{day:'2-digit',month:'2-digit'})+' '+time;}
+  const en=webLocale()==='enUS';return diff===0?(en?'today ':'heute ')+time:diff===1?(en?'yesterday ':'gestern ')+time:d.toLocaleDateString(loc,{day:'2-digit',month:'2-digit'})+' '+time;}
 function orderProgress(status){const step={submitted:0,partial:1,reserved:1,partially_fulfilled:1,fulfilled:2}[status];const bar=el('ol','progress');
   if(step===undefined)bar.classList.add('progress-stopped');
   ['Eingereicht','Genehmigt','Ausgegeben'].forEach((label,n)=>bar.append(el('li',step!==undefined&&n<=step?'done':'',label)));return bar;}
