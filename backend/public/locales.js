@@ -1,6 +1,10 @@
 /* English UI texts for Banklord. Keys are the German source texts. Placeholders {} keep their order. */
 window.BANKLORD_EN={
 exact:{
+"Weitere Systeme:":"Other systems:",
+"⬇ Banklord für macOS herunterladen":"⬇ Download Banklord for macOS",
+"⬇ Banklord für Linux herunterladen":"⬇ Download Banklord for Linux",
+
 "(Addon, Companion, automatische Updates) ·":"(addon, Companion, automatic updates) ·",
 "(ungeprüft)":"(unverified)",
 ". Warenkorb bleibt erhalten.":". Your cart is kept.",

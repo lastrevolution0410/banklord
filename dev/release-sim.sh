@@ -32,3 +32,5 @@ sed 's/"signature": "A/"signature": "B/; s/"signature": "[^A]/"signature": "A/' 
 curl -s -X POST -H "Authorization: Bearer $(cat "$SIM/token")" http://127.0.0.1:8098/api/v1/releases/publish --data-binary @"$SIM/bad.json" | grep -q "MANIFEST_SIGNATURE_INVALID\|MANIFEST_INVALID" && echo "PASS: tampered manifest rejected"
 curl -s -X POST -H "Authorization: Bearer $(cat "$SIM/token")" http://127.0.0.1:8098/api/v1/releases/publish --data-binary @"$SIM/m.json" | grep -q RELEASE_NOT_NEWER && echo "PASS: replay rejected"
 docker run --rm -v "$ROOT/app":/src -v "$SIM":/sim -e BANKLORD_MANIFEST=/sim/m.json -w /src golang:1.23 go test -run TestPublishedManifestVerifies . >/dev/null && echo "PASS: Windows client accepts signature, rejects tampering"
+curl -sf "http://127.0.0.1:8098/api/v1/download/setup?os=mac-arm64" -o "$SIM/mac.zip" && unzip -l "$SIM/mac.zip" | grep -q "Banklord.app/Contents/MacOS/Banklord" && echo "PASS: macOS app downloadable"
+curl -sf "http://127.0.0.1:8098/api/v1/download/setup?os=linux-x64" -o "$SIM/linux.zip" && unzip -l "$SIM/linux.zip" | grep -q " banklord$" && echo "PASS: Linux app downloadable"

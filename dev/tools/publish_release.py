@@ -30,11 +30,13 @@ files = {
     'updater': dist / '05_WINDOWS_INSTALLER' / f'Banklord-Setup-{V}-Windows-x64.exe',
     'web': dist / '02_WEB_PAYLOAD' / f'Banklord-Web-Payload-{V}.zip',
 }
+apps = {f'{o}-{a}': dist / '08_MAC_LINUX' / f'Banklord-{V}-{l}.zip' for o, a, l in
+        [('darwin', 'arm64', 'macOS-AppleSilicon'), ('darwin', 'amd64', 'macOS-Intel'), ('linux', 'amd64', 'Linux-x64'), ('linux', 'arm64', 'Linux-ARM64')]}
 mounts = ['-v', f'{ROOT}/app:/src', '-v', f'{HOME}:/keys:ro', '-v', f'{dist}:/dist']
 inside = lambda p: '/dist/' + str(p.relative_to(dist)) if dist in p.parents else '/src/assets/' + p.name
 update_host = a.update_host or urllib.parse.urlsplit(a.server).netloc
 subprocess.run(['docker', 'run', '--rm', *mounts, '-e', f'BANKLORD_UPDATE_HOST={update_host}', '-w', '/src', 'golang:1.23', 'go', 'run', './cmd/release-sign', '/keys/release-signing.pem', '/dist/07_SIGNIERT',
-                inside(files['addon']), addon_v, inside(files['companion']), comp_v, inside(files['updater']), setup_v, inside(files['web']), V], check=True)
+                inside(files['addon']), addon_v, inside(files['companion']), comp_v, inside(files['updater']), setup_v, inside(files['web']), V, *[x for k, f in apps.items() for x in (k, inside(f))]], check=True)
 manifest = (signed / 'manifest.json').read_bytes()
 print(f'Signiert: Web {V} · Addon {addon_v} · Companion {comp_v} · Updater {setup_v}')
 if a.dry_run:

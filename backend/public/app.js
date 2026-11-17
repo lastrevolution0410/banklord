@@ -986,3 +986,7 @@ setInterval(()=>{
 
 $('demoBtn').onclick=async()=>{const b=$('demoBtn');b.disabled=true;try{await post('/demo/start',{});location.reload();}catch(e){notice(e.message,true);b.disabled=false;}};
 $('demoEndBtn').onclick=async()=>{try{await post('/logout',{});}finally{location.reload();}};
+
+(()=>{const ua=navigator.userAgent||'',a=$('downloadMain');if(!a)return;
+  if(/Mac OS X|Macintosh/.test(ua)){a.href='/api/v1/download/setup?os=mac-arm64';a.textContent='⬇ Banklord für macOS herunterladen';}
+  else if(/Linux/.test(ua)&&!/Android/.test(ua)){a.href='/api/v1/download/setup?os=linux-x64';a.textContent='⬇ Banklord für Linux herunterladen';}})();

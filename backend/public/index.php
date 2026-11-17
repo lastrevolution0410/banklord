@@ -79,14 +79,22 @@ if ($updatePath==='/api/v1/download/setup') {
     $manifest=@file_get_contents(dirname(__DIR__).'/private/releases/manifest.json');
     $env=is_string($manifest)?json_decode($manifest,true):null;
     $payload=is_array($env)&&is_string($env['payload']??null)?json_decode((string)base64_decode($env['payload'],true),true):null;
-    $sha=$payload['updater']['sha256']??'';$version=$payload['updater']['version']??'';
-    $file=dirname(__DIR__).'/private/releases/files/'.$sha.'.exe';
+    // ?os=mac-arm64|mac-intel|linux-x64|linux-arm64, default Windows.
+    $targets=['mac-arm64'=>['darwin-arm64','macOS-AppleSilicon'],'mac-intel'=>['darwin-amd64','macOS-Intel'],'linux-x64'=>['linux-amd64','Linux-x64'],'linux-arm64'=>['linux-arm64','Linux-ARM64']];
+    $os=(string)($_GET['os']??'windows');
+    if (isset($targets[$os])) {
+        $entry=$payload['apps'][$targets[$os][0]]??[];$ext='zip';$label=$targets[$os][1];
+    } else {
+        $entry=$payload['updater']??[];$ext='exe';$label='Windows-x64';
+    }
+    $sha=$entry['sha256']??'';$version=$entry['version']??'';
+    $file=dirname(__DIR__).'/private/releases/files/'.$sha.'.'.$ext;
     if (!is_string($sha) || !preg_match('/^[a-f0-9]{64}$/D',$sha) || !is_string($version)
         || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]{1,40})?$/D',$version) || !is_file($file)) {
         http_response_code(404);echo json_encode(['error'=>'NO_SETUP_PUBLISHED']);exit;
     }
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="Banklord-Setup-'.$version.'-Windows-x64.exe"');
+    header('Content-Disposition: attachment; filename="'.($ext==='exe'?'Banklord-Setup-'.$version.'-Windows-x64.exe':'Banklord-'.$version.'-'.$label.'.zip').'"');
     header('Content-Length: '.filesize($file));
     header('Cache-Control: no-store');
     header('X-BL-SHA256: '.$sha);
@@ -247,11 +255,11 @@ try {
                 'sodium'=>function_exists('sodium_crypto_sign_verify_detached'),'post_max_size'=>ini_get('post_max_size')]);
         }
         if ($method==='POST' && preg_match('~^/releases/files/([a-f0-9]{64})\.(zip|exe)$~D',$path,$rf)) {
-            $offset=(string)($_SERVER['HTTP_X_BANKLORD_OFFSET']??'');
+            $offset=(string)($_SERVER['HTTP_X_BL_OFFSET']??'');
             if (!preg_match('/^(0|[1-9][0-9]{0,9})$/D',$offset)) reply(400,['error'=>'OFFSET_REQUIRED']);
             $chunk=file_get_contents('php://input',false,null,0,8_388_609);
             if ($chunk===false) reply(400,['error'=>'CHUNK_UNREADABLE']);
-            reply(200,$publisher->putChunk($rf[1],$rf[2],(int)$offset,$chunk,($_SERVER['HTTP_X_BANKLORD_FINAL']??'')==='1'));
+            reply(200,$publisher->putChunk($rf[1],$rf[2],(int)$offset,$chunk,($_SERVER['HTTP_X_BL_FINAL']??'')==='1'));
         }
         if ($method==='POST' && $path==='/releases/publish') {
             $manifest=file_get_contents('php://input',false,null,0,16385);

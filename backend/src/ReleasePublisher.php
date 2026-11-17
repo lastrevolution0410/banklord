@@ -72,8 +72,12 @@ final class ReleasePublisher {
             || !sodium_crypto_sign_verify_detached($sig,$payload,$key)) throw new DomainError('MANIFEST_SIGNATURE_INVALID');
         $p=json_decode($payload,true);
         if (!is_array($p) || ($p['protocol']??0)!==1 || ($p['channel']??'')!=='preview' || ($p['client']??'')!=='mop-classic-5.5.4') throw new DomainError('MANIFEST_INVALID');
-        foreach (['addon'=>'zip','companion'=>'exe','updater'=>'exe','web'=>'zip'] as $part=>$ext) {
-            $f=$p[$part]??null;
+        $apps=$p['apps']??[];
+        if (!is_array($apps) || count($apps)>8) throw new DomainError('MANIFEST_INVALID');
+        foreach ($apps as $k=>$v) if (!is_string($k) || !preg_match('/^(darwin|linux)-(amd64|arm64)$/D',$k)) throw new DomainError('MANIFEST_INVALID');
+        $parts=['addon'=>[$p['addon']??null,'zip'],'companion'=>[$p['companion']??null,'exe'],'updater'=>[$p['updater']??null,'exe'],'web'=>[$p['web']??null,'zip']];
+        foreach ($apps as $k=>$v) $parts['app:'.$k]=[$v,'zip'];
+        foreach ($parts as [$f,$ext]) {
             if (!is_array($f) || !is_string($f['version']??null) || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]{1,40})?$/D',$f['version'])
                 || !is_string($f['sha256']??null) || !preg_match('/^[a-f0-9]{64}$/D',$f['sha256'])
                 || ($f['url']??'')!=='https://'.($host ?? self::updateHost()).'/updates/preview/files/'.$f['sha256'].'.'.$ext) throw new DomainError('MANIFEST_INVALID');
@@ -90,8 +94,8 @@ final class ReleasePublisher {
 
     public function publish(int $tokenId, string $manifest, WebUpdater $web): array {
         [$p]=self::verify($manifest);
-        foreach (['addon'=>'zip','companion'=>'exe','updater'=>'exe','web'=>'zip'] as $part=>$ext)
-            if (!is_file($this->filePath($p[$part]['sha256'],$ext))) throw new DomainError('RELEASE_FILE_MISSING');
+        foreach (self::files($p) as [$sha,$ext])
+            if (!is_file($this->filePath($sha,$ext))) throw new DomainError('RELEASE_FILE_MISSING');
         $current=@file_get_contents($this->manifestPath());
         if (is_string($current) && $current!=='') {
             [$old]=self::verify($current);
@@ -115,7 +119,7 @@ final class ReleasePublisher {
 
     /** Keep the files of the current release only (plus anything younger than a day). */
     private function pruneFiles(array $p): void {
-        $keep=[];foreach (['addon','companion','updater','web'] as $k) $keep[$p[$k]['sha256']]=true;
+        $keep=[];foreach (self::files($p) as [$sha]) $keep[$sha]=true;
         foreach (glob($this->dir().'/files/*') ?: [] as $f) {
             $sha=substr(basename($f),0,64);
             if (!isset($keep[$sha]) && filemtime($f)<time()-86400) @unlink($f);
@@ -127,6 +131,14 @@ final class ReleasePublisher {
         if (!is_string($m) || $m==='') return ['published'=>false];
         [$p]=self::verify($m);
         return ['published'=>true,'published_at'=>$p['published_at'],'digest'=>hash('sha256',$m),
-            'versions'=>['web'=>$p['web']['version'],'addon'=>$p['addon']['version'],'companion'=>$p['companion']['version'],'updater'=>$p['updater']['version']]];
+            'versions'=>['web'=>$p['web']['version'],'addon'=>$p['addon']['version'],'companion'=>$p['companion']['version'],'updater'=>$p['updater']['version']],
+            'apps'=>array_map(static fn($a)=>$a['version'],$p['apps']??[])];
+    }
+
+    /** All files of a release as [sha256, extension]. */
+    public static function files(array $p): array {
+        $out=[[$p['addon']['sha256'],'zip'],[$p['companion']['sha256'],'exe'],[$p['updater']['sha256'],'exe'],[$p['web']['sha256'],'zip']];
+        foreach ($p['apps']??[] as $a) $out[]=[$a['sha256'],'zip'];
+        return $out;
     }
 }
