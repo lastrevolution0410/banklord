@@ -8,8 +8,7 @@ import (
 )
 
 func TestDiscoverInstallerRegisteredUnusualPath(t *testing.T) {
-	cfg := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", cfg)
+	cfg := isolateConfig(t)
 	root := t.TempDir()
 	client := filepath.Join(root, "Very", "Unusual", "Install", "_classic_")
 	file := filepath.Join(client, "WTF", "Account", "TestAccount", "SavedVariables", "Banklord.lua")

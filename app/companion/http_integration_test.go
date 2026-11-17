@@ -72,7 +72,7 @@ func TestBrowserRoundtripWithUnexpectedOrigin(t *testing.T) {
 }
 
 func TestLauncherRejectsOlderRunningVersion(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	isolateConfig(t)
 	old := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
 	defer old.Close()
 	addr, _ := url.Parse(old.URL)
@@ -94,7 +94,7 @@ func TestLauncherRejectsOlderRunningVersion(t *testing.T) {
 }
 
 func TestLauncherReusesOnlyCurrentVersion(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	isolateConfig(t)
 	cur := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-WGB-Companion-Version", companionVersion)
 		w.WriteHeader(200)

@@ -143,8 +143,7 @@ func TestSessionProtection(t *testing.T) {
 }
 
 func TestRecordClientWithoutSecrets(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", dir)
+	dir := isolateConfig(t)
 	root := t.TempDir()
 	client := fakeGame(t, root, "_classic_")
 	if e := recordClientPath(client); e != nil {

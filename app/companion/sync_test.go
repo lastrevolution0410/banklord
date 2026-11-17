@@ -16,7 +16,7 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func testProfile() Profile {
-	return Profile{Server: "https://wow-test.example.de", GuildID: 7, Source: filepath.Join(string(filepath.Separator), "tmp", "Banklord.lua"), IntervalSeconds: 15}
+	return Profile{Server: "https://wow-test.example.de", GuildID: 7, Source: filepath.Join(os.TempDir(), "Banklord.lua"), IntervalSeconds: 15}
 }
 func testToken() string { return "wgb1_" + strings.Repeat("a", 64) }
 func TestValidate(t *testing.T) {

@@ -28,9 +28,7 @@ func packagedAddonVersion(t *testing.T) string {
 
 func setupCompanionFixture(t *testing.T) {
 	t.Helper()
-	dir := t.TempDir()
-	t.Setenv("LOCALAPPDATA", dir)
-	t.Setenv("XDG_CONFIG_HOME", dir)
+	isolateConfig(t)
 }
 
 func TestSmartInstallUpdateRepairUninstall(t *testing.T) {
