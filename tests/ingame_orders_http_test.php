@@ -17,7 +17,7 @@ $mkUser=function(string $role) use($db,$g){ static $n=0;$n++;
   $db->prepare("INSERT INTO guild_memberships (guild_id,user_id,role) VALUES (?,?,?)")->execute([$g,$u,$role]); return $u; };
 $manager=$mkUser('bank_manager'); $member=$mkUser('member');
 // Stock via a confirmed scan.
-$db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'wgb-addon-savedvariables-v2',?,?)")->execute([$g,"window-v1-io-$g",gmdate('Y-m-d H:i:s',time()-60)]);
+$db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'banklord-savedvariables-v2',?,?)")->execute([$g,"window-v1-io-$g",gmdate('Y-m-d H:i:s',time()-60)]);
 $sid=(int)$db->lastInsertId();
 foreach ([[1,2589,'item:2589:0:0:0:0:0:0:0:0',20],[2,38938,'item:38938:0:0:0:0:0:0:0:0',3]] as [$slot,$item,$key,$qty])
   $db->prepare("INSERT INTO snapshot_source_lines (snapshot_id,tab_no,slot_no,wow_item_id,variant_key,item_link,item_name,quantity) VALUES (?,1,?,?,?,?,?,?)")->execute([$sid,$slot,$item,$key,'l',"Item $item",$qty]);
@@ -26,10 +26,10 @@ $tok=(new BridgeTokens($db))->issueMemberOrders($g,$member,'Test-PC')['token'];
 $now=time(); $sv=function(array $outbox) {
   $rows=''; foreach($outbox as $o) $rows.="{[\"clientKey\"]=\"{$o[0]}\",[\"code\"]=\"{$o[1]}\",[\"character\"]=\"Testchar-Everlook\",[\"note\"]=\"\",[\"createdAt\"]={$o[2]},},";
   return "BanklordDB = {\n[\"orderOutbox\"] = {".$rows."},\n}\n"; };
-$k1="ig-$now-abc123"; $code='WGB1|2589,5,item:2589:0:0:0:0:0:0:0:0|38938,1,item:38938:0:0:0:0:0:0:0:0';
+$k1="ig-$now-abc123"; $code='BL1|2589,5,item:2589:0:0:0:0:0:0:0:0|38938,1,item:38938:0:0:0:0:0:0:0:0';
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/status",$tok);
 $ok($st===200 && ($r['scope']??'')==='member.orders' && ($r['capabilities']??[])===['order_sync'],"status probe ($st)");
-[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,$sv([[$k1,$code,$now],["ig-$now-zzz999",'WGB1|99999,1,item:99999:0:0:0:0:0:0:0:0',$now]]));
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,$sv([[$k1,$code,$now],["ig-$now-zzz999",'BL1|99999,1,item:99999:0:0:0:0:0:0:0:0',$now]]));
 $oid=$r['ingame_orders'][$k1]['order_id']??null;
 $ok($st===200 && is_int($oid),"order created ($st) ".json_encode($r['ingame_orders']??$r));
 $ok(($r['ingame_orders']["ig-$now-zzz999"]['error']??'')==='UNKNOWN_ITEM','unknown item rejected');

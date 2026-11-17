@@ -1,6 +1,6 @@
 """Builds, signs and publishes a release in one step.
 
-Usage: python3 -I dev/tools/publish_release.py 0.9.2 [--server https://wow-bank.mgc-nom.net] [--dry-run]
+Usage: python3 -I dev/tools/publish_release.py 0.9.2 [--server https://banklord.mgc-nom.net] [--dry-run]
 
 Needs ~/.banklord/release-signing.pem (private, offline) and
 ~/.banklord/publish-token (created on the website: Updates & System).
@@ -12,7 +12,7 @@ HOME = pathlib.Path.home() / '.banklord'
 CHUNK = 4 * 1024 * 1024
 
 ap = argparse.ArgumentParser()
-ap.add_argument('version'); ap.add_argument('--server', default=os.environ.get('BANKLORD_SERVER','https://wow-bank.mgc-nom.net')); ap.add_argument('--dry-run', action='store_true'); ap.add_argument('--update-host', help='host in the signed download URLs (default: host of --server)'); ap.add_argument('--token-file', default=str(HOME / 'publish-token'))
+ap.add_argument('version'); ap.add_argument('--server', default=os.environ.get('BANKLORD_SERVER','https://banklord.mgc-nom.net')); ap.add_argument('--dry-run', action='store_true'); ap.add_argument('--update-host', help='host in the signed download URLs (default: host of --server)'); ap.add_argument('--token-file', default=str(HOME / 'publish-token'))
 a = ap.parse_args()
 V = a.version
 setup_v = re.search(r'const setupVersion = "([^"]+)"', (ROOT / 'app/manage.go').read_text()).group(1)
@@ -57,7 +57,7 @@ for f in sorted((signed / 'files').iterdir()):
     offset = 0
     while True:
         part = data[offset:offset + CHUNK]; final = offset + len(part) >= len(data)
-        r = call('POST', f'/releases/files/{sha}.{ext}', part, {'X-WGB-Offset': str(offset), 'X-WGB-Final': '1' if final else '0'})
+        r = call('POST', f'/releases/files/{sha}.{ext}', part, {'X-BL-Offset': str(offset), 'X-BL-Final': '1' if final else '0'})
         if r.get('complete'): break
         if r.get('error') == 'OFFSET_MISMATCH': offset = r['size']; continue
         offset += len(part)

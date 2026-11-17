@@ -29,7 +29,7 @@ func TestBrowserRoundtripWithUnexpectedOrigin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if get.StatusCode != http.StatusOK || len(page) == 0 || get.Header.Get("X-WGB-Companion-Version") != companionVersion {
+	if get.StatusCode != http.StatusOK || len(page) == 0 || get.Header.Get("X-BL-Companion-Version") != companionVersion {
 		t.Fatalf("version not served; code=%d", get.StatusCode)
 	}
 	for _, test := range []struct {
@@ -96,7 +96,7 @@ func TestLauncherRejectsOlderRunningVersion(t *testing.T) {
 func TestLauncherReusesOnlyCurrentVersion(t *testing.T) {
 	isolateConfig(t)
 	cur := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-WGB-Companion-Version", companionVersion)
+		w.Header().Set("X-BL-Companion-Version", companionVersion)
 		w.WriteHeader(200)
 	}))
 	defer cur.Close()

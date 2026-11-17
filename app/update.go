@@ -1,7 +1,6 @@
 package main
 
 import (
-	"runtime"
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -16,20 +15,23 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
 
 // updateHost is the official update server. Forks and self-hosters override it at build time:
-//   go build -ldflags "-X main.updateHost=updates.example.org"
-var updateHost = "wow-bank.mgc-nom.net"
+//
+//	go build -ldflags "-X main.updateHost=updates.example.org"
+var updateHost = "banklord.mgc-nom.net"
 
 var updateManifestURL = "https://" + updateHost + "/updates/preview/manifest.json"
 
 const (
-	updateKeyB64      = "fnurLSrCmhYmaJw6CG0NZtwMka5aEIQWqYC6DmcGMRk="
-	maxManifestBytes  = 16 << 10
-	updateInterval    = 30 * time.Second
+	updateKeyB64     = "fnurLSrCmhYmaJw6CG0NZtwMka5aEIQWqYC6DmcGMRk="
+	maxManifestBytes = 16 << 10
+	updateInterval   = 30 * time.Second
 )
 
 type releaseFile struct {
@@ -48,7 +50,13 @@ type releasePayload struct {
 	// (the website applies its own part server-side; clients ignore it).
 	Updater releaseFile `json:"updater,omitempty"`
 	Web     releaseFile `json:"web,omitempty"`
+	// Optional since 1.0.1: the app for macOS and Linux as a zip per platform,
+	// keyed "darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64".
+	Apps map[string]releaseFile `json:"apps,omitempty"`
 }
+
+var appPlatformRE = regexp.MustCompile(`^(darwin|linux)-(amd64|arm64)$`)
+
 type signedRelease struct {
 	Payload   string `json:"payload"`
 	Signature string `json:"signature"`
@@ -73,6 +81,15 @@ func validateRelease(r releasePayload, origin *url.URL) error {
 		if f.Version != "" || f.URL != "" || f.SHA256 != "" {
 			files = append(files, f)
 		}
+	}
+	if len(r.Apps) > 8 {
+		return errors.New("zu viele Plattform-Pakete")
+	}
+	for k, f := range r.Apps {
+		if !appPlatformRE.MatchString(k) {
+			return errors.New("Plattform-Paket unbekannt")
+		}
+		files = append(files, f)
 	}
 	for _, f := range files {
 		if _, ok := compareVersions(f.Version, "0.0.0"); !ok {
@@ -185,22 +202,6 @@ func remoteUpdateClient(ctx context.Context, release releasePayload, clientPath 
 	if err != nil {
 		return "", err
 	}
-	migrated := ""
-	if !st.Present && legacyAddonPresent(clientPath) {
-		// Installation from before the rename: install Banklord, take over the data.
-		if gameRunning {
-			return "", errors.New("Umzug auf Banklord wartet, bis WoW beendet ist")
-		}
-		if _, err := installAddon(clientPath, addonBytes); err != nil {
-			return "", fmt.Errorf("Umzug auf Banklord: %w", err)
-		}
-		if migrated, err = migrateLegacyAddon(clientPath); err != nil {
-			return "", err
-		}
-		if st, err = inspectAddon(clientPath, addonBytes); err != nil {
-			return "", err
-		}
-	}
 	if !st.Present {
 		return "", errors.New("Addon nicht installiert; zunächst Setup starten")
 	}
@@ -282,9 +283,6 @@ func remoteUpdateClient(ctx context.Context, release releasePayload, clientPath 
 			}
 		}
 	}
-	if migrated != "" {
-		msg = migrated + "; " + msg
-	}
 	return msg, nil
 }
 func performRemoteAddonUpdate(client string, b []byte, version string) (string, error) {
@@ -355,6 +353,9 @@ func checkUpdateAndApply() string {
 		return "Kein unterstütztes Ziel registriert"
 	}
 	if m := selfUpdateIfNewer(ctx, release); m != "" {
+		msgs = append(msgs, m)
+	}
+	if m := syncUnixCompanion(); m != "" {
 		msgs = append(msgs, m)
 	}
 	return strings.Join(msgs, " | ")

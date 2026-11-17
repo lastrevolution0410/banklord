@@ -10,7 +10,7 @@ final class BridgeTokens
 
     public static function tokenIsWellFormed(string $token): bool
     {
-        return (bool)preg_match('/^wgb1_[a-f0-9]{64}$/D', $token);
+        return (bool)preg_match('/^bl1_[a-f0-9]{64}$/D', $token);
     }
 
     public function issue(int $guild, int $actor, string $label): array
@@ -25,7 +25,7 @@ final class BridgeTokens
             $count = $this->db->prepare("SELECT COUNT(*) FROM bridge_tokens WHERE guild_id=? AND scope IN ('scan.stage','scan.auto') AND revoked_at IS NULL AND expires_at>UTC_TIMESTAMP()");
             $count->execute([$guild]);
             if ((int)$count->fetchColumn() >= 5) throw new DomainError('BRIDGE_TOKEN_LIMIT');
-            $plaintext = 'wgb1_'.bin2hex(random_bytes(32));
+            $plaintext = 'bl1_'.bin2hex(random_bytes(32));
             $digest=hash('sha256',$plaintext);
             $stmt=$this->db->prepare("INSERT INTO bridge_tokens (guild_id,created_by,label,token_hash,scope,expires_at) VALUES (?,?,?,?,'scan.stage',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 90 DAY))");
             $stmt->execute([$guild,$actor,$label,$digest]);
@@ -50,7 +50,7 @@ final class BridgeTokens
             $count = $this->db->prepare("SELECT COUNT(*) FROM bridge_tokens WHERE guild_id=? AND created_by=? AND scope='member.orders' AND revoked_at IS NULL AND expires_at>UTC_TIMESTAMP()");
             $count->execute([$guild,$actor]);
             if ((int)$count->fetchColumn() >= 2) throw new DomainError('BRIDGE_TOKEN_LIMIT');
-            $plaintext = 'wgb1_'.bin2hex(random_bytes(32));
+            $plaintext = 'bl1_'.bin2hex(random_bytes(32));
             $stmt=$this->db->prepare("INSERT INTO bridge_tokens (guild_id,created_by,label,token_hash,scope,expires_at) VALUES (?,?,?,?,'member.orders',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 180 DAY))");
             $stmt->execute([$guild,$actor,$label,hash('sha256',$plaintext)]);
             $tokenId=(int)$this->db->lastInsertId();
@@ -99,7 +99,7 @@ final class BridgeTokens
                 if ($label==='' || mb_strlen($label)>80) throw new DomainError('INVALID_TOKEN_LABEL');
                 $q=$this->db->prepare('SELECT COUNT(*) FROM bridge_tokens WHERE guild_id=? AND revoked_at IS NULL AND expires_at>UTC_TIMESTAMP()');
                 $q->execute([$guild]);if ((int)$q->fetchColumn()>=5) throw new DomainError('BRIDGE_TOKEN_LIMIT');
-                $plain='wgb1_'.bin2hex(random_bytes(32));
+                $plain='bl1_'.bin2hex(random_bytes(32));
                 $ins=$this->db->prepare("INSERT INTO bridge_tokens (guild_id,created_by,label,token_hash,scope,expires_at) VALUES (?,?,?,?,'scan.auto',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 90 DAY))");
                 $ins->execute([$guild,$actor,$label,hash('sha256',$plain)]);
                 $issued=['id'=>(int)$this->db->lastInsertId(),'token'=>$plain,'scope'=>'scan.auto','expires_in_days'=>90];

@@ -1,12 +1,16 @@
 package main
 
 import (
-	"runtime"
+	"archive/zip"
+	"bytes"
 	"context"
+	"errors"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -32,13 +36,23 @@ func runningAsInstalledUpdater() bool {
 // build: rename the running file aside (allowed on Windows), move the verified
 // new file in place, start it and exit. The new process waits for the watcher lock.
 func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
-	if runtime.GOOS != "windows" || release.Updater.Version == "" || !runningAsInstalledUpdater() {
+	if !runningAsInstalledUpdater() {
 		return ""
 	}
-	if cmp, ok := compareVersions(release.Updater.Version, setupVersion); !ok || cmp <= 0 {
+	own := release.Updater
+	if runtime.GOOS != "windows" {
+		own = release.Apps[runtime.GOOS+"-"+runtime.GOARCH]
+	}
+	if own.Version == "" {
 		return ""
 	}
-	data, err := fetchUpdateFile(ctx, updateHTTPClient(), release.Updater, 64<<20)
+	if cmp, ok := compareVersions(own.Version, setupVersion); !ok || cmp <= 0 {
+		return ""
+	}
+	data, err := fetchUpdateFile(ctx, updateHTTPClient(), own, 64<<20)
+	if err == nil && runtime.GOOS != "windows" {
+		data, err = binaryFromAppZip(data)
+	}
 	if err != nil {
 		return "Updater-Update: " + err.Error()
 	}
@@ -50,6 +64,9 @@ func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
 	}
 	defer os.Remove(tmp.Name())
 	if _, err = tmp.Write(data); err == nil {
+		err = tmp.Chmod(0o700)
+	}
+	if err == nil {
 		err = tmp.Close()
 	} else {
 		tmp.Close()
@@ -71,7 +88,7 @@ func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
 		_ = os.Rename(old, dest)
 		return "Updater-Update: Neustart fehlgeschlagen: " + err.Error()
 	}
-	log.Println("Updater auf", release.Updater.Version, "aktualisiert; übergebe an neuen Prozess.")
+	log.Println("Updater auf", own.Version, "aktualisiert; übergebe an neuen Prozess.")
 	os.Exit(0)
 	return ""
 }
@@ -87,4 +104,52 @@ func startBackgroundUpdater() {
 	if _, err := os.Stat(updaterPath()); err == nil {
 		_ = exec.Command(updaterPath(), "--watch-updates").Start()
 	}
+}
+
+// binaryFromAppZip returns the program inside a macOS/Linux release zip:
+// "Banklord.app/Contents/MacOS/Banklord" on macOS, "banklord" on Linux.
+func binaryFromAppZip(b []byte) ([]byte, error) {
+	r, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range r.File {
+		n := strings.ReplaceAll(f.Name, "\\", "/")
+		if n != "Banklord.app/Contents/MacOS/Banklord" && n != "banklord" {
+			continue
+		}
+		if f.UncompressedSize64 > 64<<20 {
+			return nil, errors.New("Programm im Paket zu groß")
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+		return io.ReadAll(io.LimitReader(rc, 64<<20))
+	}
+	return nil, errors.New("Programm im Paket nicht gefunden")
+}
+
+// syncUnixCompanion refreshes the installed companion copy on macOS/Linux,
+// where the companion is the same program, once it is not running.
+func syncUnixCompanion() string {
+	if runtime.GOOS == "windows" || !runningAsInstalledUpdater() {
+		return ""
+	}
+	payload, err := companionPayload()
+	if err != nil {
+		return ""
+	}
+	st, err := inspectCompanion(payload)
+	if err != nil || !st.Present || st.Recognized {
+		return ""
+	}
+	if running, _ := companionIsRunning(); running {
+		return "Companion-Update wartet, bis der Companion beendet ist"
+	}
+	if _, err := installCompanionVersion(payload, setupVersion, false, false); err != nil {
+		return "Companion-Update: " + err.Error()
+	}
+	return "Companion aktualisiert auf " + setupVersion
 }

@@ -85,7 +85,7 @@ function A:BuildCartTransferCode()
   if #parts==0 then return nil,A:Tr('Der Warenkorb ist leer.') end
   if #parts>50 then return nil,A:Tr('Maximal 50 Positionen übertragbar.') end
   table.sort(parts)
-  local transfer='WGB1|'..table.concat(parts,'|')
+  local transfer='BL1|'..table.concat(parts,'|')
   if #transfer>4000 then return nil,A:Tr('Übertragungscode zu lang.') end
   return transfer
 end

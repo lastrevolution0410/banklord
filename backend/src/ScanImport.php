@@ -115,14 +115,14 @@ final class ScanImport
         if ($byKey !== []) self::bad('IMPORT_AGGREGATE_INCOMPLETE');
         usort($lines, static fn($a, $b) => [$a['tab_no'], $a['slot_no']] <=> [$b['tab_no'], $b['slot_no']]);
         // Content-specific idempotency. Includes guild and timestamp but not the uploading user.
-        $fingerprint = hash('sha256', json_encode(['format'=>'wgb-sv2', 'guild'=>$guild, 'realm'=>$realm,
+        $fingerprint = hash('sha256', json_encode(['format'=>'banklord-sv2', 'guild'=>$guild, 'realm'=>$realm,
             'timestamp'=>$timestamp, 'tabs'=>$total, 'lines'=>$lines], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         return [
             'source_key'=>'window-v1-'.$fingerprint, 'observed_at'=>$firstTabCapturedAt, 'guild'=>$guild, 'realm'=>$realm,
             'total_tabs'=>$total, 'occupied_slots'=>$occupied, 'item_variants'=>count($scan['items']),
             'total_quantity'=>$quantity, 'lines'=>$lines,
             'metadata'=>ItemMetadata::fromScan($scan,$lines),
-            'source'=>'wgb-addon-savedvariables-v2', 'quality'=>'unverified', 'status'=>'pending',
+            'source'=>'banklord-savedvariables-v2', 'quality'=>'unverified', 'status'=>'pending',
         ];
     }
 }

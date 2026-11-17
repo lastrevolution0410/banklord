@@ -22,7 +22,7 @@ import (
 const maxPayload = 4 * 1024 * 1024
 const maxResponse = 256 * 1024
 
-var tokenPattern = regexp.MustCompile(`^wgb1_[a-f0-9]{64}$`)
+var tokenPattern = regexp.MustCompile(`^bl1_[a-f0-9]{64}$`)
 var httpClient = &http.Client{
 	Timeout:       25 * time.Second,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },

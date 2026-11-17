@@ -577,7 +577,7 @@ details.panel>summary{cursor:pointer;font-weight:700;color:#f1d48f}
 .restock-form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end}
 .restock-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center}
 @media(max-width:720px){.restock-form{grid-template-columns:1fr}.restock-row{grid-template-columns:1fr auto}}
-/* 0.9.8 Mitglieder */
+/* Mitglieder */
 .panel.attention{border-color:#c99b45;box-shadow:0 0 14px #e0b25a22}
 .member-todo{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.member-todo span{flex:1;min-width:220px}
 .member-row{display:grid;grid-template-columns:1fr 170px 120px auto;gap:10px;align-items:center}

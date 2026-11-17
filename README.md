@@ -47,10 +47,6 @@ The setup page only exists until Banklord is configured. Your settings are store
 
 Releases are signed with Ed25519. Websites and desktop apps accept only manifests signed with the project key. Forks must create their own key with `go run ./cmd/release-keygen` and replace the public key in `update.go` and `ReleasePublisher.php`. They must also build with `-ldflags "-X main.updateHost=<your host>"`.
 
-## Compatibility identifiers
-
-The project was called "WoWGuildBank" before 1.0. A few short identifiers from that time are part of the wire format and stay unchanged, so existing keys, devices and data keep working: token prefixes `wgb1_` and `wgbp1_`, the connect code prefix `WGB1C:`, HTTP headers `X-WGB-*`, the scan source tag `wgb-addon-savedvariables-v2`, and the in-game transfer and sync prefixes `WGB1|` and `WGBSYNC1`. Version 1.0 moves old installations to the new names automatically: the addon folder and its saved data, the Windows programs, autostart entries and the desktop shortcut.
-
 ## License
 
 Copyright © 2026 Björn Thiel Ebert.

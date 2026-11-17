@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."; SIM=$(mktemp -d); J=$SIM/cookies
 trap 'docker rm -f bl-instsim >/dev/null 2>&1; rm -rf "$SIM"' EXIT
 cp -R backend/. "$SIM/"; rm -rf "$SIM/private"
 docker compose -f dev/docker-compose.yml up -d --wait >/dev/null 2>&1
-docker compose -f dev/docker-compose.yml exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS blinst; CREATE DATABASE blinst; GRANT ALL ON blinst.* TO 'wgb'@'%'"
+docker compose -f dev/docker-compose.yml exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS blinst; CREATE DATABASE blinst; GRANT ALL ON blinst.* TO 'banklord'@'%'"
 docker run -d --name bl-instsim --network dev_default -p 8097:8097 -v "$SIM":/srv -w /srv -e APP_HTTPS=off \
   dev-php php -S 0.0.0.0:8097 -t public public/index.php >/dev/null
 sleep 2
@@ -16,7 +16,7 @@ curl -s $B/install -H "Accept-Language: en-US" | grep -q "Set up Banklord" && ec
 PAGE=$(curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install)
 echo "$PAGE" | grep -q 'Banklord einrichten' && echo "PASS: setup page shown"
 CSRF=$(echo "$PAGE" | sed -n 's/.*name="csrf" value="\([a-f0-9]*\)".*/\1/p')
-post() { curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install --data-urlencode "csrf=$CSRF" -d db_host=db -d db_name=blinst -d db_user=wgb -d db_pass=wgbdevpass \
+post() { curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install --data-urlencode "csrf=$CSRF" -d db_host=db -d db_name=blinst -d db_user=banklord -d db_pass=banklorddevpass \
   -d guild=Testgilde -d realm=Everlook -d region=EU -d email=admin@example.org -d name=Admin "$@"; }
 post -d password=short -d password2=short | grep -q 'mindestens 14' && echo "PASS: weak password rejected"
 post -d password=a-long-test-password -d password2=a-long-test-password | grep -q 'Fertig' && echo "PASS: setup completed"

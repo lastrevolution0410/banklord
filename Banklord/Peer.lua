@@ -1,7 +1,7 @@
 -- Banklord MoP Classic: offline-capable, durable LOCAL outbox for peer DRAFTS.
 -- This does NOT provide HTTP, guaranteed peer delivery, or server order confirmation.
 local A=Banklord
-local PREFIX='WGBSYNC1'
+local PREFIX='BLSYNC1'
 local PART=150
 local MAX_PARTS=30
 local MAX_PENDING=50
@@ -17,9 +17,9 @@ local function peerNameEquals(a,b)
   return type(a)=='string' and type(b)=='string' and a:lower()==b:lower()
 end
 local function validTransfer(s)
-  if type(s)~='string' or #s<12 or #s>4000 or s:sub(1,5)~='WGB1|' then return false end
+  if type(s)~='string' or #s<12 or #s>4000 or s:sub(1,4)~='BL1|' then return false end
   local count=0
-  for part in (s:sub(6)..'|'):gmatch('(.-)|') do
+  for part in (s:sub(5)..'|'):gmatch('(.-)|') do
     if part=='' then return false end
     local id,quantity,key=part:match('^(%d+),(%d+),(item:[%d:%-]+)$')
     id=tonumber(id);quantity=tonumber(quantity)

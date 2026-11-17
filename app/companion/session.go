@@ -68,7 +68,7 @@ func existingSession() (string, error) {
 	if resp.StatusCode != 200 {
 		return "", errors.New("Companion ist nicht erreichbar")
 	}
-	if resp.Header.Get("X-WGB-Companion-Version") != companionVersion {
+	if resp.Header.Get("X-BL-Companion-Version") != companionVersion {
 		return "", errOldCompanionRunning
 	}
 	return s.URL, nil

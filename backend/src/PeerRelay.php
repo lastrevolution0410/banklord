@@ -25,8 +25,8 @@ final class PeerRelay {
   return $out;
  }
  public static function validCode(string $text):bool {
-  if(strlen($text)<12||strlen($text)>4000||!str_starts_with($text,'WGB1|'))return false;
-  $parts=explode('|',substr($text,5));
+  if(strlen($text)<12||strlen($text)>4000||!str_starts_with($text,'BL1|'))return false;
+  $parts=explode('|',substr($text,4));
   if(count($parts)<1||count($parts)>50)return false;
   foreach($parts as $part){
    if(!preg_match('/^([1-9][0-9]{0,9}),([1-9][0-9]{0,6}),(item:[0-9:\-]+)$/D',$part,$m))return false;

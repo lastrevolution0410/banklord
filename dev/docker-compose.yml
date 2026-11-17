@@ -1,13 +1,13 @@
 services:
   db:
     image: mariadb:10.11
-    environment: { MARIADB_ROOT_PASSWORD: devroot, MARIADB_DATABASE: wgb, MARIADB_USER: wgb, MARIADB_PASSWORD: wgbdevpass }
+    environment: { MARIADB_ROOT_PASSWORD: devroot, MARIADB_DATABASE: banklord, MARIADB_USER: banklord, MARIADB_PASSWORD: banklorddevpass }
     healthcheck: { test: ["CMD","healthcheck.sh","--connect"], interval: 3s, retries: 20 }
   php:
     build: { context: ., dockerfile: php.Dockerfile }
     working_dir: /app/backend
     volumes: ["..:/app"]
-    environment: { DB_HOST: db, DB_NAME: wgb, DB_USER: wgb, DB_PASS: wgbdevpass, APP_HTTPS: "off" }
+    environment: { DB_HOST: db, DB_NAME: banklord, DB_USER: banklord, DB_PASS: banklorddevpass, APP_HTTPS: "off" }
     command: php -S 0.0.0.0:8080 -t public /app/dev/router.php
     ports: ["8080:8080"]
     depends_on: { db: { condition: service_healthy } }

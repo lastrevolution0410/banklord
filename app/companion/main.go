@@ -195,7 +195,6 @@ func secureKey() (string, error) {
 }
 // Main runs the companion: local browser UI, uploads and in-game status.
 func Main() {
-	MigrateLegacyConfig()
 	if existing, err := existingSession(); err == nil {
 		browser(existing)
 		return
@@ -250,13 +249,13 @@ var page = template.Must(template.New("page").Parse(`<!doctype html><html lang="
 <p>Einmal einrichten, danach werden neue <strong>gespeicherte</strong> Bankscans automatisch über verschlüsseltes HTTPS übertragen. Während des Spielens schreibt WoW die Datei regulär erst bei <code>/reload</code> oder Logout.</p>
 <article><h2>Status</h2><p class="status">{{.Status}}</p>{{if .Last}}<p>Letzter bestätigter Upload: {{.Last}}</p>{{end}}<p>{{if .Active}}Überwachung aktiv{{else}}Überwachung pausiert oder noch nicht eingerichtet{{end}} · Ohne ausdrücklich eingerichteten Auto-Token bleiben Scans zur Prüfung vorgemerkt. Bei aktivierter Automatik werden geeignete Scans automatisch abgeglichen; Konflikte erfordern manuelle Prüfung.</p><form method="post"><input type="hidden" name="csrf" value="{{.CSRF}}"><button name="action" value="refresh" class="secondary">Status aktualisieren</button>{{if .Configured}}<button name="action" value="toggle" class="secondary">{{if .Active}}Pause{{else}}Fortsetzen{{end}}</button>{{end}}<button name="action" value="exit" class="secondary">Companion beenden</button></form><ul>{{range .Messages}}<li>{{.}}</li>{{end}}</ul></article>
 <article><h2>Einrichtung</h2><form method="post" autocomplete="off"><input type="hidden" name="csrf" value="{{.CSRF}}">
-<label for="connect"><strong>Verbindungscode</strong> (auf der Website unter Konto erzeugen und hier einfügen – füllt Server, Gilde und Schlüssel)</label><input name="connect" id="connect" type="password" placeholder="WGB1C:…" spellcheck="false" autocomplete="off">
+<label for="connect"><strong>Verbindungscode</strong> (auf der Website unter Konto erzeugen und hier einfügen – füllt Server, Gilde und Schlüssel)</label><input name="connect" id="connect" type="password" placeholder="BL1C:…" spellcheck="false" autocomplete="off">
 <details{{if not .Server}}{{else}} open{{end}}><summary>Manuell eintragen</summary>
-<label for="server">Adresse der Website (HTTPS)</label><input name="server" id="server" type="url" placeholder="https://wow-bank.mgc-nom.net" value="{{.Server}}">
+<label for="server">Adresse der Website (HTTPS)</label><input name="server" id="server" type="url" placeholder="https://banklord.mgc-nom.net" value="{{.Server}}">
 <label for="guild">Gilden-ID aus der Website</label><input name="guild" id="guild" type="number" min="0" max="2147483647" value="{{.Guild}}">
 <label for="source">Banklord.lua – vollständiger Dateipfad</label><input name="source" id="source" value="{{.Source}}" placeholder="C:\...\_classic_\WTF\Account\...\SavedVariables\Banklord.lua">
 {{if .Files}}<label>Gefundene Dateien als Hilfe</label><select name="detected"><option value="">Gefundene Datei auswählen (überschreibt den Textpfad)</option>{{range .Files}}<option value="{{.}}">{{.}}</option>{{end}}</select>{{end}}
-<label for="token">Bridge-Token (im Web-Adminbereich einmalig erzeugen)</label><input name="token" id="token" type="password" placeholder="{{if .Configured}}Leer lassen, um bisherigen Schlüssel zu behalten{{else}}wgb1_...{{end}}" spellcheck="false" autocomplete="off">
+<label for="token">Bridge-Token (im Web-Adminbereich einmalig erzeugen)</label><input name="token" id="token" type="password" placeholder="{{if .Configured}}Leer lassen, um bisherigen Schlüssel zu behalten{{else}}bl1_...{{end}}" spellcheck="false" autocomplete="off">
 </details>
 <label for="interval">Datei-Überprüfung in Sekunden</label><input name="interval" id="interval" type="number" min="10" max="600" value="{{.Interval}}" required>
 <button name="action" value="save">Konfiguration speichern und starten</button><button name="action" value="test" class="secondary">Server und Token prüfen</button></form>
@@ -275,7 +274,7 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Host nicht erlaubt", 403)
 		return
 	}
-	w.Header().Set("X-WGB-Companion-Version", companionVersion)
+	w.Header().Set("X-BL-Companion-Version", companionVersion)
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("X-Frame-Options", "DENY")

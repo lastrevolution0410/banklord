@@ -118,7 +118,7 @@ function A:ShowOrderTooltip(owner,row)
       GameTooltip:AddDoubleLine(l.name or A:Tr('Item %s'):format(tostring(l.itemId)),detail,.98,.97,.92,.87,.84,.78)
     end
   elseif row.code then
-    for part in tostring(row.code):sub(6):gmatch('[^|]+') do
+    for part in tostring(row.code):sub(5):gmatch('[^|]+') do
       local id,qty=part:match('^(%d+),(%d+),')
       local name=id and type(GetItemInfo)=='function' and GetItemInfo(tonumber(id)) or A:Tr('Item %s'):format(tostring(id))
       GameTooltip:AddDoubleLine(name,A:Tr('%s Stück'):format(qty or '?'),.98,.97,.92,.87,.84,.78)

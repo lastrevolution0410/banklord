@@ -18,7 +18,7 @@ func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { retu
 func testProfile() Profile {
 	return Profile{Server: "https://wow-test.example.de", GuildID: 7, Source: filepath.Join(os.TempDir(), "Banklord.lua"), IntervalSeconds: 15}
 }
-func testToken() string { return "wgb1_" + strings.Repeat("a", 64) }
+func testToken() string { return "bl1_" + strings.Repeat("a", 64) }
 func TestValidate(t *testing.T) {
 	good := testProfile()
 	if err := good.validate(); err != nil {
@@ -34,7 +34,7 @@ func TestValidate(t *testing.T) {
 	p := good
 	p.Source = "other.lua"
 	if p.validate() == nil {
-		t.Fatal("Non-WGB Lua accepted")
+		t.Fatal("Foreign Lua accepted")
 	}
 	p = good
 	p.IntervalSeconds = 1

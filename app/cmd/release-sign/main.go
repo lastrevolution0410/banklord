@@ -17,7 +17,7 @@ import (
 )
 
 // Override with BANKLORD_UPDATE_HOST for forks and self-hosted update servers.
-var base = "https://" + hostOr(os.Getenv("BANKLORD_UPDATE_HOST"), "wow-bank.mgc-nom.net") + "/updates/preview/files/"
+var base = "https://" + hostOr(os.Getenv("BANKLORD_UPDATE_HOST"), "banklord.mgc-nom.net") + "/updates/preview/files/"
 
 func hostOr(v, d string) string {
 	if v == "" {
@@ -40,6 +40,8 @@ type Payload struct {
 	Companion   File   `json:"companion"`
 	Updater     File   `json:"updater"`
 	Web         File   `json:"web"`
+	// macOS/Linux app zips, same version as the updater.
+	Apps map[string]File `json:"apps,omitempty"`
 }
 type Envelope struct {
 	Payload   string `json:"payload"`
@@ -47,8 +49,8 @@ type Envelope struct {
 }
 
 func main() {
-	if len(os.Args) != 11 {
-		fmt.Fprintln(os.Stderr, "Verwendung: release-sign PRIVATE.pem OUT_DIR ADDON.zip VERSION COMPANION.exe VERSION UPDATER.exe VERSION WEB.zip VERSION")
+	if len(os.Args) < 11 || (len(os.Args)-11)%2 != 0 {
+		fmt.Fprintln(os.Stderr, "Verwendung: release-sign PRIVATE.pem OUT_DIR ADDON.zip VERSION COMPANION.exe VERSION UPDATER.exe VERSION WEB.zip VERSION [PLATTFORM APP.zip]…")
 		os.Exit(2)
 	}
 	data, err := os.ReadFile(os.Args[1])
@@ -75,6 +77,12 @@ func main() {
 	}
 	payload := Payload{Protocol: 1, Channel: "preview", Client: "mop-classic-5.5.4", PublishedAt: time.Now().UTC().Format(time.RFC3339),
 		Addon: file(os.Args[3], os.Args[4]), Companion: file(os.Args[5], os.Args[6]), Updater: file(os.Args[7], os.Args[8]), Web: file(os.Args[9], os.Args[10])}
+	for i := 11; i+1 < len(os.Args); i += 2 {
+		if payload.Apps == nil {
+			payload.Apps = map[string]File{}
+		}
+		payload.Apps[os.Args[i]] = file(os.Args[i+1], os.Args[8])
+	}
 	p, err := json.Marshal(payload)
 	die(err)
 	e, _ := json.MarshalIndent(Envelope{base64.StdEncoding.EncodeToString(p), base64.StdEncoding.EncodeToString(ed25519.Sign(sk, p))}, "", "  ")

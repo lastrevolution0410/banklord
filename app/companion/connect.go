@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Verbindungscode from the website: "WGB1C:" + base64url(JSON{s,g,t}).
+// Verbindungscode from the website: "BL1C:" + base64url(JSON{s,g,t}).
 type connectCode struct {
 	Server string `json:"s"`
 	Guild  int64  `json:"g"`
@@ -21,10 +21,10 @@ type connectCode struct {
 
 func parseConnectCode(code string) (connectCode, error) {
 	code = strings.TrimSpace(code)
-	if !strings.HasPrefix(code, "WGB1C:") || len(code) > 600 {
+	if !strings.HasPrefix(code, "BL1C:") || len(code) > 600 {
 		return connectCode{}, errors.New("Verbindungscode ungültig")
 	}
-	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(code[6:], "="))
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(strings.TrimPrefix(code, "BL1C:"), "="))
 	if err != nil {
 		return connectCode{}, errors.New("Verbindungscode beschädigt")
 	}

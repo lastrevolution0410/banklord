@@ -14,7 +14,7 @@ func TestLocalUIHostOriginAndSecret(t *testing.T) {
 
 	get := httptest.NewRecorder()
 	c.handle(get, httptest.NewRequest(http.MethodGet, path, nil))
-	if get.Header().Get("X-WGB-Companion-Version") != companionVersion {
+	if get.Header().Get("X-BL-Companion-Version") != companionVersion {
 		t.Fatal("version header missing or outdated")
 	}
 	if get.Code != http.StatusOK {

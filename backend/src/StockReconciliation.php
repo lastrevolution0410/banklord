@@ -23,7 +23,7 @@ final class StockReconciliation
         $result=['can_confirm'=>false,'reason'=>null,'observed_at'=>$snapshot['observed_at'],
             'checked_at'=>gmdate('Y-m-d H:i:s'),'conflict'=>null];
         if ($snapshot['status']!=='pending' || $snapshot['quality']!=='unverified'
-            || $snapshot['source']!=='wgb-addon-savedvariables-v2') {
+            || $snapshot['source']!=='banklord-savedvariables-v2') {
             $result['reason']='SNAPSHOT_NOT_PENDING';return $result;
         }
         // Pre-patch snapshots used the scan FINISH time; their capture windows
@@ -86,7 +86,7 @@ final class StockReconciliation
             }
             $s=$this->db->prepare('SELECT * FROM stock_snapshots WHERE id=? AND guild_id=? FOR UPDATE');
             $s->execute([$snapshotId,$guild]);$snap=$s->fetch();
-            if (!$snap || $snap['status']!=='pending' || $snap['quality']!=='unverified' || $snap['source']!=='wgb-addon-savedvariables-v2') throw new DomainError('SNAPSHOT_NOT_PENDING');
+            if (!$snap || $snap['status']!=='pending' || $snap['quality']!=='unverified' || $snap['source']!=='banklord-savedvariables-v2') throw new DomainError('SNAPSHOT_NOT_PENDING');
             if (!str_starts_with((string)$snap['source_key'],'window-v1-')) throw new DomainError('LEGACY_SCAN_REFRESH_REQUIRED');
             $time=strtotime($snap['observed_at'].' UTC');
             if (!$time || time()-$time>($automated?self::MAX_AGE_AUTOMATED:self::MAX_AGE_MANUAL) || $time>time()+300) throw new DomainError('SNAPSHOT_TOO_OLD');

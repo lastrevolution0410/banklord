@@ -17,7 +17,7 @@ use PDO;
  * automatic check (the admin button keeps working).
  */
 final class UpstreamUpdater {
-    public const DEFAULT_SOURCE = 'https://wow-bank.mgc-nom.net/updates/preview/manifest.json';
+    public const DEFAULT_SOURCE = 'https://banklord.mgc-nom.net/updates/preview/manifest.json';
     private const INTERVAL = 6 * 3600;
 
     public function __construct(private readonly PDO $db, private readonly string $root) {}

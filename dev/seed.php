@@ -18,7 +18,7 @@ $items=[[2589,'Leinenstoff',120,'Handwerkswaren','Stoff','inv_fabric_linen_01'],
  [76084,'Fläschchen der Frühlingsblüte',30,'Verbrauchbar','Fläschchen','inv_alchemy_endlessflask_04'],[76085,'Fläschchen der Erde',18,'Verbrauchbar','Fläschchen','inv_alchemy_endlessflask_06'],
  [76093,'Trank der Jadeschlange',40,'Verbrauchbar','Trank','trade_alchemy_potione3'],[74650,'Mogu-Fischeintopf',60,'Verbrauchbar','Essen & Trinken','inv_alchemy_endlessflask_04'],
  [38938,'Rolle: Armschiene – Werte',3,'Verbrauchbar','Verzauberung','inv_scroll_03'],[76131,'Primordialer Rubin',12,'Edelstein','Rot','inv_misc_gem_x4_rare_uncut_red'],[89112,'Mote der Harmonie',55,'Handwerkswaren','Elementar','inv_misc_gem_x4_rare_uncut_red']];
-$db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'wgb-addon-savedvariables-v2','window-v1-seed',?)")->execute([$g,gmdate('Y-m-d H:i:s',time()-600)]);
+$db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'banklord-savedvariables-v2','window-v1-seed',?)")->execute([$g,gmdate('Y-m-d H:i:s',time()-600)]);
 $sid=(int)$db->lastInsertId();$slot=0;
 $meta=$db->prepare("INSERT INTO item_client_metadata (guild_id,wow_item_id,variant_hash,variant_key,client_flavor,client_version,client_build,locale,localized_name,quality,item_type,item_sub_type,icon_name,completeness,captured_at) VALUES (?,?,?,?,'mop_classic','5.5.4','0','deDE',?,1,?,?,?,'basic',UTC_TIMESTAMP())");
 foreach ($items as [$id,$name,$qty,$type,$sub,$icon]) {

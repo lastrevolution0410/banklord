@@ -5,7 +5,7 @@ const webLocale=()=>window.BLLang?.locale||'deDE';
 const state={csrf:'',user:null,guilds:[],guild:null,items:[],cart:new Map(),tab:'inventory',orders:[],details:new Map(),favorites:new Set(),wishlist:[],templates:[],itemPage:1,hasNextItems:false,pendingOrder:null,selectedStockId:null,inventoryFilter:'all',categoryKey:'all',expandedCategories:new Set(),catalogPage:0,showEmpty:false,appearances:new Map(),appearanceRequests:new Map()};
 const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x;};
 const add=(parent,...nodes)=>{parent.append(...nodes);return parent;};
-const freshId=()=>{const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return 'wgb_'+Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');};
+const freshId=()=>{const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return 'bl_'+Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');};
 let toastTimer;
 function notice(message,error=false){const toast=$('toast');toast.textContent=message;toast.className='toast'+(error?' error':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.add('hidden'),7000);}
 async function api(path,opts={}){
@@ -678,7 +678,7 @@ async function createToken(){
   const result=await post(path('bridge-tokens'),{label});const data=result.credential;showConnectCode($('tokenResult'),data.token,'Verbindungscode für den Companion des Bankverwalters (gilt 90 Tage, lädt Scans zur Prüfung hoch):');
   await loadTokens();
 }
-function connectCode(token){const json=JSON.stringify({s:location.origin,g:Number(state.guild.id),t:token});return 'WGB1C:'+btoa(json).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function connectCode(token){const json=JSON.stringify({s:location.origin,g:Number(state.guild.id),t:token});return 'BL1C:'+btoa(json).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function showConnectCode(root,token,intro){root.replaceChildren();root.classList.remove('hidden');
   const code=connectCode(token);const box=el('input');box.readOnly=true;box.value=code;box.onclick=()=>box.select();
   const copy=el('button','button-sm','Code kopieren');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(code);copy.textContent='Kopiert ✓';}catch(_e){box.select();}};
@@ -881,8 +881,8 @@ async function loadActivity(){
 $('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice('Registrierung: '+err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){
-  if(input.length>20000||!input.startsWith('WGB1|'))throw Error('Übertragungscode ungültig');
-  const chunks=input.slice(5).split('|');if(chunks.length<1||chunks.length>50)throw Error('Zu viele Positionen');
+  if(input.length>20000||!input.startsWith('BL1|'))throw Error('Übertragungscode ungültig');
+  const chunks=input.slice(4).split('|');if(chunks.length<1||chunks.length>50)throw Error('Zu viele Positionen');
   const output=[];for(const chunk of chunks){const match=chunk.match(/^(\d{1,10}),(\d{1,7}),(item:[0-9:\-]{1,150})$/);if(!match)throw Error('Fehlerhafter Code');const id=Number(match[1]),quantity=Number(match[2]);if(!Number.isSafeInteger(id)||!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000)throw Error('Ungültige Mengen');output.push({id,quantity,variant:match[3]});}return output;
 }
 $('importAddonCart').onclick=async()=>{try{const transfer=parseAddonTransfer($('addonTransfer').value.trim());let count=0;for(const part of transfer){const resp=await api(path('items')+'?q='+part.id);const matches=resp.items.filter(x=>Number(x.wow_item_id)===part.id&&x.variant_key===part.variant);if(matches.length!==1)throw Error('Item/Variante '+part.id+' ist auf dem Server nicht eindeutig vorhanden');const item=matches[0];/* Unverified requests remain pending approval. */state.cart.set(Number(item.stock_id),{id:Number(item.stock_id),name:item.name,quantity:part.quantity,max:1000000});state.pendingOrder=null;count++;}updateCartBadge();renderCart();notice(count+' Positionen in den Web-Warenkorb übernommen. Bitte vor Bestellung prüfen.');}catch(err){notice(err.message,true);}};

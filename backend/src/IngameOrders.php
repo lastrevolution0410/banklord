@@ -46,7 +46,7 @@ final class IngameOrders {
             WHERE gs.guild_id=? AND i.wow_flavor='mop_classic' AND i.wow_item_id=? AND i.variant_key=?");
         foreach ($entries as $entry) {
             $lines=[];$missing=false;
-            foreach (explode('|',substr($entry['code'],5)) as $part) {
+            foreach (explode('|',substr($entry['code'],4)) as $part) {
                 [$itemId,$qty,$variant]=explode(',',$part,3);
                 $find->execute([$guild,(int)$itemId,$variant]);$stock=$find->fetchColumn();
                 if ($stock===false) {$missing=true;break;}

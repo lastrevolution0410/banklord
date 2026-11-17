@@ -89,7 +89,7 @@ if ($updatePath==='/api/v1/download/setup') {
     header('Content-Disposition: attachment; filename="Banklord-Setup-'.$version.'-Windows-x64.exe"');
     header('Content-Length: '.filesize($file));
     header('Cache-Control: no-store');
-    header('X-WGB-SHA256: '.$sha);
+    header('X-BL-SHA256: '.$sha);
     readfile($file);exit;
 }
 ini_set('session.use_strict_mode','1');
@@ -197,7 +197,7 @@ try {
         if ($bearer==='' && function_exists('getallheaders')) {
             foreach (getallheaders() as $headerName=>$value) if (strcasecmp($headerName,'Authorization')===0) $bearer=$value;
         }
-        if (!preg_match('/^Bearer (wgb1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
+        if (!preg_match('/^Bearer (bl1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         $caps=['scan.auto'=>['scan_stage','auto_reconcile_when_safe','order_sync'],'scan.stage'=>['scan_stage','order_sync'],'member.orders'=>['order_sync']];
@@ -210,7 +210,7 @@ try {
         if ($bearer==='' && function_exists('getallheaders')) {
             foreach (getallheaders() as $headerName=>$value) if (strcasecmp($headerName,'Authorization')===0) $bearer=$value;
         }
-        if (!preg_match('/^Bearer (wgb1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
+        if (!preg_match('/^Bearer (bl1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         $b=json_decode((string)file_get_contents('php://input',false,null,0,2048),true);
@@ -229,7 +229,7 @@ try {
         if ($bearer==='' && function_exists('getallheaders')) {
             foreach (getallheaders() as $headerName=>$value) if (strcasecmp($headerName,'Authorization')===0) $bearer=$value;
         }
-        if (!preg_match('/^Bearer (wgb1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
+        if (!preg_match('/^Bearer (bl1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         reply(200,['ingame_state'=>(new IngameOrders($db))->state($guildId,$auth['actor'])]);
@@ -271,7 +271,7 @@ try {
         if ($bearer==='' && function_exists('getallheaders')) {
             foreach (getallheaders() as $headerName=>$value) if (strcasecmp($headerName,'Authorization')===0) $bearer=$value;
         }
-        if (!preg_match('/^Bearer (wgb1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
+        if (!preg_match('/^Bearer (bl1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);$actor=$auth['actor'];}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         $file=file_get_contents('php://input',false,null,0,4_194_305);

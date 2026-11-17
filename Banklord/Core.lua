@@ -196,7 +196,6 @@ end
 
 SLASH_BANKLORD1 = "/banklord"
 SLASH_BANKLORD2 = "/bl"
-SLASH_BANKLORD3 = "/wgb" -- legacy name, kept for existing users
 SlashCmdList.BANKLORD = function(text)
   local cmd = tostring(text or ""):lower():match("^%s*(.-)%s*$")
   if cmd == "scan" or cmd == "scan all" then

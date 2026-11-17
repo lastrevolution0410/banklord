@@ -82,7 +82,7 @@ final class Demo {
         foreach (['Aria' => 'Ariandel', 'Borin' => 'Borinbank', 'Kaelis' => 'Kaelis'] as $user => $char) {
             try { $community->addCharacter($g, $users[$user], $char, 'Everlook'); } catch (\Throwable $e) {}
         }
-        $db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'wgb-addon-savedvariables-v2',?,?)")
+        $db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'banklord-savedvariables-v2',?,?)")
             ->execute([$g, 'window-v1-demo-'.bin2hex(random_bytes(4)), gmdate('Y-m-d H:i:s', time() - 300)]);
         $sid = (int)$db->lastInsertId();
         $line = $db->prepare('INSERT INTO snapshot_source_lines (snapshot_id,tab_no,slot_no,wow_item_id,variant_key,item_link,item_name,quantity) VALUES (?,?,?,?,?,?,?,?)');

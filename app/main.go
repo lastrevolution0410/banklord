@@ -269,13 +269,6 @@ func start() error {
 			w.redirect(out, r)
 			return
 		}
-		if action != "uninstall" && legacyAddonPresent(client) {
-			if m, e := migrateLegacyAddon(client); e != nil {
-				msg += " | " + e.Error()
-			} else {
-				msg += " | " + m
-			}
-		}
 		if action == "uninstall" {
 			if r.PostForm.Get("removeCompanion") == "yes" {
 				companionMsg, e := performCompanionAction("uninstall", nil, false, false)
@@ -449,11 +442,7 @@ func main() {
 		}
 		return
 	}
-	companion.MigrateLegacyConfig()
 	if len(os.Args) > 1 && os.Args[1] == "--watch-updates" {
-		if migrateLegacyWindows() {
-			return
-		}
 		release, err := acquireWatcherLock(90 * time.Second)
 		if err != nil {
 			log.Println("Update-Dienst läuft bereits:", err)

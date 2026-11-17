@@ -26,13 +26,13 @@ final class ReleasePublisher {
     public function issueToken(int $actor, string $label): array {
         $label=trim($label);
         if ($label==='' || mb_strlen($label)>80) throw new DomainError('INVALID_TOKEN_LABEL');
-        $plain='wgbp1_'.bin2hex(random_bytes(32));
+        $plain='blp1_'.bin2hex(random_bytes(32));
         $this->db->prepare('INSERT INTO release_publish_tokens (created_by,label,token_hash) VALUES (?,?,?)')->execute([$actor,$label,hash('sha256',$plain)]);
         return ['id'=>(int)$this->db->lastInsertId(),'label'=>$label,'token'=>$plain];
     }
 
     public function authorize(string $bearer): int {
-        if (!preg_match('/^Bearer (wgbp1_[a-f0-9]{64})$/D',$bearer,$m)) throw new DomainError('PUBLISH_TOKEN_INVALID');
+        if (!preg_match('/^Bearer (blp1_[a-f0-9]{64})$/D',$bearer,$m)) throw new DomainError('PUBLISH_TOKEN_INVALID');
         $s=$this->db->prepare("SELECT t.id FROM release_publish_tokens t JOIN guild_memberships m ON m.user_id=t.created_by
             WHERE t.token_hash=? AND t.revoked_at IS NULL AND m.role='admin' AND m.status='active' LIMIT 1");
         $s->execute([hash('sha256',$m[1])]);$id=$s->fetchColumn();
@@ -83,7 +83,7 @@ final class ReleasePublisher {
 
     /** Host of this update server (config key UPDATE_HOST); defaults to the official one. */
     public static function updateHost(): string {
-        $h=strtolower(trim((string)(getenv('UPDATE_HOST') ?: 'wow-bank.mgc-nom.net')));
+        $h=strtolower(trim((string)(getenv('UPDATE_HOST') ?: 'banklord.mgc-nom.net')));
         if (!preg_match('/^[a-z0-9.-]{1,253}(?::[0-9]{1,5})?$/D',$h)) throw new DomainError('UPDATE_HOST_INVALID');
         return $h;
     }

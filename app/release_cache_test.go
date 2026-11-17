@@ -17,8 +17,8 @@ func TestSignedCachedManifestKeepsSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	origin, _ := url.Parse("https://wow-bank.mgc-nom.net/updates/preview/manifest.json")
-	r := releasePayload{Protocol: 1, Channel: "preview", Client: "mop-classic-5.5.4", Addon: releaseFile{"0.6.0", "https://wow-bank.mgc-nom.net/updates/preview/addon.zip", strings.Repeat("a", 64)}, Companion: releaseFile{"0.4.0", "https://wow-bank.mgc-nom.net/updates/preview/companion.exe", strings.Repeat("b", 64)}}
+	origin, _ := url.Parse("https://banklord.mgc-nom.net/updates/preview/manifest.json")
+	r := releasePayload{Protocol: 1, Channel: "preview", Client: "mop-classic-5.5.4", Addon: releaseFile{"0.6.0", "https://banklord.mgc-nom.net/updates/preview/addon.zip", strings.Repeat("a", 64)}, Companion: releaseFile{"0.4.0", "https://banklord.mgc-nom.net/updates/preview/companion.exe", strings.Repeat("b", 64)}}
 	p, _ := json.Marshal(r)
 	env := signedRelease{Payload: base64.StdEncoding.EncodeToString(p), Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, p))}
 	b, _ := json.Marshal(env)

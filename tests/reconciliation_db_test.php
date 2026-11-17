@@ -11,7 +11,7 @@ $db->prepare("INSERT INTO users (email,password_hash,display_name) VALUES (?,?,?
 $db->prepare("INSERT INTO guild_memberships (guild_id,user_id,role) VALUES (?,?,'bank_manager')")->execute([$g,$u]);
 $snap=function(int $ageSec,array $lines) use($db,$g){
   static $n=0; $n++;
-  $db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'wgb-addon-savedvariables-v2',?,?)")
+  $db->prepare("INSERT INTO stock_snapshots (guild_id,source,source_key,observed_at) VALUES (?,'banklord-savedvariables-v2',?,?)")
      ->execute([$g,"window-v1-test-$g-$n",gmdate('Y-m-d H:i:s',time()-$ageSec)]);
   $id=(int)$db->lastInsertId(); $slot=0;
   foreach($lines as $item=>$qty) $db->prepare("INSERT INTO snapshot_source_lines (snapshot_id,tab_no,slot_no,wow_item_id,variant_key,item_link,item_name,quantity) VALUES (?,1,?,?,?,?,?,?)")

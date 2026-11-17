@@ -15,12 +15,12 @@ func TestTokenFileFallbackRoundTrip(t *testing.T) {
 	if _, err := exec.LookPath("secret-tool"); err == nil {
 		t.Skip("secret-tool present")
 	}
-	sealed, err := protectToken("wgb_tok_123")
-	if err != nil || sealed == "wgb_tok_123" {
+	sealed, err := protectToken("bl_tok_123")
+	if err != nil || sealed == "bl_tok_123" {
 		t.Fatalf("%q %v", sealed, err)
 	}
 	plain, err := unprotectToken(sealed)
-	if err != nil || plain != "wgb_tok_123" {
+	if err != nil || plain != "bl_tok_123" {
 		t.Fatalf("%q %v", plain, err)
 	}
 	if _, err := unprotectToken("AQAAANCMnd8BFdERjHoAwE"); err == nil {

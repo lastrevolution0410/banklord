@@ -3,11 +3,11 @@
 set -e
 cd "$(dirname "$0")"
 docker compose up -d --wait >/dev/null 2>&1
-if ! docker compose exec -T db mariadb -uwgb -pwgbdevpass wgb -e "SELECT 1 FROM schema_migrations LIMIT 1" >/dev/null 2>&1; then
-  docker compose exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS wgb; CREATE DATABASE wgb; GRANT ALL ON wgb.* TO 'wgb'@'%'"
-  for f in ../backend/sql/*.sql; do docker compose exec -T db mariadb -uwgb -pwgbdevpass wgb < "$f"; done && echo "PASS: all migrations"
+if ! docker compose exec -T db mariadb -ubanklord -pbanklorddevpass banklord -e "SELECT 1 FROM schema_migrations LIMIT 1" >/dev/null 2>&1; then
+  docker compose exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS banklord; CREATE DATABASE banklord; GRANT ALL ON banklord.* TO 'banklord'@'%'"
+  for f in ../backend/sql/*.sql; do docker compose exec -T db mariadb -ubanklord -pbanklorddevpass banklord < "$f"; done && echo "PASS: all migrations"
 else
-  for f in ../backend/sql/*.sql; do n=$(basename "$f"); docker compose exec -T db mariadb -uwgb -pwgbdevpass wgb -N -e "SELECT 1 FROM schema_migrations WHERE name='$n'" | grep -q 1 || docker compose exec -T db mariadb -uwgb -pwgbdevpass wgb < "$f"; done
+  for f in ../backend/sql/*.sql; do n=$(basename "$f"); docker compose exec -T db mariadb -ubanklord -pbanklorddevpass banklord -N -e "SELECT 1 FROM schema_migrations WHERE name='$n'" | grep -q 1 || docker compose exec -T db mariadb -ubanklord -pbanklorddevpass banklord < "$f"; done
 fi
 docker compose exec -T php sh -c '
 set -e

@@ -171,6 +171,11 @@ function assess(PDO $pdo,array $payload):array {
  $col=$pdo->prepare("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME='bridge_tokens' AND COLUMN_NAME='scope'");
  $col->execute([$config['DB_NAME']]);
  if(!str_contains((string)$col->fetchColumn(),'member.orders'))$pending[]='010_member_order_tokens.sql';
+ // Data-only migrations from 013 on are recorded in schema_migrations.
+ foreach(['013_banklord_identifiers.sql'] as $script){
+  if(in_array('011_release_publishing.sql',$pending,true)){$pending[]=$script;continue;}
+  $m=$pdo->prepare('SELECT 1 FROM schema_migrations WHERE name=?');$m->execute([$script]);if(!$m->fetchColumn())$pending[]=$script;
+ }
  sort($pending);
  foreach(['users','guilds','guild_memberships','guild_stock','orders','stock_snapshots'] as $table){
   $q->execute([$config['DB_NAME'],$table]);if(!$q->fetchColumn())fail_now('Basistabelle fehlt: '.$table);
@@ -306,7 +311,7 @@ try {
     }else fail_now('Unbekannte Aktion.');
   }
  }
-}catch(Throwable $e){$error=$e->getMessage();error_log('WGB updater: '.get_class($e).' (operation failed)');}
+}catch(Throwable $e){$error=$e->getMessage();error_log('Banklord updater: '.get_class($e).' (operation failed)');}
 $authenticated=authed();
 ?><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Banklord – Web-Update</title>
 <style>body{margin:0;background:#0e1726;color:#edf4ff;font:16px/1.5 system-ui,Arial,sans-serif}main{max-width:790px;margin:25px auto;padding:20px}section{background:#172338;border:1px solid #334866;padding:22px;border-radius:15px;margin-bottom:18px}h1{font-size:27px}h2{font-size:19px}label{display:block;margin:13px 0 5px;font-weight:600}input[type=email],input[type=password],input[type=file]{background:#0c1828;border:1px solid #55739a;border-radius:8px;color:white;padding:12px;box-sizing:border-box;width:100%}input[type=checkbox]{width:auto;margin-right:8px}button{background:#3981c4;border:0;padding:12px 18px;color:white;border-radius:9px;font-weight:700;cursor:pointer;margin-top:18px}.notice{color:#c5d9eb}.error{background:#592833;padding:15px;border-radius:9px}.ok{background:#204b3d;padding:15px;border-radius:9px}small{color:#b8c7d8}strong{color:#fff}code{font-family:ui-monospace,monospace;overflow-wrap:anywhere}

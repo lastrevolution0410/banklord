@@ -110,12 +110,12 @@ local ok5,err5=pcall(A.OpenCartUI,A);assert(ok5,err5)
 local ok6,err6=pcall(SlashCmdList.BANKLORD,'bestellen');assert(ok6,err6)
 assert(#A.db.orderOutbox==1,'order must be queued')
 local queued=A.db.orderOutbox[1]
-assert(queued.clientKey:match('^ig%-%d+%-[a-z0-9]+$') and queued.code=='WGB1|2589,5,item:2589:0:0:0:0:0:0:0:0','outbox entry malformed')
+assert(queued.clientKey:match('^ig%-%d+%-[a-z0-9]+$') and queued.code=='BL1|2589,5,item:2589:0:0:0:0:0:0:0:0','outbox entry malformed')
 assert(next(A.db.localCartDraft)==nil,'cart must be emptied after submit')
 assert(#A:GetOrderOverview()==1,'pending order must be listed')
 Banklord_ServerState={generatedAt=time(),orders={{id=42,clientKey=queued.clientKey,status='reserved',createdAt=time(),
   lines={{itemId=2589,name='Leinenstoff',requested=5,approved=5,fulfilled=0,decision='approved'}}}},outbox={}}
-A.db.orderOutbox[2]={clientKey='ig-1-zzzzzz',code='WGB1|1,1,item:1:',createdAt=time()}
+A.db.orderOutbox[2]={clientKey='ig-1-zzzzzz',code='BL1|1,1,item:1:',createdAt=time()}
 Banklord_ServerState.outbox['ig-1-zzzzzz']={error='UNKNOWN_ITEM'}
 A:ReconcileOrderOutbox()
 assert(#A.db.orderOutbox==0,'answered orders must leave the outbox')
