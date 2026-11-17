@@ -7,7 +7,7 @@ declare(strict_types=1);
  * This is NOT a remotely self-updating endpoint.
  */
 const BANKLORD_VERSION='1.0.0';
-const BANKLORD_PAYLOAD_SHA256 = 'c6b5aad30210bc1627e8af41362d55e9262a28505715653d7fa021c283f32749';
+const BANKLORD_PAYLOAD_SHA256 = '60c01d0a56b355406a2c6a4064c5cc61d90864212102c4e91f9f38f4f049b397';
 const BANKLORD_FILE_DIGESTS = [
     'backend/bin/bootstrap.php' => '575d1bc301031fd0063bad52811058c0e5e190d2d0a8abd39fb667ab247446ff',
     'backend/public/app.css' => '783d2e673e641f6c38db833b401fd0d9707c6747fedd1be117ea63aecbc30959',
@@ -46,7 +46,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/PeerRelay.php' => '5d23b7d9c537ec55ba9cbc5353352feed255e390409483d9b19b55bb89204cf3',
     'backend/src/Preferences.php' => 'fbb9030c3c6e2150e7e9ef32568f2f2b7e3aa6bc498ace2f1d7b999ecc403d33',
     'backend/src/Procurement.php' => '7b4eb0e1f41042ecfcef89ac17f178fbdee9c78eeb95d5396934fdbbc4bf64ac',
-    'backend/src/ReleasePublisher.php' => '118460e7f00a6a4bd187dacb03c8558381af2a66d3406c7e142d51f9aeeb3fb7',
+    'backend/src/ReleasePublisher.php' => '4375c989ec35d69d3bcfff211b49919d7c0ac105d0db90b532fe66ad0a7f1939',
     'backend/src/SavedVariablesParser.php' => '32ab57281622909d17a6b724c7e5158e38338adce8dc7ae4d950f5bb10b84642',
     'backend/src/ScanImport.php' => '9b86162f960747eb35c15f5d326ca68233e47fc6e80d2be361012cc188fff75d',
     'backend/src/ScanStaging.php' => '1892303aa41183bc1f61aed56ad2ce0d5b8e845d0ebeda597d6c8f3786c8da63',

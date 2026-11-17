@@ -13,6 +13,11 @@ async function api(path,opts={}){
   if(opts.method && opts.method!=='GET')headers['X-CSRF-Token']=state.csrf;
   const r=await fetch('/api/v1'+path,{...opts,headers,credentials:'same-origin',cache:'no-store'});
   const result=await r.json().catch(()=>({error:'INVALID_SERVER_RESPONSE'}));
+  // Session expired or replaced (e.g. after an update): fetch a fresh token and retry once.
+  if(result.error==='CSRF_INVALID'&&!opts._retried&&path!=='/session'){
+    const fresh=await fetch('/api/v1/session',{credentials:'same-origin',cache:'no-store'}).then(x=>x.json()).catch(()=>null);
+    if(fresh&&fresh.csrf){state.csrf=fresh.csrf;return api(path,{...opts,_retried:true});}
+  }
   if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
