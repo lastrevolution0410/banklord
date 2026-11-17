@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -156,8 +157,9 @@ func TestRecordClientWithoutSecrets(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if strings.Count(string(data), client) != 1 {
-		t.Fatalf("duplicated paths: %s", data)
+	var listed []string
+	if e := json.Unmarshal(data, &listed); e != nil || len(listed) != 1 || listed[0] != client {
+		t.Fatalf("expected exactly one entry for %s: %s", client, data)
 	}
 	if strings.Contains(strings.ToLower(string(data)), "token") {
 		t.Fatal("manifest contains security credential")
