@@ -34,14 +34,14 @@ Open <http://localhost:8080>. Run all tests with `sh dev/run-tests.sh`.
 
 ## Self-hosting
 
-1. Upload `backend/` to a PHP 8.2 web host. The document root must be `backend/public`. Required PHP extensions are `pdo_mysql`, `sodium` and `zip`.
-2. Create a database and import `backend/sql/*.sql` in order.
-3. Copy `backend/config.local.example.php` to `backend/private/config.local.php` and fill in `DB_HOST`, `DB_NAME`, `DB_USER` and `DB_PASS`. Set `UPDATE_HOST` only if you run your own update channel.
-4. Create the first guild and admin with `php backend/bin/bootstrap.php`.
+1. Create an empty MySQL or MariaDB database at your web host.
+2. Upload the `backend/` folder. The web server's document root must point to `backend/public`. Required PHP extensions are `pdo_mysql`, `sodium` and `zip`.
+3. Open your website. The setup page appears. Enter the database access, your guild and your admin account, and you're done.
+
+The setup page only exists until Banklord is configured. Your settings are stored in `backend/private/config.local.php`, see `backend/config.local.example.php` for optional keys.
 
 **Updates:** A self-hosted website updates itself from the official signed release channel. It checks at most every 6 hours, verifies the signature, makes a database and file backup and then installs the new version. Admins see the status under *System* and can trigger a check there. Set `UPDATE_AUTO` to `off` to disable automatic installs, or `UPDATE_SOURCE` to `off` to disable the check entirely. The desktop app and addon update from the official channel on their own.
 
-A browser-based setup wizard is planned.
 
 ## Updates and signing
 

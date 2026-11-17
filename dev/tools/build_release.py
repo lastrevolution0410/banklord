@@ -15,6 +15,8 @@ def zip_files(target, entries):
             z.writestr(info, data)
 if DIST.exists(): shutil.rmtree(DIST)
 # 1) web payload
+vf = ROOT / 'backend' / 'src' / 'Version.php'
+vf.write_text(re.sub(r"WEB = '[^']*'", f"WEB = '{V}'", vf.read_text()))
 files = sorted(p for d in ('bin', 'public', 'sql', 'src') for p in (ROOT / 'backend' / d).iterdir()
                if p.is_file() and not p.name.startswith('.'))
 entries = [(f'backend/{p.parent.name}/{p.name}', p.read_bytes()) for p in files]

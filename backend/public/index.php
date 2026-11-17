@@ -29,6 +29,7 @@ require dirname(__DIR__) . '/src/IngameOrders.php';
 require dirname(__DIR__) . '/src/WebUpdater.php';
 require dirname(__DIR__) . '/src/ReleasePublisher.php';
 require dirname(__DIR__) . '/src/UpstreamUpdater.php';
+require dirname(__DIR__) . '/src/Installer.php';
 require dirname(__DIR__) . '/src/StockReconciliation.php';
 require dirname(__DIR__) . '/src/Community.php';
 require dirname(__DIR__) . '/src/Preferences.php';
@@ -48,6 +49,7 @@ header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 if (getenv('APP_HTTPS') !== 'off' && (($_SERVER['HTTPS'] ?? '') !== 'on')) {
     http_response_code(400); echo json_encode(['error'=>'HTTPS_REQUIRED']); exit;
 }
+if (!\Banklord\Installer::configured(dirname(__DIR__))) \Banklord\Installer::handle(dirname(__DIR__));
 // Public signed update channel: no session, no database. Clients verify the
 // Ed25519 signature themselves; the server only hands out stored files.
 $updatePath=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH);

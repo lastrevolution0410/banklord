@@ -13,6 +13,7 @@ async function api(path,opts={}){
   if(opts.method && opts.method!=='GET')headers['X-CSRF-Token']=state.csrf;
   const r=await fetch('/api/v1'+path,{...opts,headers,credentials:'same-origin',cache:'no-store'});
   const result=await r.json().catch(()=>({error:'INVALID_SERVER_RESPONSE'}));
+  if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
   return result;
 }

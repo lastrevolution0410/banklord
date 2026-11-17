@@ -19,6 +19,8 @@ jobs:
           node-version: 20
       - name: Run all checks in Docker
         run: sh dev/run-tests.sh
+      - name: Browser setup end to end
+        run: sh dev/install-sim.sh | tee setup.log && test "$(grep -c '^PASS' setup.log)" -eq 8
 
   app:
     name: Desktop app (${{ matrix.os }})

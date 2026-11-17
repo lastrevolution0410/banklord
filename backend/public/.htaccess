@@ -10,9 +10,9 @@ RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 # Application and API.
 RewriteRule ^$ app.html [L]
 RewriteRule ^api/v1(?:/.*)?$ index.php [QSA,L]
+# First-time setup (only active while no configuration exists).
+RewriteRule ^install$ index.php [QSA,L]
 RewriteRule ^(?:index\.php|app\.html|app\.css|app\.js|locales\.js|import\.html|import\.css|import\.js)$ - [L]
-# Public fan-site artwork cropped from the user-provided Auction House screenshot.
-RewriteRule ^bl-auction-(?:stone|metal)\.webp$ - [L]
 # Public, signed preview-update channel; other files remain hidden.
 RewriteRule ^updates/preview/(?:manifest\.json|events\.php|(?:addon|companion)-[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(?:zip|exe))$ - [L]
 # Deny anything not explicitly listed above.
