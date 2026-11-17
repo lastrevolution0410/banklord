@@ -6,5 +6,7 @@ return [
     'DB_USER' => 'banklord',
     'DB_PASS' => 'change-me',
     'APP_HTTPS' => 'on',
-    // 'UPDATE_HOST' => 'updates.example.org', // only for your own signed update channel
+    // 'UPDATE_AUTO' => 'off',   // no automatic website updates (button under System still works)
+    // 'UPDATE_SOURCE' => 'off', // never contact the official update channel
+    // 'UPDATE_HOST' => 'updates.example.org', // only if you run your own signed update channel
 ];

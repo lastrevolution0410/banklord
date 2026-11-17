@@ -696,7 +696,19 @@ async function createOrderToken(){
   showConnectCode($('orderTokenResult'),data.token,'Dein persönlicher Verbindungscode (gilt 180 Tage, nicht weitergeben):');
   await loadOrderTokens();
 }
+const UPSTREAM_ERR={UPSTREAM_UNREACHABLE:'Update-Server nicht erreichbar',UPSTREAM_HASH_MISMATCH:'Download beschädigt (Prüfsumme falsch)',MANIFEST_SIGNATURE_INVALID:'Signatur ungültig – Update abgelehnt',MANIFEST_INVALID:'Update-Beschreibung ungültig',SODIUM_MISSING:'PHP-Erweiterung sodium fehlt',UPSTREAM_TOO_LARGE:'Download zu groß'};
+async function loadUpstream(){
+  let box=$('upstreamBox');if(!box){box=el('div','card');box.id='upstreamBox';$('deviceList').parentElement.before(box);}
+  box.replaceChildren(el('h3','','Website-Updates'));
+  let st;try{st=await api(path('upstream-update'));}catch(e){box.append(el('p','muted','Status nicht verfügbar.'));return;}
+  if(st.publisher){box.append(el('p','muted',`Diese Website ist der offizielle Update-Server (Version ${st.installed}). Neue Versionen kommen per Veröffentlichung vom Entwickler-Rechner.`));return;}
+  box.append(el('p','muted',`Installiert: ${st.installed}${st.latest?' · neueste offizielle Version: '+st.latest:''} · Automatische Prüfung alle 6 Stunden: ${st.auto?'an':'aus'}`));
+  if(st.checked_at)box.append(el('p',st.error?'error':'muted',st.error?`Letzte Prüfung ${when(st.checked_at)}: ${UPSTREAM_ERR[st.error]||st.error}`:`Letzte Prüfung ${when(st.checked_at)}: ${st.result==='installed'?'Version '+st.installed_now+' eingespielt (mit Backup)':st.result==='running'?'läuft gerade':'aktuell'}`));
+  const b=el('button','button-sm','Jetzt nach Updates suchen');b.onclick=async()=>{b.disabled=true;b.textContent='Prüfe …';try{const r=await post(path('upstream-update'),{});if(r.result==='installed'){alert('Version '+r.installed_now+' wurde eingespielt. Die Seite lädt neu.');location.reload();return;}}finally{await loadUpstream();}};
+  box.append(b);
+}
 async function loadReleases(){
+  loadUpstream();
   const r=await api(path('release-tokens'));const list=$('releaseTokenList');list.replaceChildren();
   for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?t.last_used_at+' UTC':'noch nie'}`));
     const b=el('button','danger button-sm','Sperren');b.onclick=async()=>{if(!confirm('Veröffentlichungs-Schlüssel sperren?'))return;await api(path('release-tokens/'+t.id),{method:'DELETE'});await loadReleases();};row.append(b);list.append(row);}

@@ -63,7 +63,7 @@ final class ReleasePublisher {
     }
 
     /** @return array{0:array,1:string} decoded payload and raw manifest */
-    public static function verify(string $manifest): array {
+    public static function verify(string $manifest, ?string $host=null): array {
         if (!function_exists('sodium_crypto_sign_verify_detached')) throw new DomainError('SODIUM_MISSING');
         $env=json_decode($manifest,true);
         if (strlen($manifest)>16384 || !is_array($env) || !is_string($env['payload']??null) || !is_string($env['signature']??null)) throw new DomainError('MANIFEST_INVALID');
@@ -76,7 +76,7 @@ final class ReleasePublisher {
             $f=$p[$part]??null;
             if (!is_array($f) || !is_string($f['version']??null) || !preg_match('/^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]{1,40})?$/D',$f['version'])
                 || !is_string($f['sha256']??null) || !preg_match('/^[a-f0-9]{64}$/D',$f['sha256'])
-                || ($f['url']??'')!=='https://'.self::updateHost().'/updates/preview/files/'.$f['sha256'].'.'.$ext) throw new DomainError('MANIFEST_INVALID');
+                || ($f['url']??'')!=='https://'.($host ?? self::updateHost()).'/updates/preview/files/'.$f['sha256'].'.'.$ext) throw new DomainError('MANIFEST_INVALID');
         }
         return [$p,$manifest];
     }

@@ -39,6 +39,8 @@ Open <http://localhost:8080>. Run all tests with `sh dev/run-tests.sh`.
 3. Copy `backend/config.local.example.php` to `backend/private/config.local.php` and fill in `DB_HOST`, `DB_NAME`, `DB_USER` and `DB_PASS`. Set `UPDATE_HOST` only if you run your own update channel.
 4. Create the first guild and admin with `php backend/bin/bootstrap.php`.
 
+**Updates:** A self-hosted website updates itself from the official signed release channel. It checks at most every 6 hours, verifies the signature, makes a database and file backup and then installs the new version. Admins see the status under *System* and can trigger a check there. Set `UPDATE_AUTO` to `off` to disable automatic installs, or `UPDATE_SOURCE` to `off` to disable the check entirely. The desktop app and addon update from the official channel on their own.
+
 A browser-based setup wizard is planned.
 
 ## Updates and signing
