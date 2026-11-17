@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")/.."; SIM=$(mktemp -d); J=$SIM/cookies
 trap 'docker rm -f bl-instsim >/dev/null 2>&1; rm -rf "$SIM"' EXIT
-cp -R backend/. "$SIM/"; rm -rf "$SIM/private"
+for d in public src sql bin; do cp -R "backend/$d" "$SIM/"; done
 docker compose -f dev/docker-compose.yml up -d --wait >/dev/null 2>&1
 docker compose -f dev/docker-compose.yml exec -T db mariadb -uroot -pdevroot -e "DROP DATABASE IF EXISTS blinst; CREATE DATABASE blinst; GRANT ALL ON blinst.* TO 'banklord'@'%'"
 docker run -d --name bl-instsim --network dev_default -p 8097:8097 -v "$SIM":/srv -w /srv -e APP_HTTPS=off \

@@ -4,7 +4,7 @@
 # Without a base ref the current backend is used as the starting point.
 set -e
 V=$1; cd "$(dirname "$0")/.."; ROOT=$PWD; SIM=$(mktemp -d); trap 'docker rm -f bl-relsim >/dev/null 2>&1; rm -rf "$SIM"' EXIT
-if [ -n "$2" ]; then git archive "$2" backend | tar -x -C "$SIM" --strip-components=1; else cp -R backend/. "$SIM/"; fi
+if [ -n "$2" ]; then git archive "$2" backend | tar -x -C "$SIM" --strip-components=1; else for d in public src sql bin; do cp -R "backend/$d" "$SIM/"; done; fi
 rm -rf "$SIM/private"; mkdir -p "$SIM/private"
 echo "{\"version\":\"${3:-0.9.0}\"}" > "$SIM/private/upgrade-version.json"
 NS=$(sed -n 's/^namespace \([A-Za-z]*\);.*/\1/p' "$SIM/src/Database.php")
