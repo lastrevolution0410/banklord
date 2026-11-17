@@ -97,8 +97,12 @@ final class ReleasePublisher {
         foreach (self::files($p) as [$sha,$ext])
             if (!is_file($this->filePath($sha,$ext))) throw new DomainError('RELEASE_FILE_MISSING');
         $current=@file_get_contents($this->manifestPath());
+        $old=null;
         if (is_string($current) && $current!=='') {
-            [$old]=self::verify($current);
+            // A release for another update host (or an older key) no longer counts.
+            try { [$old]=self::verify($current); } catch (DomainError $e) { $old=null; }
+        }
+        if ($old!==null) {
             if (strcmp((string)$p['published_at'],(string)$old['published_at'])<=0) throw new DomainError('RELEASE_NOT_NEWER');
         }
         // The website goes first; clients only see the new manifest after it succeeded.
@@ -129,7 +133,7 @@ final class ReleasePublisher {
     public function currentStatus(): array {
         $m=@file_get_contents($this->manifestPath());
         if (!is_string($m) || $m==='') return ['published'=>false];
-        [$p]=self::verify($m);
+        try { [$p]=self::verify($m); } catch (DomainError $e) { return ['published'=>false,'stale'=>true]; }
         return ['published'=>true,'published_at'=>$p['published_at'],'digest'=>hash('sha256',$m),
             'versions'=>['web'=>$p['web']['version'],'addon'=>$p['addon']['version'],'companion'=>$p['companion']['version'],'updater'=>$p['updater']['version']],
             'apps'=>array_map(static fn($a)=>$a['version'],$p['apps']??[])];
