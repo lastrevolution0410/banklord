@@ -12,6 +12,47 @@ use PDO;
  */
 final class Installer {
     private const MIN_PASSWORD = 14;
+    private const EN = [
+        '<html lang="de">' => '<html lang="en">',
+        'Banklord einrichten' => 'Set up Banklord',
+        'Diese Seite erscheint nur, solange Banklord noch nicht eingerichtet ist. Du brauchst eine leere MySQL- oder MariaDB-Datenbank. Die Zugangsdaten findest du im Kundenmenü deines Webhosters.' => 'This page only appears until Banklord is set up. You need an empty MySQL or MariaDB database. Your web host shows its access data in the customer menu.',
+        'Voraussetzungen' => 'Requirements',
+        'PHP 8.2 oder neuer' => 'PHP 8.2 or newer',
+        'PHP-Erweiterung sodium (signierte Updates)' => 'PHP extension sodium (signed updates)',
+        'PHP-Erweiterung zip (Updates)' => 'PHP extension zip (updates)',
+        'PHP-Erweiterung pdo_mysql' => 'PHP extension pdo_mysql',
+        'Ordner private/ beschreibbar' => 'Folder private/ writable',
+        'HTTPS aktiv' => 'HTTPS active',
+        '1 · Datenbank' => '1 · Database',
+        'Datenbankname' => 'Database name',
+        '>Benutzer<' => '>User<',
+        '>Passwort<' => '>Password<',
+        '2 · Gilde' => '2 · Guild',
+        'Gildenname' => 'Guild name',
+        '3 · Dein Admin-Konto' => '3 · Your admin account',
+        'E-Mail (Anmeldename)' => 'Email (used to sign in)',
+        'Anzeigename' => 'Display name',
+        'Passwort (mindestens ' => 'Password (at least ',
+        ' Zeichen)' => ' characters)',
+        'Passwort wiederholen' => 'Repeat password',
+        '<strong>Fertig!</strong> Datenbank, Gilde und Admin-Konto sind angelegt.' => '<strong>Done!</strong> Database, guild and admin account are set up.',
+        'Melde dich jetzt mit deiner E-Mail und deinem Passwort an. Unter <em>Verwaltung → Mitglieder</em> lädst du deine Gilde ein.' => 'Now sign in with your email and password. Invite your guild under <em>Management → Members</em>.',
+        'Updates spielt die Website automatisch ein (alle 6 Stunden, mit Backup). Diese Einrichtungsseite ist ab jetzt gesperrt.' => 'The website installs updates by itself (every 6 hours, with a backup). This setup page is now locked.',
+        'Zur Anmeldung' => 'Go to sign-in',
+        'Formular abgelaufen, bitte neu laden.' => 'Form expired, please reload.',
+        'Bitte zuerst die rot markierten Voraussetzungen beheben.' => 'Please fix the requirements marked in red first.',
+        'Datenbank: Verbindung oder Rechte fehlen (' => 'Database: connection or permissions missing (',
+        '). Zugangsdaten prüfen.' => '). Check the access data.',
+        'Datenbank-Angaben unvollständig.' => 'Database details incomplete.',
+        'Gildenname und Realm angeben.' => 'Enter guild name and realm.',
+        'Region wählen.' => 'Choose a region.',
+        'E-Mail und Anzeigename des Admins angeben.' => "Enter the admin's email and display name.",
+        'Das Admin-Passwort braucht mindestens ' => 'The admin password needs at least ',
+        ' Zeichen.' => ' characters.',
+        'Die Passwörter stimmen nicht überein.' => 'The passwords do not match.',
+        'Diese Datenbank enthält bereits Banklord-Tabellen. Bitte eine leere Datenbank verwenden.' => 'This database already contains Banklord tables. Please use an empty database.',
+        'Konfiguration konnte nicht gespeichert werden.' => 'Could not save the configuration.',
+    ];
 
     public static function configured(string $root): bool {
         return is_file($root.'/private/config.local.php') || getenv('DB_NAME') !== false;
@@ -52,7 +93,11 @@ final class Installer {
                 $error = $e instanceof \PDOException ? 'Datenbank: Verbindung oder Rechte fehlen ('.$e->getCode().'). Zugangsdaten prüfen.' : $e->getMessage();
             }
         }
+        ob_start();
         self::page($checks, $in, $error, $done, $_SESSION['csrf'] ?? '');
+        $html = (string)ob_get_clean();
+        // German devices get German, everyone else English.
+        echo preg_match('/^de\b/i', (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')) ? $html : strtr($html, self::EN);
         exit;
     }
 
