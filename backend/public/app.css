@@ -583,3 +583,7 @@ details.panel>summary{cursor:pointer;font-weight:700;color:#f1d48f}
 .member-row{display:grid;grid-template-columns:1fr 170px 120px auto;gap:10px;align-items:center}
 .invite-form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.invite-form label{min-width:220px}
 @media(max-width:720px){.member-row{grid-template-columns:1fr 1fr}.member-row>div{grid-column:1/-1}}
+
+/* 1.0 demo */
+.demo-box{margin-top:18px;padding:14px;border:1px dashed rgba(243,199,78,.5);border-radius:10px;text-align:center}
+.demo-banner{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 16px;background:#3b2e10;color:#f3dc9a;border-bottom:1px solid #6b5420;font-size:14px}

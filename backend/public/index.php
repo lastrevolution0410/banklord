@@ -10,6 +10,7 @@ use Banklord\IngameOrders;
 use Banklord\WebUpdater;
 use Banklord\ReleasePublisher;
 use Banklord\UpstreamUpdater;
+use Banklord\Demo;
 use Banklord\StockReconciliation;
 use Banklord\Community;
 use Banklord\Preferences;
@@ -30,6 +31,7 @@ require dirname(__DIR__) . '/src/WebUpdater.php';
 require dirname(__DIR__) . '/src/ReleasePublisher.php';
 require dirname(__DIR__) . '/src/UpstreamUpdater.php';
 require dirname(__DIR__) . '/src/Installer.php';
+require dirname(__DIR__) . '/src/Demo.php';
 require dirname(__DIR__) . '/src/StockReconciliation.php';
 require dirname(__DIR__) . '/src/Community.php';
 require dirname(__DIR__) . '/src/Preferences.php';
@@ -175,7 +177,18 @@ try {
     // If hosted in subdirectory, set rewrite base and route into this script's PATH_INFO.
     $path=preg_replace('~^/api/v1~','',$path,1,$matched);
     if ($matched===0) reply(404,['error'=>'NOT_FOUND']);
-    if ($method==='GET' && $path==='/session') reply(200,['csrf'=>$_SESSION['csrf'],'user_id'=>$_SESSION['uid']??null]);
+    // Public demo: read-only session on a separate sample guild.
+    $isDemo=!empty($_SESSION['demo']);
+    if ($isDemo && $method!=='GET' && $path!=='/logout') reply(403,['error'=>'DEMO_READ_ONLY']);
+    if ($isDemo && preg_match('~/(?:release-tokens|upstream-update|bridge-tokens|demo-setting)~',$path)) reply(403,['error'=>'DEMO_HIDDEN']);
+    if ($method==='GET' && $path==='/demo') reply(200,['enabled'=>(new Demo($db,dirname(__DIR__)))->enabled(),'active'=>$isDemo]);
+    if ($method==='POST' && $path==='/demo/start') {
+        csrf();
+        $demoUser=(new Demo($db,dirname(__DIR__)))->start();
+        session_regenerate_id(true);$_SESSION['uid']=$demoUser;$_SESSION['demo']=true;$_SESSION['csrf']=bin2hex(random_bytes(32));
+        reply(200,['ok'=>true]);
+    }
+    if ($method==='GET' && $path==='/session') reply(200,['demo'=>$isDemo,'csrf'=>$_SESSION['csrf'],'user_id'=>$_SESSION['uid']??null]);
     // Probe companion credentials without uploading any inventory. GET is still
     // bearer-only and the token grants no authority beyond scan staging.
     if ($method==='GET' && preg_match('~^/bridge/guilds/([1-9][0-9]{0,17})/status$~D',$path,$bm)) {
@@ -327,7 +340,7 @@ try {
             reply(401,['error'=>'LOGIN_FAILED']);
         }
         $s=$db->prepare('DELETE FROM login_attempts WHERE key_hash=?');$s->execute([$rateKey]);
-        session_regenerate_id(true); $_SESSION['uid']=(int)$user['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
+        session_regenerate_id(true); unset($_SESSION['demo']); $_SESSION['uid']=(int)$user['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
         reply(200,['user_id'=>$_SESSION['uid'],'csrf'=>$_SESSION['csrf']]);
     }
     if ($method==='POST' && $path==='/logout') {$_SESSION=[];session_destroy();reply(200,['ok'=>true]);}
@@ -558,6 +571,13 @@ try {
             $guild,$user,$b['password'],$b['enabled'],$b['label']);
         reply(200,['automation'=>$result]);
     }
+    // Public demo switch (site administrators).
+    if ($tail==='demo-setting') {
+        if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
+        $demo=new Demo($db,dirname(__DIR__));
+        if ($method==='POST') {$b=body();$demo->setEnabled(($b['enabled']??false)===true);}
+        reply(200,['enabled'=>$demo->enabled(),'guild'=>$demo->guildId()]);
+    }
     // Updates from the official release channel (self-hosted websites).
     if ($tail==='upstream-update') {
         if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
@@ -722,7 +742,7 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL'];
+    $bad=['DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL'];
     $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE'];
     reply($e->getMessage()==='FORBIDDEN'?403:(in_array($e->getMessage(),$conflict,true)?409:(in_array($e->getMessage(),$bad,true)?422:404)),['error'=>$e->getMessage()]);
 } catch (\Throwable $e) {

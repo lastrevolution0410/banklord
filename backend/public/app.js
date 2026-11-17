@@ -13,6 +13,7 @@ async function api(path,opts={}){
   if(opts.method && opts.method!=='GET')headers['X-CSRF-Token']=state.csrf;
   const r=await fetch('/api/v1'+path,{...opts,headers,credentials:'same-origin',cache:'no-store'});
   const result=await r.json().catch(()=>({error:'INVALID_SERVER_RESPONSE'}));
+  if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
   return result;
@@ -57,10 +58,11 @@ function switchGuild(){
 }
 async function initialize(){
   if(location.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(location.hostname))throw Error('HTTPS_REQUIRED');
-  const session=await api('/session');state.csrf=session.csrf;state.user=session.user_id;
+  const session=await api('/session');state.csrf=session.csrf;state.user=session.user_id;state.demo=Boolean(session.demo);
+  $('demoBanner').classList.toggle('hidden',!state.demo);
   const logged=Boolean(state.user);document.body.classList.toggle('is-logged-in',logged);$('loginPage').classList.toggle('hidden',logged);$('workspace').classList.toggle('hidden',!logged);
   $('logoutBtn').classList.toggle('hidden',!logged);$('userBadge').textContent=logged?'':'Nicht angemeldet';if(!logged){$('bellBtn').classList.add('hidden');$('guildSelector').classList.add('hidden');$('guildTitle').textContent='Banklord';$('guildSub').textContent='Gildenbank · Bestellungen';}
-  if(!logged)return;
+  if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;
   $('guildSelector').replaceChildren();for(const g of data.guilds){const o=el('option','',`${g.name} · ${g.realm}`);o.value=g.id;$('guildSelector').append(o);}
   if(!data.guilds.length){notice('Für dein Konto ist noch keine freigeschaltete Gilde hinterlegt.',true);return;}
@@ -708,7 +710,17 @@ async function loadUpstream(){
   const b=el('button','button-sm','Jetzt nach Updates suchen');b.onclick=async()=>{b.disabled=true;b.textContent='Prüfe …';try{const r=await post(path('upstream-update'),{});if(r.result==='installed'){alert('Version '+r.installed_now+' wurde eingespielt. Die Seite lädt neu.');location.reload();return;}}finally{await loadUpstream();}};
   box.append(b);
 }
+async function loadDemoSetting(){
+  let box=$('demoSettingBox');if(!box){box=el('div','card');box.id='demoSettingBox';$('deviceList').parentElement.before(box);}
+  box.replaceChildren(el('h3','','Öffentliche Demo'));
+  let st;try{st=await api(path('demo-setting'));}catch(e){box.append(el('p','muted','Nicht verfügbar.'));return;}
+  box.append(el('p','muted','Besucher ohne Konto können sich Banklord mit einer eigenen Beispiel-Gilde ansehen. Deine echten Gildendaten sind dort nicht sichtbar, und Änderungen sind gesperrt.'));
+  const b=el('button','button-sm',st.enabled?'Demo ausschalten':'Demo einschalten');
+  b.onclick=async()=>{b.disabled=true;try{await post(path('demo-setting'),{enabled:!st.enabled});notice(st.enabled?'Demo ausgeschaltet.':'Demo eingeschaltet. Der Knopf erscheint auf der Anmeldeseite.');}catch(e){notice(e.message,true);}await loadDemoSetting();};
+  box.append(el('p','',st.enabled?'Status: eingeschaltet':'Status: ausgeschaltet'),b);
+}
 async function loadReleases(){
+  loadDemoSetting();
   loadUpstream();
   const r=await api(path('release-tokens'));const list=$('releaseTokenList');list.replaceChildren();
   for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?t.last_used_at+' UTC':'noch nie'}`));
@@ -971,3 +983,6 @@ setInterval(()=>{
  if(state.tab==='inventory')loadItems().catch(()=>{});
  else if(state.tab==='sync')loadImports().catch(()=>{});
 },45000);
+
+$('demoBtn').onclick=async()=>{const b=$('demoBtn');b.disabled=true;try{await post('/demo/start',{});location.reload();}catch(e){notice(e.message,true);b.disabled=false;}};
+$('demoEndBtn').onclick=async()=>{try{await post('/logout',{});}finally{location.reload();}};
