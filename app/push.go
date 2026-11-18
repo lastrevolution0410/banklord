@@ -18,6 +18,7 @@ import (
 // Never install or trust a version, a download URL or any privileged action
 // contained in an event response.
 var eventsURL = "https://" + updateHost + "/updates/preview/events.php"
+
 const fallbackInterval = 2 * time.Minute
 const reconnectDelay = 20 * time.Second
 const minEventInterval = 15 * time.Second
@@ -126,4 +127,6 @@ func watchUpdatesReliable() {
 	}
 }
 
-func logUpdateCheck(reason string) { log.Printf("Banklord update (%s): %s", reason, checkUpdateAndApply()) }
+func logUpdateCheck(reason string) {
+	log.Printf("Banklord update (%s): %s", reason, checkUpdateAndApply())
+}

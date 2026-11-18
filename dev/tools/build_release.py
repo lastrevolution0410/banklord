@@ -47,7 +47,7 @@ assets = ROOT / 'app' / 'assets'; assets.mkdir(exist_ok=True)
 shutil.copy(addon_zip, assets / 'addon.zip')
 # 4) companion + installer
 script = ('set -e; cd /src && GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H windowsgui" -o assets/companion.exe ./cmd/companion '
-          '&& cd /src && go test ./... >/dev/null && GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o /out/setup.exe . '
+          '&& cd /src && go test ./... >/dev/null && GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H windowsgui" -o /out/setup.exe . '
           '&& for t in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64; do GOOS=${t%/*} GOARCH=${t#*/} go build -trimpath -ldflags "-s -w" -o /out/banklord-${t%/*}-${t#*/} . ; done')
 out = DIST / '05_WINDOWS_INSTALLER'; out.mkdir(parents=True)
 subprocess.run(['docker', 'run', '--rm', '-v', f'{ROOT/"app"}:/src', '-v', f'{out}:/out', 'golang:1.23', 'sh', '-c', script], check=True)

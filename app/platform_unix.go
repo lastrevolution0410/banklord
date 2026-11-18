@@ -189,3 +189,6 @@ func companionIsRunning() (bool, string) {
 }
 
 func runningClientHints() []string { return nil }
+
+// stopCompanion ends a running (older) companion so the new one can start.
+func stopCompanion() { _ = exec.Command("pkill", "-f", "Banklord-Companion --companion").Run() }

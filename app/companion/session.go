@@ -73,3 +73,9 @@ func existingSession() (string, error) {
 	}
 	return s.URL, nil
 }
+
+// ErrOldRunning means an older companion still answers on the stored address.
+var ErrOldRunning = errOldCompanionRunning
+
+// RunningURL returns the local address of a running companion of this version.
+func RunningURL() (string, error) { return existingSession() }

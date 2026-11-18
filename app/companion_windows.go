@@ -15,3 +15,6 @@ func setAutostart(path string) error {
 	return nil
 }
 func launchCompanion(path string) error { return exec.Command(path).Start() }
+
+// stopCompanion ends a running (older) companion so the new one can start.
+func stopCompanion() { _ = exec.Command("taskkill.exe", "/F", "/IM", "Banklord-Companion.exe").Run() }
