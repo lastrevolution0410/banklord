@@ -16,6 +16,7 @@ Für alle:
 - [Installation und Fehlerhilfe](installation.md): was auf dem PC landet, Windows-Warnung, Updates, Deinstallation
 - [Sicherheit und Datenschutz](sicherheit.md): welche Daten wohin gehen
 - [Häufige Fragen](faq.md)
+- [Neuigkeiten und Pläne](neuigkeiten.md): was fertig ist und was noch geplant ist
 
 ## Begriffe
 

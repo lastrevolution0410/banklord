@@ -16,6 +16,7 @@ For everyone:
 - [Installation and troubleshooting](installation.en.md): what ends up on your PC, Windows warning, updates, uninstalling
 - [Security and privacy](sicherheit.en.md): which data goes where
 - [Frequently asked questions](faq.en.md)
+- [What's new and planned](neuigkeiten.en.md): what is done and what is still planned
 
 ## Terms
 

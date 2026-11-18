@@ -20,6 +20,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/README.en.md">Documentation</a> ·
   <a href="docs/faq.en.md">FAQ</a> ·
+  <a href="docs/neuigkeiten.en.md">What's new</a> ·
   <a href="README.md">Deutsch</a> · <b>English</b>
 </p>
 
@@ -107,6 +108,7 @@ Every guild has one game version. One account can have guilds in several version
 | [Self-hosting](docs/selbst-hosten.en.md) | Set up your own website, updates, backups |
 | [Security](docs/sicherheit.en.md) | Which data goes where and how it is protected |
 | [FAQ](docs/faq.en.md) | Frequently asked questions |
+| [What's new](docs/neuigkeiten.en.md) | What is done, what is planned |
 | [Development](docs/entwicklung.en.md) | Code structure, running locally, tests, own releases |
 
 ## Contributing and help

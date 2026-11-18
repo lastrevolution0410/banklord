@@ -20,6 +20,7 @@
   <a href="#schnellstart">Schnellstart</a> ·
   <a href="docs/README.md">Dokumentation</a> ·
   <a href="docs/faq.md">FAQ</a> ·
+  <a href="docs/neuigkeiten.md">Neuigkeiten</a> ·
   <b>Deutsch</b> · <a href="README.en.md">English</a>
 </p>
 
@@ -107,6 +108,7 @@ Jede Gilde hat eine Spielversion. Ein Konto kann Gilden in mehreren Versionen ha
 | [Selbst hosten](docs/selbst-hosten.md) | Eigene Website einrichten, Updates, Backups |
 | [Sicherheit](docs/sicherheit.md) | Welche Daten wohin gehen und wie sie geschützt sind |
 | [FAQ](docs/faq.md) | Häufige Fragen |
+| [Neuigkeiten](docs/neuigkeiten.md) | Was fertig ist, was noch geplant ist |
 | [Entwicklung](docs/entwicklung.md) | Aufbau des Codes, lokal starten, Tests, eigene Releases |
 
 ## Mitmachen und Hilfe
