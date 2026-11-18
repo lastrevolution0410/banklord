@@ -23,6 +23,9 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.8: **New navigation:** the three main ways **Guild bank · Cart · My orders** are big at the top. Wishlist, “Account & guilds” and Help & feedback are in the **“More”** menu. Management is a calm second row, and the active tab stands out clearly.
+- 1.9.8: **“Account & guilds”:** your guilds with role and “Switch” on top; “Redeem invitation” and “Set up your own guild” only open when clicked.
+- 1.9.8: the feedback inbox (reports of all guilds) now sits with the operator under **Operator → Feedback inbox**; Help & feedback only shows guides, reporting and your own reports.
 - 1.9.7: **Clearer layout:** the former “System” tab is split. Guild admins find game version, Discord and the guild's PCs under **Settings**. The operator has a tab of their own, **Operator**, with three sections: **Guilds** (table with search, game version filter and pages), **Settings** (limit for new guilds, demo) and **Updates & releases**.
 - 1.9.6: **Set up your own guild – for everyone:** guild leaders and bank managers set up their guild themselves under **Account → “Set up your own guild”** and then see the next steps. The operator decides how many guilds an account may set up.
 - 1.9.6: **Operator area:** the website's operator sees all guilds in the guild picker and under **System**, can open any of them (written to the guild's activity log) and sets the limit. Feedback inbox, website updates, demo switch and release keys are now operator-only – guild admins manage only their own guild.

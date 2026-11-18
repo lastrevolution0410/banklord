@@ -142,7 +142,7 @@ Etwas klemmt, du hast eine Idee oder möchtest Banklord in deiner Sprache?
 | Wo | So geht's |
 |---|---|
 | **Im Spiel** | `/banklord feedback` oder Reiter **Hilfe & Feedback** im Banklord-Fenster. Gesendet wird beim nächsten `/reload`. |
-| **Website** | Reiter **Hilfe & Feedback**. |
+| **Website** | **Mehr → Hilfe & Feedback**. |
 
 1. Wähle **Fehler melden**, **Idee vorschlagen** oder **Sprache anfragen**.
 2. Fülle das kurze Formular aus und klicke **Absenden**.

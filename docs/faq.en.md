@@ -53,7 +53,7 @@ Yes. Every character is recognised on login and assigned to its guild. Each guil
 
 Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`, `_forever_`).
 
-**One account for several guilds:** if you already have an account on the website and get an invitation from another guild, redeem it under **Account → “Join another guild”**. No second account needed; switch between your guilds at the top. Then create a connection code for the new guild under **Account** and paste it into the Companion under **“More guilds on this PC”**.
+**One account for several guilds:** if you already have an account on the website and get an invitation from another guild, redeem it under **More → Account & guilds → “Redeem invitation”**. No second account needed; switch between your guilds at the top. Then create a connection code for the new guild under **Account** and paste it into the Companion under **“More guilds on this PC”**.
 
 **Example MoP Classic, one realm:** characters A and B in the same guild, character C in another guild – that works. On every login Banklord notices which guild the character is in and only shows that guild's stock and orders. An in-game order always goes to the guild of the character you order with.
 
@@ -64,7 +64,7 @@ Different game versions work with one account too, for example one guild in MoP 
 ### How do I report a bug?
 
 - **In game:** `/banklord feedback` or the **Help & Feedback** tab in the Banklord window. The report is sent through the Companion with the next `/reload`.
-- **On the website:** **Help & Feedback** tab.
+- **On the website:** **More → Help & feedback**.
 - **On GitHub:** [open an issue](https://github.com/lastrevolution0410/banklord/issues/new/choose).
 
 There you choose **Report a bug**, **Suggest an idea** or **Request a language**. The report goes straight to the Banklord project; under **My reports** you see its status and the answer. Only what you enter and the version numbers are sent – no account or character data.

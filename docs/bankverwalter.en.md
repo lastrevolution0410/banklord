@@ -122,7 +122,7 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 Your guild does not use Banklord yet? Set it up yourself:
 
 1. Sign in on the website (or get an invitation from any Banklord guild and create an account).
-2. **Account → “Set up your own guild”:** guild name and realm **exactly as in game**, pick region and game version, “Set up guild”. You are now the guild's administrator.
+2. **More → Account & guilds → “Set up your own guild”:** guild name and realm **exactly as in game**, pick region and game version, “Set up guild”. You are now the guild's administrator.
 3. Right below, **“Create personal key”** and paste the code into the **Banklord Companion** – as the first connection or under “More guilds on this PC”.
 4. In game, open the **guild bank** with a character of this guild and `/reload`.
 5. On the website, approve the first scan under **Inventory**. From now on your members join in game and you confirm them.

@@ -47,7 +47,8 @@ function setTab(tab){
   if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
   state.tab=tab;
   for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','ledger','updates','operator'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const inMore=document.querySelector(`#moreMenu [data-tab="${tab}"]`);$('moreBtn').classList.toggle('active',!!inMore);$('moreLabel').textContent=inMore?inMore.textContent.replace(/^\S+\s/,''):(window.BLLang?.text||String)('Mehr');closeMore();
   if(tab==='cart')renderCart();
   if(tab==='orders'||tab==='admin'||tab==='inventory')loadOrders().catch(e=>notice(e.message,true));
   if(tab==='sync'){loadImports().catch(e=>notice(e.message,true));loadTokens().catch(e=>notice(e.message,true));loadScanAutomation().catch(e=>notice(e.message,true));loadPeerDrafts().catch(e=>notice(e.message,true));}
@@ -85,6 +86,8 @@ async function loadOperator(){
   const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;
   const fl=$('opFlavor');if(fl.options.length<2)for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;fl.append(o);}
   state.opPage=0;renderOperatorGuilds();
+  // The feedback inbox exists only on the site that receives reports (official site).
+  api(path('feedback')).then(f=>document.querySelector('[data-op="feedback"]').classList.toggle('hidden',!f.inbox)).catch(()=>{});
 }
 function renderOperatorGuilds(){
   const q=$('opSearch').value.trim().toLowerCase();const fl=$('opFlavor').value;
@@ -103,8 +106,9 @@ function renderOperatorGuilds(){
 }
 function showOperatorPane(name){
   document.querySelectorAll('#operatorNav .chip').forEach(c=>c.classList.toggle('active',c.dataset.op===name));
-  for(const [k,id] of [['guilds','opPaneGuilds'],['settings','opPaneSettings'],['updates','opPaneUpdates']])$(id).classList.toggle('hidden',k!==name);
+  for(const [k,id] of [['guilds','opPaneGuilds'],['feedback','opPaneFeedback'],['settings','opPaneSettings'],['updates','opPaneUpdates']])$(id).classList.toggle('hidden',k!==name);
   if(name==='settings')loadDemoSetting();
+  if(name==='feedback')loadFeedbackInbox().catch(e=>notice(e.message,true));
   if(name==='updates'){loadUpstream();loadReleases().catch(e=>notice(e.message,true));}
 }
 function switchGuild(){state.bankSummary=null;
@@ -856,7 +860,11 @@ async function importFile(event){
   const data=new FormData();data.set('savedvars',f);
   try{const result=await api(path('imports'),{method:'POST',body:data});notice('Scan #'+result.import.id+' als unbestätigte Inventur vorgemerkt.');await loadImports();}catch(e){notice('Import fehlgeschlagen: '+e.message,true);}
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+function closeMore(){$('moreMenu').classList.add('hidden');$('moreBtn').setAttribute('aria-expanded','false');}
+$('moreBtn').onclick=e=>{e.stopPropagation();const open=$('moreMenu').classList.toggle('hidden');$('moreBtn').setAttribute('aria-expanded',String(!open));};
+document.addEventListener('click',e=>{if(!e.target.closest('.nav-more'))closeMore();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMore();});
 $('bellBtn').onclick=()=>setTab('notifications');
 $('refreshAdminOrders').onclick=()=>loadOrders().catch(e=>notice(e.message,true));
 document.querySelectorAll('#activityFilter .chip').forEach(c=>c.onclick=()=>{state.activityFilter=c.dataset.filter;document.querySelectorAll('#activityFilter .chip').forEach(x=>x.classList.toggle('active',x===c));renderActivity();});
@@ -997,8 +1005,8 @@ async function loadActivity(){
     if(!ledger.children.length)ledger.append(el('p','muted','Noch keine Bestandsbewegungen.'));
   }else ledger.append(el('p','muted','Nur für Bankverwalter sichtbar.'));
 }
-$('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice(err.message==='EMAIL_ALREADY_REGISTERED'?'Du hast schon ein Konto. Melde dich an und löse den Code unter „Konto“ → „Weiterer Gilde beitreten“ ein.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':'Registrierung: '+err.message,true);}};
-$('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
+$('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice(err.message==='EMAIL_ALREADY_REGISTERED'?'Du hast schon ein Konto. Melde dich an und löse den Code unter „Mehr → Konto & Gilden“ mit „Einladung einlösen“ ein.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':'Registrierung: '+err.message,true);}};
+$('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';$('joinGuildPanel').classList.add('hidden');await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){
   if(input.length>20000||!input.startsWith('BL1|'))throw Error('Übertragungscode ungültig');
@@ -1178,8 +1186,6 @@ async function loadFeedback(){
     root.append(item);
   }
   feedback.inbox=!!r.inbox;
-  $('feedbackInboxPanel').classList.toggle('hidden',!feedback.inbox);
-  if(feedback.inbox)await loadFeedbackInbox();
 }
 async function loadFeedbackInbox(){
   const q=feedback.inboxStatus?'?status='+encodeURIComponent(feedback.inboxStatus):'';
@@ -1224,7 +1230,7 @@ async function loadGameVersion(){
   const r=await api(path('game-version'));const sel=$('gameVersionSelect');sel.replaceChildren();
   for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;o.selected=key===r.wow_flavor;sel.append(o);}
   sel.disabled=r.locked;$('saveGameVersion').disabled=r.locked;
-  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion unter „Konto → Eigene Gilde anlegen“ eine weitere Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
+  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion unter „Konto & Gilden → Eigene Gilde anlegen“ eine weitere Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
 }
 $('saveGameVersion').onclick=async()=>{
   try{const r=await api(path('game-version'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({wow_flavor:$('gameVersionSelect').value})});
@@ -1297,10 +1303,23 @@ for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.
 $('newGuildForm').onsubmit=async e=>{e.preventDefault();
   try{const r=await post('/guilds',{name:$('newGuildName').value.trim(),realm:$('newGuildRealm').value.trim(),region:$('newGuildRegion').value,wow_flavor:$('newGuildFlavor').value});
     state.guilds.push(r.guild);state.created=(state.created||0)+1;await fillGuildSelector();
-    $('guildSelector').value=String(r.guild.id);$('newGuildForm').reset();switchGuild();setTab('account');$('newGuildNext').classList.remove('hidden');$('newGuildNext').scrollIntoView({block:'center'});
+    $('guildSelector').value=String(r.guild.id);$('newGuildForm').reset();switchGuild();setTab('account');$('newGuildPanel').classList.remove('hidden');$('newGuildForm').classList.add('hidden');$('newGuildNext').classList.remove('hidden');$('newGuildNext').scrollIntoView({block:'center'});
     notice('Gilde „'+r.guild.name+'“ angelegt. Du bist dort Administrator.');}
   catch(err){notice(err.message==='GUILD_EXISTS'?'Diese Gilde gibt es hier schon. Bitte einen Admin dieser Gilde um eine Einladung.':err.message==='INVALID_GUILD'?'Bitte Gildenname und Realm prüfen.':err.message==='GUILD_LIMIT'?'Du hast schon so viele Gilden angelegt, wie erlaubt sind. Wende dich an den Betreiber der Website.':err.message,true);}};
+function renderMyGuilds(){
+  const list=$('myGuildList');list.replaceChildren();
+  for(const g of state.guilds){const row=el('div','row');const cur=state.guild&&Number(g.id)===Number(state.guild.id);
+    row.append(add(el('div'),el('strong','',`${g.name} · ${g.realm}`),el('div','muted',`${game(g.wow_flavor)[0]} · ${roleText(g.role)}`)));
+    if(cur)row.append(el('span','badge badge-ok','Aktuell'));
+    else{const b=el('button','secondary button-sm','Wechseln');b.onclick=()=>{$('guildSelector').value=String(g.id);switchGuild();setTab('account');};row.append(b);}
+    list.append(row);}
+}
+function toggleGuildBox(id){for(const x of ['joinGuildPanel','newGuildPanel'])$(x).classList.toggle('hidden',x!==id||!$(x).classList.contains('hidden'));
+  if(!$(id).classList.contains('hidden'))$(id).querySelector('input')?.focus();}
+$('showJoin').onclick=()=>toggleGuildBox('joinGuildPanel');
+$('showNewGuild').onclick=()=>{$('newGuildNext').classList.add('hidden');toggleGuildBox('newGuildPanel');};
 function renderNewGuildLimit(){
+  renderMyGuilds();
   const lim=state.createLimit;const left=lim==null?null:Math.max(0,lim-(state.created||0));
   $('newGuildLimit').textContent=lim==null?'':left>0?`Du kannst noch ${left} Gilde(n) anlegen.`:'Du kannst keine weitere Gilde anlegen. Wende dich an den Betreiber der Website.';
   $('newGuildForm').classList.toggle('hidden',left===0);

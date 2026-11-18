@@ -51,7 +51,7 @@ Ja, seit 1.9. Das Setup findet den Ordner `_forever_` und installiert das Addon 
 
 Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Für jede Gilde mit eigener Banklord-Website gibt es eine eigene Verbindung im Companion.
 
-**Ein Konto für mehrere Gilden:** Bist du schon auf der Website angemeldet und bekommst eine Einladung einer weiteren Gilde, löse sie unter **Konto → „Weiterer Gilde beitreten“** ein. Ein zweites Konto brauchst du nicht; oben wechselst du zwischen deinen Gilden. Danach erzeugst du bei der neuen Gilde unter **Konto** einen Verbindungscode und fügst ihn im Companion unter **„Weitere Gilden auf diesem PC“** ein.
+**Ein Konto für mehrere Gilden:** Bist du schon auf der Website angemeldet und bekommst eine Einladung einer weiteren Gilde, löse sie unter **Mehr → Konto & Gilden → „Einladung einlösen“** ein. Ein zweites Konto brauchst du nicht; oben wechselst du zwischen deinen Gilden. Danach erzeugst du bei der neuen Gilde unter **Konto** einen Verbindungscode und fügst ihn im Companion unter **„Weitere Gilden auf diesem PC“** ein.
 
 Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde in MoP Classic und eine in Retail. Jede Gilde hat genau eine Spielversion; Gegenstände und Scans werden nie vermischt. Im Companion wählst du beim Hinzufügen der Gilde die Banklord.lua der passenden WoW-Installation (`_retail_`, `_classic_`, `_anniversary_`, `_forever_`).
 
@@ -64,7 +64,7 @@ Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde 
 ### Wie melde ich einen Fehler?
 
 - **Im Spiel:** `/banklord feedback` oder im Banklord-Fenster der Reiter **Hilfe & Feedback**. Die Meldung wird beim nächsten `/reload` über den Companion gesendet.
-- **Auf der Website:** Reiter **Hilfe & Feedback**.
+- **Auf der Website:** **Mehr → Hilfe & Feedback**.
 - **Auf GitHub:** [Issue anlegen](https://github.com/lastrevolution0410/banklord/issues/new/choose).
 
 Dort wählst du **Fehler melden**, **Idee vorschlagen** oder **Sprache anfragen**. Die Meldung geht direkt an das Banklord-Projekt; unter **Meine Meldungen** siehst du den Status und die Antwort. Mitgeschickt werden nur deine Angaben und die Versionsnummern – keine Konto- oder Charakterdaten.

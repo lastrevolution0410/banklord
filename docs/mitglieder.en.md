@@ -143,7 +143,7 @@ Something is stuck, you have an idea, or you would like Banklord in your languag
 | Where | How |
 |---|---|
 | **In game** | `/banklord feedback` or the **Help & Feedback** tab in the Banklord window. Sent with the next `/reload`. |
-| **Website** | **Help & Feedback** tab. |
+| **Website** | **More → Help & feedback**. |
 
 1. Choose **Report a bug**, **Suggest an idea** or **Request a language**.
 2. Fill in the short form and click **Send**.
