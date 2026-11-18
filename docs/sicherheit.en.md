@@ -16,6 +16,8 @@
 | Orders, recipient character | Guild website | The member, bank managers, officers, admins |
 | E-mail, display name, password hash | Guild website | Admins (e-mail), nobody (password) |
 | Character names and realm | Guild website | Guild members |
+| Cash book (bank log from the game: player name, gold, items) | Guild website | Bank managers, officers, admins; members only see gold and bank value |
+| Discord webhook URL | Guild website; messages only go to discord.com | Never shown again after saving. Messages without @ mentions |
 | Help & Feedback reports | Banklord project (official site); on the guild website only title and status | Project maintainers. No account, character or guild data; e-mail only if given voluntarily |
 | Companion access key | PC: Windows data protection (DPAPI), macOS Keychain, Linux Secret Service. Website: hash only. | Nobody in plain text |
 

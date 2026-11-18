@@ -12,7 +12,8 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 4. [Mehrere Bankverwalter](#mehrere-bankverwalter)
 5. [Neue Mitglieder bestätigen](#neue-mitglieder-bestätigen)
 6. [Auf der Website](#auf-der-website)
-7. [Zusammen mit anderen Addons](#zusammen-mit-anderen-addons)
+7. [Kassenbuch, Bankwert und Discord](#kassenbuch-bankwert-und-discord)
+8. [Zusammen mit anderen Addons](#zusammen-mit-anderen-addons)
 
 ---
 
@@ -97,6 +98,13 @@ Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltun
 | **Mitglieder** | Rollen vergeben, Einladungen erstellen, Zugänge sperren (Admins) |
 | **Protokoll** | Wer hat wann was getan |
 | **System** | Version, Updates, verbundene Geräte (Admins) |
+
+## Kassenbuch, Bankwert und Discord
+
+- **Kassenbuch** (Website → Verwaltung → Kassenbuch): Jedes Mal, wenn du die Gildenbank öffnest, liest Banklord das Bankprotokoll aus – Gold und Gegenstände, wer was eingezahlt oder entnommen hat. WoW zeigt nur die letzten 25 Einträge je Fach; Banklord hebt alles auf. Nach dem nächsten `/reload` überträgt der Companion es. Filter nach Gold, Gegenständen oder Spieler, Download als CSV für Tabellen.
+- **Goldstand und Bankwert:** Der Goldstand der Gildenbank wird beim Öffnen mitgenommen. Hast du **TSM** oder **Auctionator** installiert, nimmt Banklord den Marktpreis jedes Gegenstands mit. Die Website zeigt dann den geschätzten Wert der ganzen Bank und pro Gegenstand.
+- **Discord** (Website → System, nur Administratoren): Webhook-URL eines Kanals einfügen und wählen, was gemeldet wird – neue Bestellungen, Freigabe nötig, verschickt, unter Mindestbestand. Mit „Testnachricht“ prüfen.
+- **Dringende Bestellungen** sind in Aufträgen mit **„Dringend“** markiert.
 
 ## Zusammen mit anderen Addons
 

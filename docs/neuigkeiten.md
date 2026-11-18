@@ -14,15 +14,22 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 
 | Idee | Worum es geht |
 |---|---|
-| Kassenbuch | Gold-Ein- und -Auszahlungen der Gildenbank mitschreiben und anzeigen |
-| Discord-Benachrichtigungen | Neue Bestellungen und Freigaben in einen Discord-Kanal schicken |
-| Gilde auf der Website anlegen | Weitere Gilden (z. B. in Retail) ohne Kommandozeile anlegen |
-| Ausführliche Tooltips für alle Spielversionen | Bisher nur in MoP Classic; sonst nur Symbol und Wowhead-Link |
-| macOS und Linux fertigstellen | Setup, Companion und Updater laufen dort noch als Beta |
+| Kassenbuch im Spiel | Goldstand und letzte Einträge auch im Addon-Fenster zeigen |
+| „Dringend“ im Spiel | Bestellungen auch im Addon als dringend markieren |
+| macOS und Linux fertigstellen | Setup, Companion und Updater laufen dort noch als Beta; es fehlen Tests auf echten Geräten |
 
 ---
 
 ## Fertig
+
+### 1.6 – Kassenbuch, Bankwert und Discord (18.11.2026)
+Vorher haben wir verglichen, was andere Gildenbank-Addons können (z. B. Guild Bank Ledger, Guild Bank Manager, TOGBankClassic, GuildVault), und das Beste übernommen:
+- **Kassenbuch:** Gold- und Gegenstandsprotokoll der Gildenbank, dauerhaft gespeichert statt nur der letzten 25 Einträge. Mit Filtern, Beiträgen pro Spieler und CSV-Download.
+- **Goldstand und Bankwert:** Gold in der Gildenbank und geschätzter Marktwert aller Gegenstände (TSM oder Auctionator), auch pro Gegenstand.
+- **Discord-Benachrichtigungen:** neue Bestellungen, Freigabe nötig, verschickt, unter Mindestbestand.
+- **Dringende Bestellungen:** auf der Website als „Dringend“ markierbar, in Aufträgen und Discord sichtbar.
+- **Weitere Gilden auf der Website anlegen,** z. B. für eine andere Spielversion.
+- **Tooltips in allen Spielversionen:** Die Werte kommen direkt aus dem Spiel; das gilt seit 1.5 für jede Spielversion.
 
 ### 1.5 – Spielversionen (18.11.2026)
 - **Eine Spielversion pro Gilde:** Retail, MoP Classic, Classic Anniversary oder Classic Era. Ein Konto kann Gilden in mehreren Versionen haben. Gegenstände und Scans werden nie vermischt.

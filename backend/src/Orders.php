@@ -18,7 +18,7 @@ final class Orders
         return $role;
     }
 
-    public function create(int $guild, int $user, string $key, array $lines, string $note=''): int
+    public function create(int $guild, int $user, string $key, array $lines, string $note='', bool $urgent=false): int
     {
         $this->activeRole($guild,$user,'order.submit');
         if (!preg_match('/^[a-zA-Z0-9_-]{12,100}$/D', $key)) throw new DomainError('BAD_REQUEST_KEY');
@@ -57,13 +57,17 @@ final class Orders
             $rules=new OrderRules($this->db);
             $limit=OrderRules::limitFor($rules->get($guild),$this->activeRole($guild,$user,'order.submit'));
             $approval=$limit>0 && $rules->weeklyUsed($guild,$user)+array_sum($combined)>$limit ? 1 : 0;
-            $s=$this->db->prepare('INSERT INTO orders (guild_id,user_id,client_key,request_fingerprint,note,needs_approval) VALUES (?,?,?,?,?,?)');
-            $s->execute([$guild,$user,$key,$fingerprint,$note,$approval]);
+            $s=$this->db->prepare('INSERT INTO orders (guild_id,user_id,client_key,request_fingerprint,note,needs_approval,priority) VALUES (?,?,?,?,?,?,?)');
+            $s->execute([$guild,$user,$key,$fingerprint,$note,$approval,$urgent?1:0]);
             $order=(int)$this->db->lastInsertId();
             $s=$this->db->prepare('INSERT INTO order_lines (order_id,stock_id,requested_qty) VALUES (?,?,?)');
             foreach ($combined as $stock=>$quantity) $s->execute([$order,$stock,$quantity]);
             $this->audit($guild,$user,'order.create','order',$order,[]);
             $this->notifyManagers($guild,$user,$order);
+            $who=$this->db->prepare('SELECT display_name FROM users WHERE id=?');$who->execute([$user]);
+            $summary=$this->summary($order);
+            Discord::queue($this->db,$guild,'order',($urgent?'🔴 Dringend: ':'').'Neue Bestellung #'.$order.' von '.$who->fetchColumn().': '.$summary.($note!==''?' – „'.mb_substr($note,0,120).'“':''));
+            if ($approval) Discord::queue($this->db,$guild,'approval','Bestellung #'.$order.' liegt über dem Wochenlimit und braucht die Freigabe eines Offiziers.');
             $this->db->commit(); return $order;
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
@@ -270,6 +274,8 @@ final class Orders
             }
             $this->audit($guild,$actor,'order.deliver','order',$orderId,['via'=>'ingame-mail','partial'=>$only!==null,'lines'=>$sent]);
             $this->notifyOwner($guild,$orderId,'order.fulfilled');
+            $who=$this->db->prepare('SELECT u.display_name FROM orders o JOIN users u ON u.id=o.user_id WHERE o.id=?');$who->execute([$orderId]);
+            Discord::queue($this->db,$guild,'shipped','📦 Bestellung #'.$orderId.' von '.$who->fetchColumn().($state==='fulfilled'?' ist verschickt.':' ist teilweise verschickt, der Rest folgt.'));
             $this->db->commit();return $state;
         } catch(\Throwable $e) {if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
@@ -321,6 +327,13 @@ final class Orders
         if (!in_array($role,['officer','admin'],true)) throw new DomainError('APPROVAL_REQUIRED');
         $this->db->prepare('UPDATE orders SET needs_approval=0 WHERE id=?')->execute([(int)$order['id']]);
         $this->audit($guild,$actor,'order.limit_approved','order',(int)$order['id'],[]);
+    }
+
+    /** Short text like "20× Windwollstoff, 5× Erz" for messages. */
+    private function summary(int $order): string
+    {
+        $s=$this->db->prepare('SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \', \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=?');
+        $s->execute([$order]);return mb_substr((string)$s->fetchColumn(),0,600);
     }
 
     private function notifyOwner(int $guild,int $order,string $kind): void

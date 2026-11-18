@@ -14,15 +14,22 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 
 | Idea | What it is about |
 |---|---|
-| Cash book | Record and show gold deposits and withdrawals of the guild bank |
-| Discord notifications | Send new orders and approvals to a Discord channel |
-| Create guilds on the website | Add further guilds (e.g. in Retail) without the command line |
-| Detailed tooltips for every game version | So far only in MoP Classic; otherwise icon and Wowhead link only |
-| Finish macOS and Linux | Setup, Companion and updater are still beta there |
+| Cash book in game | Show the bank's gold and latest entries in the addon window too |
+| "Urgent" in game | Mark orders as urgent in the addon as well |
+| Finish macOS and Linux | Setup, Companion and updater are still beta there; tests on real devices are missing |
 
 ---
 
 ## Done
+
+### 1.6 – Cash book, bank value and Discord (18 Nov 2026)
+We first compared what other guild bank addons offer (e.g. Guild Bank Ledger, Guild Bank Manager, TOGBankClassic, GuildVault) and took the best of it:
+- **Cash book:** gold and item log of the guild bank, kept permanently instead of only the last 25 entries. With filters, contributions per player and CSV download.
+- **Gold and bank value:** gold in the guild bank and the estimated market value of all items (TSM or Auctionator), also per item.
+- **Discord notifications:** new orders, approval needed, sent, below minimum stock.
+- **Urgent orders:** can be marked "Urgent" on the website, visible under Orders and in Discord.
+- **Create further guilds on the website,** e.g. for another game version.
+- **Tooltips in every game version:** the values come straight from the game; since 1.5 this works for every game version.
 
 ### 1.5 – Game versions (18 Nov 2026)
 - **One game version per guild:** Retail, MoP Classic, Classic Anniversary or Classic Era. One account can have guilds in several versions. Items and scans are never mixed.

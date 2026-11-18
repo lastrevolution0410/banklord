@@ -57,7 +57,8 @@ Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reser
 1. Melde dich an. Unter **Gildenbank** siehst du den Bestand mit Suche und Filtern.
 2. Lege Gegenstände in den **Warenkorb** oder auf die **Merkliste**.
 3. Wähle im Warenkorb den **Empfänger-Charakter** – an ihn schickt der Bankverwalter die Post. Es erscheinen nur Charaktere, mit denen du dich mindestens einmal im Spiel mit Banklord eingeloggt hast.
-4. **„Bestellen“**.
+4. Eilt es, z. B. für den nächsten Raid? Hake **„Dringend“** an. Die Bankverwaltung sieht das sofort.
+5. **„Bestellen“**.
 
 ## Was passiert nach der Bestellung?
 

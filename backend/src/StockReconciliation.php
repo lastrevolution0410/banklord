@@ -154,6 +154,11 @@ final class StockReconciliation
             $audit->execute([$guild,$actor,$automated?'scan.automatically_reconciled':'scan.manually_confirmed',
                 'stock_snapshot',$snapshotId,json_encode(['changed_stocks'=>$changes,'confirmed_by_human'=>!$automated,
                     'source_untrusted'=>true,'automated'=>$automated],JSON_THROW_ON_ERROR)]);
+            // Discord: items that fell below their minimum stock with this scan.
+            $low=$this->db->prepare('SELECT i.name FROM guild_restock_rules r JOIN guild_stock gs ON gs.id=r.stock_id JOIN items i ON i.id=gs.item_id
+                WHERE r.guild_id=? AND gs.physical_qty<r.minimum_qty ORDER BY i.name LIMIT 11');
+            $low->execute([$guild]);$names=$low->fetchAll(PDO::FETCH_COLUMN);
+            if ($names) Discord::queue($this->db,$guild,'restock','🛒 Nach der Inventur unter Mindestbestand: '.implode(', ',array_slice($names,0,10)).(count($names)>10?' und weitere':'').'.');
             $this->db->commit();
             return ['snapshot_id'=>$snapshotId,'status'=>'reconciled','changed_stocks'=>$changes,'automated'=>$automated];
         } catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}

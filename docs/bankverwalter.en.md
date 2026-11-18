@@ -12,7 +12,8 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 4. [Several bank managers](#several-bank-managers)
 5. [Confirming new members](#confirming-new-members)
 6. [On the website](#on-the-website)
-7. [Together with other addons](#together-with-other-addons)
+7. [Cash book, bank value and Discord](#cash-book-bank-value-and-discord)
+8. [Together with other addons](#together-with-other-addons)
 
 ---
 
@@ -97,6 +98,13 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 | **Members** | Assign roles, create invitations, block access (admins) |
 | **Log** | Who did what and when |
 | **System** | Version, updates, connected devices (admins) |
+
+## Cash book, bank value and Discord
+
+- **Cash book** (website → Management → Cash book): every time you open the guild bank, Banklord reads the bank log – gold and items, who deposited or withdrew what. WoW only shows the last 25 entries per tab; Banklord keeps everything. The Companion uploads it after the next `/reload`. Filter by gold, items or player, download as CSV for spreadsheets.
+- **Gold and bank value:** the guild bank's gold is recorded when you open it. With **TSM** or **Auctionator** installed, Banklord records each item's market price. The website then shows the estimated value of the whole bank and per item.
+- **Discord** (website → System, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
+- **Urgent orders** are marked **“Urgent”** under Orders.
 
 ## Together with other addons
 

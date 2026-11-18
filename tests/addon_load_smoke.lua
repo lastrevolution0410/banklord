@@ -434,6 +434,31 @@ do
   A.db.localCartDraft={};A.db.fullScans=nil;Banklord_ServerState={};for _,k in ipairs({'manageOutbox','manageDone','orderShipped','orderCancelPending'}) do A.db[k]={} end
 end
 assert(A:GameFlavor()=='mop_classic' and BanklordDB.gameFlavor=='mop_classic','game version recorded for the server')
+-- Bank ledger: item and gold log, bank gold and TSM prices end up in BanklordDB.bankLog.
+do
+  local oldOpen=A.bankOpen;A.bankOpen=true
+  GetGuildInfo=function() return 'Testgilde' end;GetRealmName=function() return 'Everlook' end
+  GetNumGuildBankTabs=function() return 2 end
+  GetNumGuildBankTransactions=function(tab) return tab==1 and 2 or 0 end
+  GetGuildBankTransaction=function(tab,i)
+    if i==1 then return 'deposit','Aria','|cff|Hitem:2589::|h[Leinenstoff]|h|r',20,1,nil,0,0,0,3 end
+    return 'move','Borin','|cff|Hitem:2589::|h[Leinenstoff]|h|r',5,1,2,0,0,1,0
+  end
+  GetNumGuildBankMoneyTransactions=function() return 1 end
+  GetGuildBankMoneyTransaction=function() return 'withdraw','Kaelis',150000,0,0,0,2 end
+  GetGuildBankMoney=function() return 1234567 end
+  TSM_API={GetCustomPriceValue=function(src,item) return item=='i:2589' and 1250 or nil end}
+  A.db.fullScans={{items={{itemID=2589,count=25},{itemID=52190,count=1}}}}
+  A:ReadBankLog()
+  local log=assert(A.db.bankLog,'bank log stored')
+  assert(log.guild=='Testgilde' and log.money==1234567 and #log.items==2 and #log.gold==1,'log entries read')
+  assert(log.items[1].i==2589 and log.items[1].n=='Leinenstoff' and log.items[2].to==2 and log.gold[1].q==150000,'entry details')
+  assert(log.items[1].at%3600==0 and log.items[1].at<=time()-3*3600+3600,'times rounded to the hour')
+  assert(#log.prices==1 and log.prices[1].c==1250 and log.prices[1].s=='tsm','TSM price captured')
+  local queried={};QueryGuildBankLog=function(t) queried[#queried+1]=t end
+  A:CaptureBankLog();assert(#queried==3 and queried[3]==(MAX_GUILDBANK_TABS or 8)+1,'all tab logs and the gold log requested')
+  TSM_API=nil;A.bankOpen=oldOpen;A.db.bankLog=nil
+end
 print('PASS: order rules in game (approval, partial delivery, shipping notice, cancel, view-only, tooltip, shopping list)')
 
 -- Localization: client language decides, BanklordDB.settings.locale overrides.

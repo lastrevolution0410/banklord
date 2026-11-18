@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.12.0"
+A.version = "0.13.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")

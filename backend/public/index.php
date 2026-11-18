@@ -11,6 +11,8 @@ use Banklord\Claims;
 use Banklord\Feedback;
 use Banklord\WebUpdater;
 use Banklord\GameFlavor;
+use Banklord\BankLedger;
+use Banklord\Guilds;
 use Banklord\ReleasePublisher;
 use Banklord\UpstreamUpdater;
 use Banklord\Demo;
@@ -27,6 +29,8 @@ require dirname(__DIR__) . '/src/Domain.php';
 require dirname(__DIR__) . '/src/Database.php';
 require dirname(__DIR__) . '/src/Orders.php';
 require dirname(__DIR__) . '/src/OrderRules.php';
+require dirname(__DIR__) . '/src/BankLedger.php';
+require dirname(__DIR__) . '/src/Guilds.php';
 
 require dirname(__DIR__) . '/src/SavedVariablesParser.php';
 require dirname(__DIR__) . '/src/ScanImport.php';
@@ -189,6 +193,8 @@ function hasMember(PDO $db,int $guild,int $user): string {
 try {
     $db=Database::connect();
     register_shutdown_function(static fn() => UpstreamUpdater::autoAfterResponse($db, dirname(__DIR__)));
+    // Discord messages queued during this request go out after the response.
+    register_shutdown_function(static function() use ($db) { try { \Banklord\Discord::flush($db); } catch (\Throwable $e) {} });
     $path=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH);
     $method=$_SERVER['REQUEST_METHOD']??'GET';
     // If hosted in subdirectory, set rewrite base and route into this script's PATH_INFO.
@@ -321,6 +327,8 @@ try {
         $roleQ=$db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
         $roleQ->execute([$guildId,$actor]);
         $scanner=in_array($roleQ->fetchColumn(),['admin','bank_manager','officer'],true);
+        // Bank log, gold and prices read in game by a bank manager (kept beyond WoW's 25 entries).
+        if ($scanner) { try { (new BankLedger($db))->process($guildId,$actor,$file,$record); } catch (\Throwable $e) { error_log('Banklord ledger: '.get_class($e)); } }
         if (!$scanner) {
             // Members: orders only. Scans and peer drafts in the file are ignored.
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
@@ -421,6 +429,7 @@ try {
         $_SESSION=[];session_destroy();reply(401,['error'=>'SESSION_EXPIRED']);
     }
     $_SESSION['last_seen']=time();
+    if ($method==='POST' && $path==='/guilds') reply(201,['guild'=>(new Guilds($db))->create($user,body())]);
     if ($method==='GET' && $path==='/guilds') {
         $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,g.wow_flavor,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);reply(200,['guilds'=>$s->fetchAll()]);
     }
@@ -770,7 +779,7 @@ try {
     }
     if ($method==='GET' && preg_match('~^items/([1-9][0-9]{0,17})$~D',$tail,$im)) {
         $stock=id($im[1]);
-        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty,CASE WHEN s.confidence='verified' AND s.observed_at>=UTC_TIMESTAMP()-INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND s.id=?");
+        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty,CASE WHEN s.confidence='verified' AND s.observed_at>=UTC_TIMESTAMP()-INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.unit_price,s.price_source,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND s.id=?");
         $s->execute([$guild,$stock]);$row=$s->fetch();if(!$row)reply(404,['error'=>'STOCK_NOT_FOUND']);
         reply(200,['item'=>$row]);
     }
@@ -785,7 +794,7 @@ try {
         if (!in_array($showEmpty,['0','1'],true)) reply(400,['error'=>'INVALID_STOCK_FILTER']);
         $locale=(string)($_GET['locale']??'deDE');
         if (!in_array($locale,\Banklord\ItemMetadata::LOCALES,true)) reply(400,['error'=>'UNSUPPORTED_LOCALE']);
-        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty, CASE WHEN s.confidence='verified' AND s.observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND (i.name LIKE ? OR CAST(i.wow_item_id AS CHAR) = ?) AND (?='1' OR s.physical_qty>0 OR s.reserved_qty>0) ORDER BY i.name,s.id LIMIT 101 OFFSET ?");
+        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty, CASE WHEN s.confidence='verified' AND s.observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.unit_price,s.price_source,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND (i.name LIKE ? OR CAST(i.wow_item_id AS CHAR) = ?) AND (?='1' OR s.physical_qty>0 OR s.reserved_qty>0) ORDER BY i.name,s.id LIMIT 101 OFFSET ?");
         $s->bindValue(1,$guild,PDO::PARAM_INT);$s->bindValue(2,'%'.$q.'%');$s->bindValue(3,$query);$s->bindValue(4,$showEmpty,PDO::PARAM_STR);$s->bindValue(5,$offset,PDO::PARAM_INT);
         $s->execute();$rows=$s->fetchAll();$hasNext=count($rows)>100;if($hasNext)array_pop($rows);
         catalogIcons($db,$guild,$rows,$locale);
@@ -797,7 +806,7 @@ try {
         $c=$db->prepare("SELECT CONCAT(name,'-',realm) FROM characters WHERE id=? AND guild_id=? AND user_id=? AND verification_status<>'revoked'");
         $c->execute([is_int($b['character_id']??null)?$b['character_id']:0,$guild,$user]);$recipient=$c->fetchColumn();
         if ($recipient===false) reply(422,['error'=>'CHARACTER_REQUIRED']);
-        $order=(new Orders($db))->create($guild,$user,$key,$b['lines'],$b['note']??'');
+        $order=(new Orders($db))->create($guild,$user,$key,$b['lines'],$b['note']??'',($b['urgent']??false)===true);
         $db->prepare('UPDATE orders SET recipient=? WHERE id=? AND recipient IS NULL')->execute([$recipient,$order]);
         $s=$db->prepare('SELECT status FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);
         reply(200,['id'=>$order,'status'=>$s->fetchColumn()]);
@@ -808,6 +817,29 @@ try {
         if ($method!=='GET') reply(405,['error'=>'METHOD_NOT_ALLOWED']);
         $r=$rules->get($guild);$limit=OrderRules::limitFor($r,$role);
         reply(200,['rules'=>$r,'my_limit'=>$limit,'my_used'=>$limit>0?$rules->weeklyUsed($guild,$user):0]);
+    }
+    // Bank ledger (Kassenbuch): bank managers, officers and admins.
+    if ($method==='GET' && in_array($tail,['bank-log','bank-log/export.csv','bank-log/summary'],true)) {
+        $ledger=new BankLedger($db);
+        if ($tail==='bank-log/summary') {
+            $sum=$ledger->summary($guild,(int)($_GET['days']??30));
+            // Members see the bank's gold and value, not who paid in or took out.
+            if (!in_array($role,['officer','bank_manager','admin'],true)) $sum['players']=[];
+            reply(200,$sum);
+        }
+        if (!in_array($role,['officer','bank_manager','admin'],true)) reply(403,['error'=>'FORBIDDEN']);
+        $rows=$ledger->entries($guild,(string)($_GET['kind']??''),mb_substr((string)($_GET['player']??''),0,80),(int)($_GET['days']??90),$tail==='bank-log'?300:2000);
+        if ($tail==='bank-log') reply(200,['entries'=>$rows]);
+        header('Content-Type: text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="bl-kassenbuch.csv"');header('Cache-Control: no-store');
+        echo BankLedger::csv($rows);exit;
+    }
+    if ($tail==='discord' || $tail==='discord/test') {
+        if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
+        $discord=new \Banklord\Discord($db);
+        if ($tail==='discord/test') { if ($method!=='POST') reply(405,['error'=>'METHOD_NOT_ALLOWED']); $discord->test($guild,$user); reply(200,['queued'=>true]); }
+        if ($method==='PUT') reply(200,$discord->save($guild,$user,body()));
+        if ($method!=='GET') reply(405,['error'=>'METHOD_NOT_ALLOWED']);
+        reply(200,$discord->view($guild));
     }
     if ($tail==='game-version') {
         if ($method==='PUT') {$b=body();GameFlavor::change($db,$guild,$user,$b['wow_flavor']??null);}
@@ -821,15 +853,15 @@ try {
     if ($method==='GET' && $tail==='orders') {
         (new OrderRules($db))->expire($guild);
         if (in_array($role,['officer','bank_manager','admin'],true)) {
-            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? ORDER BY o.id DESC LIMIT 200');$s->execute([$guild]);
+            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.priority,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? ORDER BY o.id DESC LIMIT 200');$s->execute([$guild]);
         } else {
-            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? AND o.user_id=? ORDER BY o.id DESC LIMIT 100');$s->execute([$guild,$user]);
+            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.priority,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? AND o.user_id=? ORDER BY o.id DESC LIMIT 100');$s->execute([$guild,$user]);
         }
         reply(200,['orders'=>$s->fetchAll()]);
     }
     if ($method==='GET' && preg_match('~^orders/([1-9][0-9]{0,17})$~D',$tail,$o)) {
         $order=id($o[1]);
-        $s=$db->prepare('SELECT id,user_id,status,needs_approval,note,created_at FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);$head=$s->fetch();
+        $s=$db->prepare('SELECT id,user_id,status,needs_approval,priority,note,created_at FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);$head=$s->fetch();
         if (!$head || ($head['user_id']!=$user && !in_array($role,['officer','bank_manager','admin'],true))) reply(404,['error'=>'NOT_FOUND']);
         $s=$db->prepare('SELECT l.id,l.stock_id,l.requested_qty,l.approved_qty,l.fulfilled_qty,l.decision,i.name,i.wow_item_id FROM order_lines l JOIN guild_stock gs ON gs.id=l.stock_id AND gs.guild_id=? JOIN items i ON i.id=gs.item_id WHERE l.order_id=? ORDER BY l.id');$s->execute([$guild,$order]);
         reply(200,['order'=>$head,'lines'=>$s->fetchAll()]);
@@ -854,8 +886,8 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['INVALID_GAME_VERSION','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
-    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED','GAME_VERSION_LOCKED','GAME_VERSION_MISMATCH'];
+    $bad=['INVALID_GAME_VERSION','INVALID_GUILD','INVALID_DISCORD','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
+    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED','GAME_VERSION_LOCKED','GAME_VERSION_MISMATCH','GUILD_EXISTS','GUILD_LIMIT'];
     if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
     if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);
     if (str_starts_with($e->getMessage(),'FEEDBACK_') || $e->getMessage()==='INVALID_EMAIL') reply(422,['error'=>$e->getMessage()]);

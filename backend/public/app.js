@@ -40,9 +40,11 @@ function setTab(tab){
   if(tab==='sync'&&!manager())return;
   if(tab==='procurement'&&!manager())return;
   if(tab==='updates'&&state.guild?.role!=='admin')return;
-  if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));}
+  if(tab==='ledger'&&!administrator())return;
+  if(tab==='ledger')loadLedger().catch(e=>notice(e.message,true));
+  if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
   state.tab=tab;
-  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
+  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','ledger','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   if(tab==='cart')renderCart();
   if(tab==='orders'||tab==='admin'||tab==='inventory')loadOrders().catch(e=>notice(e.message,true));
@@ -57,15 +59,15 @@ function setTab(tab){
   if(tab==='procurement')loadProcurement().catch(e=>notice(e.message,true));
 }
 function updateCartBadge(){$('cartCount').textContent=String(cartTotal());}
-function switchGuild(){
+function switchGuild(){state.bankSummary=null;
   const id=Number($('guildSelector').value);state.guild=state.guilds.find(g=>Number(g.id)===id)||state.guilds[0];
   if(!state.guild)return;
   state.cart.clear();state.pendingOrder=null;state.details.clear();state.appearances.clear();state.appearanceRequests.clear();state.selectedStockId=null;state.inventoryFilter='all';state.categoryKey='all';state.expandedCategories.clear();state.catalogPage=0;appearanceLoading.queue=[];appearanceLoading.queued.clear();iconLookupByItemId.clear();updateCartBadge();
   $('guildTitle').textContent=state.guild.name;
   document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
   $('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2);$('bellBtn').classList.remove('hidden');
-  $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
-  state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
+  $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('ledgerTab').classList.toggle('hidden',!administrator());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
+  state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadBankSummary();loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
 }
 async function initialize(){
   if(location.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(location.hostname))throw Error('HTTPS_REQUIRED');
@@ -391,6 +393,7 @@ function renderItemDetail(){
   note.append(el('p','','Inventur: '+qty(item.physical_qty)+' Stück'),el('p','','Reserviert: '+qty(item.reserved_qty)+' Stück'),
     el('p',item.available_qty===null?'status-warn':'status-available',item.available_qty===null?'Verfügbarkeit nicht bestätigt':'Anforderbar: '+qty(item.available_qty)+' Stück'),
     ...(Number(item.viewonly_qty)>0?[el('p','muted','Davon nur ansehen (gesperrter Tab): '+qty(item.viewonly_qty)+' Stück')]:[]),
+    ...(item.unit_price?[el('p','muted','Marktwert: '+gold(item.unit_price)+' pro Stück ('+(item.price_source==='tsm'?'TSM':'Auctionator')+')')]:[]),
     el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
   root.append(note);
   const tooltipBtn=el('button','secondary button-sm wow-detail-tooltip',T('openValues'));tooltipBtn.type='button';tooltipBtn.onclick=e=>{showTooltip(item,e,true);placeTooltip(e);};root.append(tooltipBtn);
@@ -426,7 +429,8 @@ function renderItems(){
   const confirmed=state.items.filter(x=>x.available_qty!==null);
   $('stockSummary').replaceChildren(add(el('div','stat'),el('strong','',qty(state.items.length)),el('span','','Einträge auf Seite '+state.itemPage)),
     add(el('div','stat'),el('strong','',qty(confirmed.length)),el('span','','Mit bestätigter Verfügbarkeit')),
-    add(el('div','stat'),el('strong','','Serverbestand'),el('span','','Verbindliche Mengen nur nach Prüfung')));
+    add(el('div','stat'),el('strong','','Serverbestand'),el('span','','Verbindliche Mengen nur nach Prüfung')),
+    ...bankStats());
   renderItemTypeCategories();renderInventoryFilters();const filtered=filteredInventory();
   if(!filtered.find(x=>Number(x.stock_id)===Number(state.selectedStockId)))state.selectedStockId=filtered.length?Number(filtered[0].stock_id):null;
   $('visibleItemCount').textContent=qty(filtered.length)+' Treffer auf dieser Seite';
@@ -489,11 +493,11 @@ async function submitOrder(event){
   const button=$('submitOrder');button.disabled=true;
   const lines=[...state.cart.values()].map(v=>({stock_id:v.id,quantity:v.quantity}));
   const character=Number($('orderCharacter').value);if(!character){notice('Bitte einen Empfänger-Charakter wählen.',true);button.disabled=false;return;}
-  const request={lines,note:$('orderNote').value,character_id:character};const fingerprint=JSON.stringify(request);
+  const request={lines,note:$('orderNote').value,character_id:character,urgent:$('orderUrgent').checked};const fingerprint=JSON.stringify(request);
   if(!state.pendingOrder||state.pendingOrder.fingerprint!==fingerprint||state.pendingOrder.guild!==Number(state.guild.id))
     state.pendingOrder={key:freshId(),fingerprint,guild:Number(state.guild.id)};
   try{const result=await post(path('orders'),request,{'Idempotency-Key':state.pendingOrder.key});
-    state.cart.clear();state.pendingOrder=null;updateCartBadge();$('orderNote').value='';notice('Bestellung #'+result.id+' wurde vom Server bestätigt.');setTab('orders');}
+    state.cart.clear();state.pendingOrder=null;updateCartBadge();$('orderNote').value='';$('orderUrgent').checked=false;notice('Bestellung #'+result.id+' wurde vom Server bestätigt.');setTab('orders');}
   catch(e){notice('Bestellung nicht bestätigt: '+e.message+'. Warenkorb bleibt erhalten.',true);}
   finally{button.disabled=false;}
 }
@@ -510,7 +514,7 @@ function orderGroup(status){return status==='submitted'?'review':['reserved','pa
 function orderCard(order,adminMode){
   const card=el('article','order-card2');const head=el('div','order-head');const title=el('div');
   title.append(el('div','item-title',(adminMode&&order.display_name?order.display_name+' · ':'')+'Bestellung #'+order.id),el('div','muted',when(order.created_at)+(order.note?' · „'+order.note+'“':'')));
-  head.append(title,statusBadge(order.status));if(Number(order.needs_approval)===1&&orderGroup(order.status)!=='done')head.append(el('span','badge badge-wait','Freigabe nötig'));card.append(head);
+  head.append(title,statusBadge(order.status));if(Number(order.priority)===1&&orderGroup(order.status)!=='done')head.append(el('span','badge badge-bad','Dringend'));if(Number(order.needs_approval)===1&&orderGroup(order.status)!=='done')head.append(el('span','badge badge-wait','Freigabe nötig'));card.append(head);
   if(order.summary)card.append(el('p','order-summary',order.summary));
   card.append(orderProgress(order.status));
   const group=orderGroup(order.status);const box=el('div','order-detail hidden');
@@ -1161,7 +1165,7 @@ async function loadGameVersion(){
   const r=await api(path('game-version'));const sel=$('gameVersionSelect');sel.replaceChildren();
   for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;o.selected=key===r.wow_flavor;sel.append(o);}
   sel.disabled=r.locked;$('saveGameVersion').disabled=r.locked;
-  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion bitte eine eigene Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
+  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion unten eine weitere Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
 }
 $('saveGameVersion').onclick=async()=>{
   try{const r=await api(path('game-version'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({wow_flavor:$('gameVersionSelect').value})});
@@ -1169,3 +1173,61 @@ $('saveGameVersion').onclick=async()=>{
     await loadGameVersion();notice('Spielversion gespeichert.');}
   catch(e){notice(e.message==='GAME_VERSION_LOCKED'?'Die Gilde hat schon Bestand. Die Spielversion ist deshalb festgelegt.':e.message,true);}
 };
+
+// Gold amounts like in game: 1.234g 56s 78c (silver/copper only when not zero).
+function gold(copper){const c=Math.max(0,Math.round(Number(copper)||0));const g=Math.floor(c/10000),si=Math.floor(c%10000/100),co=c%100;
+  return [g?qty(g)+'g':'',si?si+'s':'',co||(!g&&!si)?co+'c':''].filter(Boolean).join(' ');}
+// Bank gold and estimated value for everyone (from the last bank visit of a bank manager).
+function bankStats(){const b=state.bankSummary;if(!b)return[];const out=[];
+  if(b.money)out.push(add(el('div','stat'),el('strong','',gold(b.money.copper)),el('span','','Gold in der Gildenbank')));
+  if(b.stock_value&&b.stock_value.priced_items>0)out.push(add(el('div','stat'),el('strong','','≈ '+gold(b.stock_value.copper)),el('span','','Marktwert der Gegenstände')));
+  return out;}
+async function loadBankSummary(){try{state.bankSummary=await api(path('bank-log/summary?days=30'));if(state.items)renderItems();}catch(_e){state.bankSummary=null;}}
+const LEDGER_ACTION={deposit:['eingezahlt','in'],withdraw:['entnommen','out'],move:['verschoben',''],repair:['Reparatur','out'],withdrawForTab:['für Fach entnommen','out'],buyTab:['Fach gekauft','out'],depositSummary:['Einzahlung (gesammelt)','in']};
+state.ledgerKind='';
+async function loadLedger(){
+  const player=$('ledgerPlayer').value.trim();
+  const [sum,list]=await Promise.all([api(path('bank-log/summary?days=30')),api(path('bank-log?days=90&kind='+encodeURIComponent(state.ledgerKind)+'&player='+encodeURIComponent(player)))]);
+  state.bankSummary=sum;
+  const stats=$('ledgerStats');stats.replaceChildren(
+    add(el('div','stat'),el('strong','',sum.money?gold(sum.money.copper):'–'),el('span','',sum.money?'Gold in der Bank · Stand '+when(sum.money.observed_at):'Noch kein Goldstand erfasst')),
+    add(el('div','stat'),el('strong','',sum.stock_value.priced_items?'≈ '+gold(sum.stock_value.copper):'–'),el('span','',sum.stock_value.priced_items?'Marktwert von '+qty(sum.stock_value.priced_items)+' Gegenständen (TSM/Auctionator)':'Kein Marktwert: TSM oder Auctionator beim Bankverwalter nötig')),
+    add(el('div','stat'),el('strong','',qty(list.entries.length)),el('span','','Einträge in der Liste')));
+  const root=$('ledgerEntries');root.replaceChildren();
+  for(const e of list.entries){const [text,dir]=LEDGER_ACTION[e.action]||[e.action,''];
+    const what=e.kind==='money'?gold(e.quantity):qty(e.quantity)+'× '+(e.item_name||('Item '+e.wow_item_id));
+    const where=e.kind==='item'?(e.action==='move'?' · Fach '+e.tab_no+' → '+e.tab_to:' · Fach '+e.tab_no):'';
+    root.append(add(el('div','ledger-row'),el('span','muted',when(e.happened_at)),el('span','',e.player+' '+text+where),el('span','amount'+(dir?' amount-'+dir:''),(dir==='in'?'+ ':dir==='out'?'− ':'')+what)));}
+  if(!list.entries.length)root.append(el('p','muted','Noch keine Einträge. Sie erscheinen, sobald ein Bankverwalter mit Banklord 0.13 oder neuer die Gildenbank öffnet und danach /reload macht.'));
+  const people=$('ledgerPlayers');people.replaceChildren();
+  for(const p of sum.players){const parts=[];if(p.gold_in)parts.push('+'+gold(p.gold_in));if(p.gold_out)parts.push('−'+gold(p.gold_out));if(p.items_in)parts.push('+'+qty(p.items_in)+' Stück');if(p.items_out)parts.push('−'+qty(p.items_out)+' Stück');
+    people.append(add(el('div','ledger-row'),el('strong','',p.player),el('span','muted',''),el('span','amount',parts.join(' · '))));}
+  if(!sum.players.length)people.append(el('p','muted','Noch keine Beiträge erfasst.'));
+}
+$('ledgerFilter').addEventListener('click',e=>{const b=e.target.closest('button[data-kind]');if(!b)return;state.ledgerKind=b.dataset.kind;
+  for(const x of $('ledgerFilter').querySelectorAll('button'))x.classList.toggle('active',x===b);loadLedger().catch(err=>notice(err.message,true));});
+let ledgerTimer=null;$('ledgerPlayer').addEventListener('input',()=>{clearTimeout(ledgerTimer);ledgerTimer=setTimeout(()=>loadLedger().catch(err=>notice(err.message,true)),350);});
+$('ledgerCsv').onclick=async()=>{
+  try{const r=await fetch('/api/v1'+path('bank-log/export.csv?days=3650&kind='+encodeURIComponent(state.ledgerKind)+'&player='+encodeURIComponent($('ledgerPlayer').value.trim())),{credentials:'same-origin',cache:'no-store'});
+    if(!r.ok)throw Error('HTTP_'+r.status);const url=URL.createObjectURL(await r.blob());const a=el('a');a.href=url;a.download='banklord-kassenbuch.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  catch(e){notice(e.message,true);}};
+
+// Discord notifications (System, admins). The webhook itself is never shown again.
+async function loadDiscord(){const r=await api(path('discord'));$('discordUrl').value='';
+  $('discordUrl').placeholder=r.configured?'Verbunden – zum Ändern neue URL einfügen':'https://discord.com/api/webhooks/…';
+  $('discordState').textContent=r.configured?'Verbunden.':'Noch nicht eingerichtet.';
+  for(const box of document.querySelectorAll('[data-discord]'))box.checked=r.events.includes(box.dataset.discord);
+  $('testDiscord').disabled=!r.configured;$('removeDiscord').disabled=!r.configured;}
+async function saveDiscord(body){try{await api(path('discord'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});await loadDiscord();notice('Discord-Einstellungen gespeichert.');}
+  catch(e){notice(e.message==='INVALID_DISCORD'?'Bitte eine Discord-Webhook-URL einfügen (beginnt mit https://discord.com/api/webhooks/).':e.message,true);}}
+$('saveDiscord').onclick=()=>{const events=[...document.querySelectorAll('[data-discord]')].filter(b=>b.checked).map(b=>b.dataset.discord);const url=$('discordUrl').value.trim();saveDiscord(url?{webhook_url:url,events}:{events});};
+$('removeDiscord').onclick=()=>saveDiscord({webhook_url:''});
+$('testDiscord').onclick=async()=>{try{await post(path('discord/test'),{});notice('Testnachricht wird gesendet. Sie erscheint gleich im Discord-Kanal.');}catch(e){notice(e.message,true);}};
+
+// Further guilds (System, admins): e.g. the same guild in another game version.
+for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;$('newGuildFlavor').append(o);}
+$('newGuildForm').onsubmit=async e=>{e.preventDefault();
+  try{const r=await post('/guilds',{name:$('newGuildName').value.trim(),realm:$('newGuildRealm').value.trim(),region:$('newGuildRegion').value,wow_flavor:$('newGuildFlavor').value});
+    state.guilds.push(r.guild);const o=el('option','',`${r.guild.name} · ${r.guild.realm} · ${game(r.guild.wow_flavor)[0]}`);o.value=r.guild.id;$('guildSelector').append(o);
+    $('guildSelector').value=String(r.guild.id);$('newGuildForm').reset();switchGuild();notice('Gilde „'+r.guild.name+'“ angelegt. Du bist dort Administrator.');}
+  catch(err){notice(err.message==='GUILD_EXISTS'?'Diese Gilde gibt es hier schon.':err.message==='INVALID_GUILD'?'Bitte Gildenname und Realm prüfen.':err.message,true);}};

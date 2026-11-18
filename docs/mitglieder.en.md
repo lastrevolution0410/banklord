@@ -57,7 +57,8 @@ The stock shown in game is the state of the last guild bank scan. Items marked �
 1. Sign in. Under **Guild bank** you see the stock with search and filters.
 2. Put items in the **cart** or on the **wish list**.
 3. In the cart, choose the **recipient character** – the bank manager mails the items to this character. Only characters you have logged in with Banklord at least once are listed.
-4. **“Order”**.
+4. In a hurry, e.g. for the next raid? Tick **“Urgent”**. The bank managers see it right away.
+5. **“Order”**.
 
 ## What happens after ordering?
 
