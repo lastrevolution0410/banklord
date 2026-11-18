@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -79,7 +78,7 @@ func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
 	if err != nil {
 		return "Updater-Update: " + err.Error()
 	}
-	if err = exec.Command(dest, "--watch-updates").Start(); err != nil {
+	if err = command(dest, "--watch-updates").Start(); err != nil {
 		if old != "" {
 			_ = os.Remove(dest)
 			_ = os.Rename(old, dest)
@@ -128,7 +127,7 @@ func removeOldCopies(dest string) {
 // startBackgroundUpdater launches the installed updater right after setup.
 func startBackgroundUpdater() {
 	if _, err := os.Stat(updaterPath()); err == nil {
-		_ = exec.Command(updaterPath(), "--watch-updates").Start()
+		_ = command(updaterPath(), "--watch-updates").Start()
 	}
 }
 

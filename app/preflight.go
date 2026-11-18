@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -50,7 +49,7 @@ func preflightAndLaunch(ctx context.Context, client string) (string, error) {
 	if exe == "" {
 		return "", errors.New("Spielstarter nicht gefunden – im Battle.net-Client manuell starten")
 	}
-	cmd := exec.Command(exe)
+	cmd := command(exe)
 	cmd.Dir = client
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("Spielstart fehlgeschlagen: %w", err)

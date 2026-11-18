@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -15,11 +14,11 @@ func configureUpdaterAutostart(enabled bool) error {
 	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 	name := "BanklordAutoUpdater"
 	if !enabled {
-		err := exec.Command("reg.exe", "delete", key, "/v", name, "/f").Run()
+		err := command("reg.exe", "delete", key, "/v", name, "/f").Run()
 		if err == nil {
 			return nil
 		}
-		if exec.Command("reg.exe", "query", key, "/v", name).Run() != nil {
+		if command("reg.exe", "query", key, "/v", name).Run() != nil {
 			return nil
 		}
 		return fmt.Errorf("Autostart konnte nicht entfernt werden: %w", err)
@@ -64,7 +63,7 @@ func configureUpdaterAutostart(enabled bool) error {
 		}
 	}
 	cmd := `"` + dest + `" --watch-updates`
-	output, err := exec.Command("reg.exe", "add", key, "/v", name, "/t", "REG_SZ", "/d", cmd, "/f").CombinedOutput()
+	output, err := command("reg.exe", "add", key, "/v", name, "/t", "REG_SZ", "/d", cmd, "/f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Windows-Run-Eintrag: %s: %w", string(output), err)
 	}

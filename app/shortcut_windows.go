@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"syscall"
 	"unsafe"
@@ -18,7 +17,7 @@ func installCheckedLaunchShortcut(updater string) error {
 		`$link = $sh.CreateShortcut((Join-Path $sh.SpecialFolders('Desktop') 'Banklord - sicher starten.lnk')); ` +
 		`$link.TargetPath = $env:BANKLORD_UPDATE_EXE; $link.Arguments = '--preflight-launch'; ` +
 		`$link.WorkingDirectory = (Split-Path -Parent $env:BANKLORD_UPDATE_EXE); $link.Save()`
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
 	cmd.Env = append(os.Environ(), "BANKLORD_UPDATE_EXE="+filepath.Clean(updater))
 	return cmd.Run()
 }
@@ -45,7 +44,7 @@ func installCompanionShortcuts(target string) error {
 		`$lnk.WorkingDirectory=(Split-Path -Parent $env:BANKLORD_COMPANION_EXE); ` +
 		`$lnk.Description='Banklord Companion - lokale Synchronisierung'; ` +
 		`$lnk.Save() } }`
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
 	cmd.Env = append(os.Environ(), "BANKLORD_COMPANION_EXE="+filepath.Clean(target))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("Windows-Companion-Verknüpfungen: %v: %s", err, string(out))
@@ -67,7 +66,7 @@ func removeCompanionShortcuts(target string) error {
 		`$lnk=$sh.CreateShortcut($path); ` +
 		`if([string]::Equals($lnk.TargetPath,$env:BANKLORD_COMPANION_EXE,[StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $path -Force } ` +
 		`} } }`
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
 	cmd.Env = append(os.Environ(), "BANKLORD_COMPANION_EXE="+filepath.Clean(target))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("Windows-Companion-Verknüpfungen entfernen: %v: %s", err, string(out))

@@ -4,10 +4,8 @@ package main
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -18,8 +16,8 @@ func runningClientHints() []string {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 	const script = `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); Get-CimInstance Win32_Process -Filter "Name LIKE 'Wow%.exe'" | Where-Object { $_.ExecutablePath } | ForEach-Object { $_.ExecutablePath }`
-	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd := commandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd.SysProcAttr.HideWindow = true
 	output, err := cmd.Output()
 	if err != nil {
 		return nil

@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const setupVersion = "1.2.0"
+const setupVersion = "1.2.1"
 const bundledCompanionVersion = "0.8.0"
 
 // ComponentStatus is a read-only inspection. Installation decisions are derived anew on POST.

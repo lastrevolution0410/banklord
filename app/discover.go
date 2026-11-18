@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -188,7 +187,7 @@ func registryHints() []string {
 	var hints []string
 	for _, key := range keys {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		out, err := exec.CommandContext(ctx, "reg.exe", "query", key).CombinedOutput()
+		out, err := commandContext(ctx, "reg.exe", "query", key).CombinedOutput()
 		cancel()
 		if err != nil {
 			continue

@@ -4,12 +4,11 @@ package main
 
 import (
 	"encoding/csv"
-	"os/exec"
 	"strings"
 )
 
 func wowRunningChecked() (bool, error) {
-	out, err := exec.Command("tasklist.exe", "/FO", "CSV", "/NH").Output()
+	out, err := command("tasklist.exe", "/FO", "CSV", "/NH").Output()
 	if err != nil {
 		return true, err
 	}

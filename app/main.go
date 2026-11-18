@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -428,7 +427,7 @@ func start() error {
 	w.scan()
 	url := fmt.Sprintf("http://127.0.0.1:%d%s/", listener.Addr().(*net.TCPAddr).Port, w.prefix)
 	log.Printf("Banklord Setup auf %s", url)
-	_ = exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
+	_ = command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
 	// No console window: the setup ends by itself once its page was idle for an hour.
 	w.lastSeen = time.Now()
 	go func() {

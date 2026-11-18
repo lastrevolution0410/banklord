@@ -4,12 +4,11 @@ package main
 
 import (
 	"encoding/csv"
-	"os/exec"
 	"strings"
 )
 
 func wowIsRunning() (bool, string) {
-	output, e := exec.Command("tasklist.exe", "/FO", "CSV", "/NH").Output()
+	output, e := command("tasklist.exe", "/FO", "CSV", "/NH").Output()
 	if e != nil {
 		return false, ""
 	}
@@ -32,7 +31,7 @@ func wowIsRunning() (bool, string) {
 }
 
 func companionIsRunning() (bool, string) {
-	output, e := exec.Command("tasklist.exe", "/FO", "CSV", "/NH").Output()
+	output, e := command("tasklist.exe", "/FO", "CSV", "/NH").Output()
 	if e != nil {
 		return false, ""
 	}
