@@ -495,6 +495,24 @@ exact:{
 "Noch keine übertragenen Ingame-Entwürfe.":"No in-game drafts transferred yet.",
 "Noch nicht geprüft":"Not checked yet",
 "Noch nicht gezählt":"Not counted yet",
+"Noch nicht freigegeben":"Not approved yet",
+"Was mache ich hier?":"What do I do here?",
+"Etwas aus der Gildenbank bestellen: Gegenstand anklicken, Menge wählen, „In den Warenkorb“. Danach im Warenkorb absenden.":"Order something from the guild bank: click an item, choose an amount, “Add to cart”. Then send it from the cart.",
+"Den Bankbestand aus dem Spiel übernehmen: Gildenbank im Spiel öffnen, dann":"Take over the bank stock from the game: open the guild bank in game, then",
+"– der Companion lädt den Scan hoch. Hier prüfst du ihn und gibst ihn frei.":"– the Companion uploads the scan. Here you check it and approve it.",
+"Scans werden geladen …":"Loading scans …",
+"Erweitert: Companion verbinden, Scan von Hand hochladen, Entwürfe aus dem Spiel":"Advanced: connect the Companion, upload a scan by hand, drafts from the game",
+"Zahlen zum Bestand":"Stock figures",
+"1 neuer Scan wartet auf Freigabe.":"1 new scan is waiting for approval.",
+"✓ Alles aktuell – kein Scan wartet.":"✓ All up to date – no scan waiting.",
+"Noch kein Scan da. Gildenbank im Spiel öffnen, dann /reload.":"No scan yet. Open the guild bank in game, then /reload.",
+"Jetzt prüfen":"Check now",
+"Noch nicht freigegeben – bestellbar, sobald ein Bankverwalter die Inventur freigibt":"Not approved yet – orderable once a bank manager approves the stock count",
+"Details":"Details",
+"🛒 In den Warenkorb":"🛒 Add to cart",
+"Freigegeben und bestellbar":"Approved and orderable",
+"Noch kein Mindestbestand festgelegt. Oben einen Gegenstand auswählen und Mengen eintragen.":"No minimum stock set yet. Pick an item above and enter the amounts.",
+"liegt im Warenkorb. Bestellt ist es erst, wenn du dort auf Absenden klickst.":"is in the cart. It is only ordered once you click Send there.",
 "Nur bestätigen, nachdem die Gegenstände und Mengen im Spiel geprüft wurden. Ein falscher Scan kann andere Bestände überschreiben; Reservierungskonflikte werden serverseitig blockiert. Bestätigung nur bis 30 Minuten nach Scan.":"Only confirm after checking items and quantities in game. A wrong scan can overwrite other stock; reservation conflicts are blocked on the server. Confirmation only up to 30 minutes after the scan.",
 "Nur bestätigen, wenn diese Menge im Spiel tatsächlich ausgegeben wurde.":"Only confirm if this quantity was actually handed out in game.",
 "Nur für Bankverwalter sichtbar.":"Only visible to bank managers.",
@@ -654,6 +672,14 @@ exact:{
 "Schon dabei? Anmelden":"Already set up? Sign in"
 },
 patterns:[
+["{} neue Scans warten auf Freigabe.","{} new scans are waiting for approval."],
+["#{} · wartet auf Freigabe","#{} · waiting for approval"],
+["#{} · übernommen","#{} · applied"],
+["#{} · verworfen","#{} · discarded"],
+["#{} · ersetzt","#{} · replaced"],
+["Du kannst bestellen: {} Stück","You can order: {} pieces"],
+["In der Bank: {} Stück · schon für andere vorgemerkt: {} Stück","In the bank: {} pieces · already set aside for others: {} pieces"],
+["Bestellbar: {} Stück","Orderable: {} pieces"],
 ["Gold in der Bank · Stand {}","Gold in the bank · as of {}"],
 ["Marktwert von {} Gegenständen (TSM/Auctionator)","Market value of {} items (TSM/Auctionator)"],
 ["Marktwert: {} pro Stück (TSM)","Market value: {} per piece (TSM)"],
@@ -738,8 +764,8 @@ patterns:[
 (function(){
 'use strict';
 const dict={
- deDE:{language:'Sprache',items:'Gegenstände',inventory:'Bestand',cart:'Warenkorb',orders:'Bestellungen',favorites:'Merkliste & Vorlagen',characters:'Charaktere',messages:'Mitteilungen',admin:'Freigaben',sync:'Synchronisierung',members:'Mitglieder',activity:'Audit & Statistik',procurement:'Nachbeschaffung & Ausgabe',search:'Gegenstand suchen …',stock:'Bankbestand',catalog:'Gildenbank durchsuchen',categories:'Kategorien & Filter',item:'Gegenstand',quantity:'Bestand',all:'Alle Gegenstände',available:'Anforderbar',reserved:'Reserviert',unconfirmed:'Unbestätigt',star:'Favoriten',toCart:'Zum Warenkorb',logout:'Abmelden',guild:'Gilde',localData:'Datenstand und Verfügbarkeit sind getrennt ausgewiesen.',login:'Sicher anmelden',selectItem:'Wähle einen Gegenstand aus der Liste.',tooltipMissing:'Für diesen Gegenstand sind noch keine verifizierten Tooltip-Werte in deiner Sprache hinterlegt.',tooltipSource:'Externe Gegenstandsdaten und Gildenbankbestand werden getrennt dargestellt.',openValues:'Werte und Ausrüstung anzeigen',partial:'Nicht alle individuellen Ausrüstungswerte konnten bestätigt werden.',page:'Seite',pieces:'Stk.',stockUnverified:'ungeprüft',inputQuantity:'Menge vormerken',remember:'Merken',wishlist:'Wunschliste',minStock:'Mindestbestand verwalten',lastInventory:'Letzte Inventur',noConfirmed:'Verfügbarkeit nicht bestätigt',addCart:'Zum Warenkorb',closeTooltip:'Tooltip schließen'},
- enUS:{language:'Language',items:'Items',inventory:'Inventory',cart:'Cart',orders:'Orders',favorites:'Favorites & Templates',characters:'Characters',messages:'Messages',admin:'Approvals',sync:'Synchronization',members:'Members',activity:'Audit & Statistics',procurement:'Restocking & Fulfillment',search:'Search item …',stock:'Guild bank inventory',catalog:'Search guild bank',categories:'Categories & filters',item:'Item',quantity:'Stock',all:'All items',available:'Requestable',reserved:'Reserved',unconfirmed:'Unconfirmed',star:'Favorites',toCart:'Add to cart',logout:'Sign out',guild:'Guild',localData:'Snapshot and availability are displayed separately.',login:'Sign in securely',selectItem:'Select an item from the list.',tooltipMissing:'No verified tooltip data is available in your language for this item yet.',tooltipSource:'Public item metadata is shown separately from guild bank stock.',openValues:'Show stats & equipment',partial:'Not all item-specific equipment stats could be verified.',page:'Page',pieces:'pcs',stockUnverified:'unconfirmed',inputQuantity:'Quantity',remember:'Favorite',wishlist:'Wishlist',minStock:'Manage minimum stock',lastInventory:'Last scan',noConfirmed:'Availability not confirmed',addCart:'Add to cart',closeTooltip:'Close tooltip'}
+ deDE:{language:'Sprache',items:'Gegenstände',inventory:'Bestand',cart:'Warenkorb',orders:'Bestellungen',favorites:'Merkliste & Vorlagen',characters:'Charaktere',messages:'Mitteilungen',admin:'Freigaben',sync:'Synchronisierung',members:'Mitglieder',activity:'Audit & Statistik',procurement:'Nachbeschaffung & Ausgabe',search:'Gegenstand suchen …',stock:'Bankbestand',catalog:'Gildenbank durchsuchen',categories:'Kategorien & Filter',item:'Gegenstand',quantity:'Bestand',all:'Alle Gegenstände',available:'Bestellbar',reserved:'Reserviert',unconfirmed:'Noch nicht freigegeben',star:'Favoriten',toCart:'Zum Warenkorb',logout:'Abmelden',guild:'Gilde',localData:'Datenstand und Verfügbarkeit sind getrennt ausgewiesen.',login:'Sicher anmelden',selectItem:'Wähle einen Gegenstand aus der Liste.',tooltipMissing:'Für diesen Gegenstand sind noch keine verifizierten Tooltip-Werte in deiner Sprache hinterlegt.',tooltipSource:'Externe Gegenstandsdaten und Gildenbankbestand werden getrennt dargestellt.',openValues:'Werte und Ausrüstung anzeigen',partial:'Nicht alle individuellen Ausrüstungswerte konnten bestätigt werden.',page:'Seite',pieces:'Stk.',stockUnverified:'nicht freigegeben',inputQuantity:'Menge vormerken',remember:'Merken',wishlist:'Wunschliste',minStock:'Mindestbestand verwalten',lastInventory:'Letzte Inventur',noConfirmed:'Verfügbarkeit nicht bestätigt',addCart:'Zum Warenkorb',closeTooltip:'Tooltip schließen'},
+ enUS:{language:'Language',items:'Items',inventory:'Inventory',cart:'Cart',orders:'Orders',favorites:'Favorites & Templates',characters:'Characters',messages:'Messages',admin:'Approvals',sync:'Synchronization',members:'Members',activity:'Audit & Statistics',procurement:'Restocking & Fulfillment',search:'Search item …',stock:'Guild bank inventory',catalog:'Search guild bank',categories:'Categories & filters',item:'Item',quantity:'Stock',all:'All items',available:'Orderable',reserved:'Reserved',unconfirmed:'Not approved yet',star:'Favorites',toCart:'Add to cart',logout:'Sign out',guild:'Guild',localData:'Snapshot and availability are displayed separately.',login:'Sign in securely',selectItem:'Select an item from the list.',tooltipMissing:'No verified tooltip data is available in your language for this item yet.',tooltipSource:'Public item metadata is shown separately from guild bank stock.',openValues:'Show stats & equipment',partial:'Not all item-specific equipment stats could be verified.',page:'Page',pieces:'pcs',stockUnverified:'not approved yet',inputQuantity:'Quantity',remember:'Favorite',wishlist:'Wishlist',minStock:'Manage minimum stock',lastInventory:'Last scan',noConfirmed:'Availability not confirmed',addCart:'Add to cart',closeTooltip:'Close tooltip'}
 };
 // German for German-speaking devices, English for everyone else. A manual choice is remembered.
 function norm(lang){return /^de(?:-|$)/i.test(lang||'')?'deDE':'enUS';}

@@ -375,7 +375,7 @@ function paintTooltip(item){
   const stock=el('div','wow-tooltip-inventory');
   stock.append(el('div','','Bankinventur: '+qty(item.physical_qty)+' Stück'),
     el('div','','Reserviert: '+qty(item.reserved_qty)+' Stück'),
-    el('div','status-warn',item.available_qty===null?'Verfügbarkeit nicht bestätigt':'Serverseitig anforderbar: '+qty(item.available_qty)+' Stück'));
+    el('div','status-warn',item.available_qty===null?'Noch nicht freigegeben':'Bestellbar: '+qty(item.available_qty)+' Stück'));
   const body=el('div','wow-tooltip-data');
   if(visual?.provider==='game-client-snapshot' && visual?.tooltip_locale===webLocale()
       && Array.isArray(visual.tooltip_lines) && visual.tooltip_lines.length){
@@ -442,24 +442,25 @@ function renderItemDetail(){
   const name=el('strong','item-detail-name'+qualityClass(stockVisual(item)),stockVisual(item)?.name||item.name);name.dataset.stockQuality=String(item.stock_id);name.dataset.stockLocalizedName=String(item.stock_id);
   header.append(icon,name);root.append(header);observeAppearance(icon,item);
   const note=el('div','item-detail-stats');
-  note.append(el('p','','Inventur: '+qty(item.physical_qty)+' Stück'),el('p','','Reserviert: '+qty(item.reserved_qty)+' Stück'),
-    el('p',item.available_qty===null?'status-warn':'status-available',item.available_qty===null?'Verfügbarkeit nicht bestätigt':'Anforderbar: '+qty(item.available_qty)+' Stück'),
+  note.append(el('p',item.available_qty===null?'status-warn big-qty':'status-available big-qty',item.available_qty===null?'Noch nicht freigegeben – bestellbar, sobald ein Bankverwalter die Inventur freigibt':'Du kannst bestellen: '+qty(item.available_qty)+' Stück'),
+    el('p','muted','In der Bank: '+qty(item.physical_qty)+' Stück · schon für andere vorgemerkt: '+qty(item.reserved_qty)+' Stück'),
     ...(Number(item.viewonly_qty)>0?[el('p','muted','Davon nur ansehen (gesperrter Tab): '+qty(item.viewonly_qty)+' Stück')]:[]),
     ...(item.unit_price?[add(el('p','muted'),'Marktwert: ',coins(item.unit_price),' pro Stück ('+(item.price_source==='tsm'?'TSM':'Auctionator')+')')]:[]),
-    el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
+  );
   root.append(note);
   const tooltipBtn=el('button','secondary button-sm wow-detail-tooltip',T('openValues'));tooltipBtn.type='button';tooltipBtn.onclick=e=>{showTooltip(item,e,true);placeTooltip(e);};root.append(tooltipBtn);
-  const link=el('a','item-link','WoW-Gegenstand ansehen ↗');link.href=wowheadItem(item.wow_item_id);link.target='_blank';link.rel='noopener noreferrer';root.append(link);
+  const tech=el('details','tech-details');tech.append(el('summary','','Details'),el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
+  const link=el('a','item-link','WoW-Gegenstand ansehen ↗');link.href=wowheadItem(item.wow_item_id);link.target='_blank';link.rel='noopener noreferrer';tech.append(link);
   const controls=el('div','detail-order');
   const caption=el('label','','Gewünschte Menge');const amount=el('input');amount.type='number';amount.min='1';amount.max='1000000';amount.value='1';amount.inputMode='numeric';amount.setAttribute('aria-label','Menge für '+item.name);
   caption.append(amount);
-  const addBtn=el('button','','In Warenkorb legen');addBtn.type='button';
+  const addBtn=el('button','add-main','🛒 In den Warenkorb');addBtn.type='button';
   if(viewOnly(item)){addBtn.disabled=true;addBtn.textContent='Nur ansehen';}
   addBtn.onclick=()=>{const n=Number(amount.value);if(!Number.isSafeInteger(n)||n<1||n>1000000){notice('Ungültige Menge.',true);return;}
     const id=Number(item.stock_id);const previous=state.cart.get(id)?.quantity||0;
     if(n+previous>1000000){notice('Maximale Anfragemenge überschritten.',true);return;}
     state.cart.set(id,{id,name:item.name,quantity:n+previous,max:1000000,available:item.available_qty===null?null:Number(item.available_qty)});
-    state.pendingOrder=null;updateCartBadge();notice(item.name+' vorgemerkt. Erst eine Serverbestätigung erzeugt eine Bestellung.');
+    state.pendingOrder=null;updateCartBadge();notice(item.name+' liegt im Warenkorb. Bestellt ist es erst, wenn du dort auf Absenden klickst.');
   };
   const fav=el('button','secondary button-sm',state.favorites.has(Number(item.stock_id))?'★ Favorit':'☆ Merken');
   fav.type='button';fav.onclick=async()=>{try{const id=Number(item.stock_id);const on=!state.favorites.has(id);
@@ -468,20 +469,20 @@ function renderItemDetail(){
   const watch=el('button','secondary button-sm',T('wishlist'));watch.type='button';
   watch.onclick=async()=>{const n=Number(prompt('Gewünschte Stückzahl:','10'));if(!Number.isSafeInteger(n)||n<1||n>1000000)return;
     try{await api(path('wishlist/'+item.stock_id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:n})});notice('Wunschmenge gespeichert.');}catch(e){notice(e.message,true);}};
-  controls.append(caption,addBtn,el('button','secondary button-sm cart-jump','Warenkorb ansehen →'),el('p','muted detail-disclaimer','Ein Warenkorb ist zunächst ein Entwurf. Keine automatische Reservierung.'),fav,watch);
+  const small=el('div','detail-small');small.append(fav,watch);
+  controls.append(caption,addBtn,el('button','secondary button-sm cart-jump','Warenkorb ansehen →'),small);
   if(manager()){
     const setMin=el('button','secondary button-sm',T('minStock'));setMin.type='button';setMin.onclick=()=>{$('restockStockId').value=item.stock_id;$('restockMin').value='0';$('restockTarget').value='0';setTab('procurement');};controls.append(setMin);
   }
   controls.querySelector('.cart-jump').onclick=()=>setTab('cart');
-  root.append(controls);
+  root.append(controls,tech);
 }
 function viewOnly(item){return Number(item.viewonly_qty)>0&&Number(item.physical_qty)-Number(item.reserved_qty)<=Number(item.viewonly_qty);}
 function renderItems(){
   const root=$('inventoryItems');root.replaceChildren();$('itemPage').textContent=T('page')+' '+state.itemPage;$('prevItems').disabled=state.itemPage===1;$('nextItems').disabled=!state.hasNextItems;
   const confirmed=state.items.filter(x=>x.available_qty!==null);
   $('stockSummary').replaceChildren(add(el('div','stat'),el('strong','',qty(state.items.length)),el('span','','Einträge auf Seite '+state.itemPage)),
-    add(el('div','stat'),el('strong','',qty(confirmed.length)),el('span','','Mit bestätigter Verfügbarkeit')),
-    add(el('div','stat'),el('strong','','Serverbestand'),el('span','','Verbindliche Mengen nur nach Prüfung')),
+    add(el('div','stat'),el('strong','',qty(confirmed.length)),el('span','','Freigegeben und bestellbar')),
     ...bankStats());
   renderItemTypeCategories();renderInventoryFilters();const filtered=filteredInventory();
   if(!filtered.find(x=>Number(x.stock_id)===Number(state.selectedStockId)))state.selectedStockId=filtered.length?Number(filtered[0].stock_id):null;
@@ -643,9 +644,13 @@ async function loadNotifications(){
 
 async function loadImports(){
   const r=await api(path('imports'));const root=$('importList');root.replaceChildren();
+  const open=r.imports.filter(x=>x.status==='pending').length;const banner=$('syncStatus');
+  if(banner){banner.className='status-banner '+(open?'warn':'ok');banner.replaceChildren(el('strong','',open?(open===1?'1 neuer Scan wartet auf Freigabe.':open+' neue Scans warten auf Freigabe.'):(r.imports.length?'✓ Alles aktuell – kein Scan wartet.':'Noch kein Scan da. Gildenbank im Spiel öffnen, dann /reload.')));
+    if(open){const go=el('button','button-sm','Jetzt prüfen');go.onclick=()=>{const first=r.imports.find(x=>x.status==='pending');reviewImport(first.id).then(()=>$('importReview').scrollIntoView({behavior:'smooth'})).catch(e=>notice(e.message,true));};banner.append(go);}}
   if(!r.imports.length){root.append(el('p','muted','Noch keine Scans importiert.'));return;}
+  const SCAN_STATUS={pending:'wartet auf Freigabe',reconciled:'übernommen',rejected:'verworfen',superseded:'ersetzt'};
   for(const scan of r.imports){
-    const card=el('div','row');card.append(el('strong','','#'+scan.id+' · '+scan.status+' · '+scan.quality),el('div','muted','Scanzeit: '+when(scan.observed_at)));
+    const card=el('div','row');card.append(el('strong','','#'+scan.id+' · '+(SCAN_STATUS[scan.status]||scan.status)),el('div','muted','Scanzeit: '+when(scan.observed_at)));
     const view=el('button','secondary button-sm','Positionen prüfen');view.onclick=()=>reviewImport(scan.id).catch(e=>notice(e.message,true));card.append(view);root.append(card);
   }
 }
@@ -784,6 +789,7 @@ async function loadScanAutomation(){
 }
 async function loadTokens(){
   const result=await api(path('bridge-tokens'));const root=$('tokenList');root.replaceChildren();
+  if(!result.tokens.some(t=>!t.revoked_at)){const d=document.querySelector('#viewSync details.more-box');if(d)d.open=true;}
   for(const t of result.tokens){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`#${t.id} · ${t.scope} · gültig bis ${when(t.expires_at)} · ${t.revoked_at?'widerrufen':'aktiv'}`));
     if(!t.revoked_at&&state.guild.role==='admin'){const btn=el('button','danger button-sm','Widerrufen');btn.onclick=async()=>{if(!confirm('Diesen Bridge-Schlüssel sofort sperren?'))return;await api(path('bridge-tokens/'+t.id),{method:'DELETE'});await loadTokens();};row.append(btn);}root.append(row);}
 }
@@ -1038,7 +1044,11 @@ async function loadProcurement(){
     edit.onclick=()=>{$('restockItem').value=rule.name;$('restockStockId').value=rule.stock_id;$('restockMin').value=rule.minimum_qty;$('restockTarget').value=rule.target_qty;$('restockItem').scrollIntoView({behavior:'smooth',block:'center'});$('restockMin').focus();};
     line.append(edit);r.append(line);
   }
-  if(!r.children.length)r.append(el('p','empty-state','Noch kein Mindestbestand festgelegt. Unten einen Gegenstand auswählen und Mengen eintragen.'));
+  if(!r.children.length)r.append(el('p','empty-state','Noch kein Mindestbestand festgelegt. Oben einen Gegenstand auswählen und Mengen eintragen.'));
+  // Empty list: the form comes first, so a new bank manager sees where to start.
+  const need=$('restockNeedPanel'),form=$('restockFormPanel');
+  if(need&&form){if(!rules.length)need.before(form);else form.before(need);}
+  sum.classList.toggle('hidden',!rules.length);
   const f=$('fulfillmentManifest');f.replaceChildren();const byMember=new Map();
   for(const item of manifest.manifest){if(!byMember.has(item.display_name))byMember.set(item.display_name,[]);byMember.get(item.display_name).push(item);}
   for(const [name,items] of byMember)f.append(add(el('div','row'),el('strong','',name+': '),el('span','',items.map(i=>`${qty(i.to_issue)}× ${i.name} (#${i.order_id})`).join(' · '))));

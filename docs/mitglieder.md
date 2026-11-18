@@ -101,7 +101,7 @@ Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reser
 
 ## Bestellen auf der Website
 
-1. Melde dich an. Unter **Gildenbank** siehst du den Bestand mit Suche und Filtern. Klicke einen Gegenstand an, gib die Menge ein und klicke **„In Warenkorb legen“**.
+1. Melde dich an. Unter **Gildenbank** siehst du den Bestand mit Suche und Filtern. Klicke einen Gegenstand an, gib die Menge ein und klicke **„In den Warenkorb“**.
 
 ![Gildenbank auf der Website mit Gegenstandsdetails](assets/website-gegenstand.webp)
 

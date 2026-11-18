@@ -23,6 +23,10 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.9: **Inventur aufgeräumt:** oben steht sofort, ob ein neuer Scan auf Freigabe wartet („Jetzt prüfen“) oder alles aktuell ist. Darunter Prüfen und automatische Freigabe; Companion verbinden, Scan von Hand hochladen und Entwürfe aus dem Spiel stecken unter **„Erweitert“** (öffnet sich von selbst, solange noch kein Companion verbunden ist).
+- 1.9.9: **Gildenbank verständlicher:** „Du kannst bestellen: X Stück“ statt Fachbegriffen, ein großer Knopf **„In den Warenkorb“**, Merken und Wunschliste klein darunter, technische Nummern unter „Details“. Noch nicht freigegebene Bestände heißen jetzt auch so.
+- 1.9.9: **Nachkauf:** solange noch kein Mindestbestand festgelegt ist, steht das Formular ganz oben.
+- 1.9.9: jede Seite beginnt mit einem kurzen **„Was mache ich hier?“**.
 - 1.9.8: **Neue Navigation:** Oben stehen groß die drei Hauptwege **Gildenbank · Warenkorb · Meine Bestellungen**. Merkliste, „Konto & Gilden“ und Hilfe & Feedback stecken im Menü **„Mehr“**. Die Verwaltung ist eine ruhige zweite Zeile, der aktive Reiter ist deutlich hervorgehoben.
 - 1.9.8: **„Konto & Gilden“:** oben deine Gilden mit Rolle und „Wechseln“; „Einladung einlösen“ und „Eigene Gilde anlegen“ klappen erst beim Klick auf.
 - 1.9.8: Der Feedback-Eingang (Meldungen aller Gilden) liegt jetzt beim Betreiber unter **Betreiber → Feedback-Eingang**; Hilfe & Feedback zeigt nur noch Anleitungen, Melden und deine Meldungen.
