@@ -1,5 +1,7 @@
 # Banklord-Dokumentation
 
+**Deutsch** · [English](README.en.md)
+
 Wähle aus, wer du bist:
 
 | Ich bin … | Lies zuerst |

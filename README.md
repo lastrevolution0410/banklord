@@ -20,7 +20,7 @@
   <a href="#schnellstart">Schnellstart</a> ·
   <a href="docs/README.md">Dokumentation</a> ·
   <a href="docs/faq.md">FAQ</a> ·
-  <a href="#english">English</a>
+  <b>Deutsch</b> · <a href="README.en.md">English</a>
 </p>
 
 ---
@@ -124,16 +124,3 @@ Banklord ist **quelloffen einsehbar** unter [CC BY-NC-ND 4.0](LICENSE) mit [zus�
 
 World of Warcraft und Blizzard Entertainment sind Marken der Blizzard Entertainment, Inc. Banklord ist ein unabhängiges, nichtkommerzielles Fanprojekt und steht in keiner Verbindung zu Blizzard. Hinweise zu Daten Dritter: [NOTICE.md](NOTICE.md).
 
----
-
-## English
-
-**Banklord** turns a World of Warcraft guild bank into a shop for the guild. Members browse the bank and order items in game or on a website; bank managers get notified, take orders out of the guild bank with one click and send them from the mailbox with the mail already filled in. Several bank managers can work at the same time without ever sending an order twice.
-
-It consists of an **in-game addon** (Lua), a **website** (PHP 8.2 + MariaDB/MySQL) and a **desktop app** (Go) that installs the addon, keeps everything updated (signed Ed25519 releases) and runs the **Companion**, which carries data between the game and the website, because addons cannot access the network.
-
-- Supported: MoP Classic, Burning Crusade Anniversary/Classic, Retail; Classic Era loads without guild bank features.
-- Self-hosting: see [docs/selbst-hosten.md](docs/selbst-hosten.md) (German; the steps are short: upload `backend/`, point the document root to `backend/public`, open the site and follow the setup page).
-- Development: `cd dev && docker compose up -d`, then `sh dev/run-tests.sh`. Details in [docs/entwicklung.md](docs/entwicklung.md).
-- Issues and pull requests are welcome in English or German. Security reports: [SECURITY.md](SECURITY.md).
-- License: CC BY-NC-ND 4.0 with additional permissions (free self-hosting for your own guild; no selling, no renamed forks).

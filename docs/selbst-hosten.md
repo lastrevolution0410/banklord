@@ -1,6 +1,6 @@
 # Banklord selbst hosten
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](selbst-hosten.en.md)
 
 Banklord darf jede Gilde kostenlos auf ihrem eigenen Webspace betreiben ([Lizenz](../LICENSE-ADDITIONAL-PERMISSIONS.md)).
 

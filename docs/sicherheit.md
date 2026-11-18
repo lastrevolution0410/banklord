@@ -1,6 +1,6 @@
 # Sicherheit und Datenschutz
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](sicherheit.en.md)
 
 ## Kurz gesagt
 

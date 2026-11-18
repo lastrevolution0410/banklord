@@ -1,6 +1,6 @@
 # Häufige Fragen
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](faq.en.md)
 
 **Allgemein**
 - [Kostet Banklord etwas?](#kostet-banklord-etwas)

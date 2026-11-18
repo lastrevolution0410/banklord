@@ -1,6 +1,6 @@
 # Entwicklung
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](entwicklung.en.md)
 
 ## Aufbau
 

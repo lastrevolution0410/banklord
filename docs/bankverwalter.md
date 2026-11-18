@@ -1,6 +1,6 @@
 # Anleitung für Bankverwalter
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](bankverwalter.en.md)
 
 Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** oder **Admin**. Einrichten wie in der [Anleitung für Mitglieder](mitglieder.md#einmal-einrichten); die Rolle vergibt ein Admin auf der Website unter **Mitglieder**.
 

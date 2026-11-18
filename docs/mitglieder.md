@@ -1,6 +1,6 @@
 # Anleitung für Mitglieder
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](mitglieder.en.md)
 
 ## Inhalt
 

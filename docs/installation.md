@@ -1,6 +1,6 @@
 # Installation, Updates und Fehlerhilfe
 
-[← Übersicht](README.md)
+[← Übersicht](README.md) · **Deutsch** · [English](installation.en.md)
 
 ## Inhalt
 
