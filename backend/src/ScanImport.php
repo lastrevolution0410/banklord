@@ -123,6 +123,8 @@ final class ScanImport
             'total_quantity'=>$quantity, 'lines'=>$lines,
             'metadata'=>ItemMetadata::fromScan($scan,$lines),
             'source'=>'banklord-savedvariables-v2', 'quality'=>'unverified', 'status'=>'pending',
+            // Older addons do not record the game version; the server then trusts the guild's setting.
+            'flavor'=>GameFlavor::valid($scan['flavor'] ?? null) ? $scan['flavor'] : null,
         ];
     }
 }

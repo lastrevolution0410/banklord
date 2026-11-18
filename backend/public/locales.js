@@ -42,6 +42,12 @@ exact:{
 "Bestellung freigegeben.":"Order approved.",
 "Nur ansehen":"View only",
 "Bestellregeln gespeichert.":"Order rules saved.",
+"Spielversion der Gilde":"Game version of the guild",
+"Bestimmt die Gegenstandsdaten und Wowhead-Links. Banklord nimmt nur Daten aus der passenden WoW-Installation an. Gilden in anderen Spielversionen sind eigene Gilden, auch mit demselben Konto.":"Sets item data and Wowhead links. Banklord only accepts data from the matching WoW installation. Guilds in other game versions are separate guilds, even with the same account.",
+"Spielversion gespeichert.":"Game version saved.",
+"Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion bitte eine eigene Gilde anlegen.":"Locked because the guild already has stock. For another game version, set up a separate guild.",
+"Noch änderbar, solange die Gilde keinen Bestand hat.":"Can be changed while the guild has no stock.",
+"Die Gilde hat schon Bestand. Die Spielversion ist deshalb festgelegt.":"The guild already has stock, so the game version is locked.",
 "Bitte Zahlen prüfen (Tabs 1 bis 8).":"Please check the numbers (tabs 1 to 8).",
 "Gerade fehlt nichts.":"Nothing is missing right now.",
 "Auctionator-Liste kopiert.":"Auctionator list copied.",
@@ -592,6 +598,9 @@ patterns:[
 ["{} möchte den Charakter „{}“ zuordnen.","{} wants to link the character “{}”."],
 ["{} verfügbar{} · mindestens {}, auffüllen auf {}{}","{} available{} · min. {}, restock to {}{}"],
 ["{} · {} Stück","{} · {} pcs"],
+["{} · {} · Bankverwalter","{} · {} · Bank manager"],
+["{} · {} · Offizier","{} · {} · Officer"],
+["{} · {} · Gildenmitglied","{} · {} · Guild member"],
 ["{}{} laut Bankscan","{}{} per bank scan"],
 ["{}{} von Hand korrigiert","{}{} corrected manually"]
 ]

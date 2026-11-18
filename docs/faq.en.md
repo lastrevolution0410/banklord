@@ -47,6 +47,8 @@ An addon can only read the guild bank's contents while someone has it open. The 
 
 Yes. Every character is recognised on login and assigned to its guild. Each guild with its own Banklord website gets its own connection in the Companion.
 
+Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`).
+
 ### How do I report a bug?
 
 - **In game:** `/banklord feedback` or the **Help & Feedback** tab in the Banklord window. The report is sent through the Companion with the next `/reload`.

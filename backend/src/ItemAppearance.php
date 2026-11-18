@@ -8,12 +8,16 @@ namespace Banklord;
  * orders and permissions always remain local/authoritative.
  */
 final class ItemAppearance {
-    public static function resolve(int $itemId, string $variantKey, string $cacheDir, string $locale = 'deDE'): array {
+    public static function resolve(int $itemId, string $variantKey, string $cacheDir, string $locale = 'deDE', string $flavor = GameFlavor::DEFAULT): array {
         if (!in_array($locale,['deDE','enUS'],true)) throw new \InvalidArgumentException('INVALID_LOCALE');
+        if (!GameFlavor::valid($flavor)) throw new \InvalidArgumentException('INVALID_GAME_VERSION');
+        // The full tooltip provider only knows Mists of Pandaria Classic; other
+        // game versions get the icon from Wowhead's matching database only.
+        $mop = $flavor === 'mop_classic';
         // Full itemStrings, not only item IDs, distinguish enchantments, gems and random suffixes.
         $variant = self::variantInfo($itemId, $variantKey);
         if ($itemId < 1 || $itemId > 99999999) throw new \InvalidArgumentException('ITEM_ID_INVALID');
-        $path = rtrim($cacheDir, '/').'/mop-'.$locale.'-'.$itemId.'-'.hash('sha256',$variant['cache_key']).'.json';
+        $path = rtrim($cacheDir, '/').'/'.($mop?'mop':$flavor).'-'.$locale.'-'.$itemId.'-'.hash('sha256',$variant['cache_key']).'.json';
         if (is_file($path)) {
             $data=json_decode((string)file_get_contents($path),true);
             if (is_array($data) && array_key_exists('available',$data)) {
@@ -30,7 +34,9 @@ final class ItemAppearance {
             'variant_status'=>$variant['status'],'variant_notes'=>$variant['notes'],
             'modifiers_applied'=>$variant['applied'], 'tooltip_locale'=>$locale];
         $result=$empty;
-        if (function_exists('curl_init')) {
+        if (!$mop) {
+            // no MoP tooltip provider for this game version
+        } elseif (function_exists('curl_init')) {
             // URL is constructed from a bounded INTEGER, never from client URL input.
             $url='https://mop.warcraftdb.com/api/v1/tooltip/item/'.$itemId.$variant['query'];
             $ch=curl_init($url);
@@ -68,7 +74,7 @@ final class ItemAppearance {
         // Public item metadata fallback. Fixed domains, numeric ID only, HTTPS, no redirect,
         // no user credentials, max 100KB, timeout. Only parse ICON NAMES, not external HTML.
         if (empty($result['icon'])) {
-            $fallbackIcon=self::resolveWowheadIcon($itemId);
+            $fallbackIcon=self::resolveWowheadIcon($itemId,$flavor);
             if ($fallbackIcon!==null) {
                 $result['icon']=$fallbackIcon;
                 $result['available']=true;
@@ -90,11 +96,11 @@ final class ItemAppearance {
     }
 
     /** A bounded public icon lookup; never forwards the user's stored variant string. */
-    public static function resolveWowheadIcon(int $itemId): ?string {
-        if ($itemId<1 || $itemId>99999999 || !function_exists('curl_init')) return null;
+    public static function resolveWowheadIcon(int $itemId, string $flavor = GameFlavor::DEFAULT): ?string {
+        if ($itemId<1 || $itemId>99999999 || !function_exists('curl_init') || !GameFlavor::valid($flavor)) return null;
         $urls=[
-            'https://nether.wowhead.com/tooltip/item/'.$itemId.'?dataEnv=8',
-            'https://www.wowhead.com/mop-classic/item='.$itemId.'&xml',
+            'https://nether.wowhead.com/tooltip/item/'.$itemId.'?dataEnv='.GameFlavor::tooltipEnv($flavor),
+            GameFlavor::wowheadItem($flavor,$itemId).'&xml',
         ];
         foreach($urls as $url) {
             $ch=curl_init($url);

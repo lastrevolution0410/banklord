@@ -109,9 +109,9 @@ final class ItemMetadata {
           tooltip_json=IF(VALUES(captured_at)>=captured_at,VALUES(tooltip_json),tooltip_json),
           completeness=IF(VALUES(captured_at)>=captured_at,VALUES(completeness),completeness),
           captured_at=GREATEST(captured_at,VALUES(captured_at))";
-        $s=$db->prepare($sql);
+        $s=$db->prepare($sql);$flavor=GameFlavor::of($db,$guildId);
         foreach($import['metadata'] as $m){
-            $s->execute([$guildId,'mop_classic',$m['clientVersion'],$m['clientBuild'],$m['locale'],
+            $s->execute([$guildId,$flavor,$m['clientVersion'],$m['clientBuild'],$m['locale'],
                 $m['itemID'],$m['variantHash'],$m['variantKey'],$m['name'],$m['quality'],
                 $m['itemLevel'],$m['requiredLevel'],$m['itemType'],$m['itemSubType'],$m['equipLoc'],
                 $m['classID'],$m['subclassID'],$m['iconFileID'],$m['iconName'],$m['completeness'],
@@ -125,8 +125,8 @@ final class ItemMetadata {
         // No cross-version or cross-guild fallback; those can show wrong equipment stats.
         $s=$db->prepare("SELECT localized_name,quality,item_level,required_level,item_type,item_sub_type,
            icon_file_id,icon_name,stats_json,tooltip_json,completeness,client_build,client_version,
-           captured_at,variant_key FROM item_client_metadata WHERE guild_id=? AND client_flavor='mop_classic'
-           AND client_version='5.5.4' AND locale=? AND wow_item_id=? AND variant_hash=?
+           captured_at,variant_key FROM item_client_metadata WHERE guild_id=? AND client_flavor=(SELECT wow_flavor FROM guilds WHERE id=guild_id)
+           AND locale=? AND wow_item_id=? AND variant_hash=?
            ORDER BY captured_at DESC,client_build DESC LIMIT 1");
         $s->execute([$guildId,$locale,$itemID,hash('sha256',$variant)]);
         $m=$s->fetch(PDO::FETCH_ASSOC);

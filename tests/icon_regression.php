@@ -1,4 +1,5 @@
 <?php
+require __DIR__.'/../backend/src/GameFlavor.php';
 require __DIR__.'/../backend/src/ItemAppearance.php';
 require __DIR__.'/../backend/src/ItemMetadata.php';
 use Banklord\ItemAppearance as A;

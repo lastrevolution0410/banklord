@@ -41,6 +41,8 @@ final class Installer {
         'Zur Anmeldung' => 'Go to sign-in',
         'Formular abgelaufen, bitte neu laden.' => 'Form expired, please reload.',
         'Bitte zuerst die rot markierten Voraussetzungen beheben.' => 'Please fix the requirements marked in red first.',
+        'Spielversion' => 'Game version', 'Spielversion wählen.' => 'Choose a game version.',
+        'Retail (aktuelles WoW)' => 'Retail (current WoW)',
         'Datenbank: Verbindung oder Rechte fehlen (' => 'Database: connection or permissions missing (',
         '). Zugangsdaten prüfen.' => '). Check the access data.',
         'Datenbank-Angaben unvollständig.' => 'Database details incomplete.',
@@ -80,7 +82,7 @@ final class Installer {
         $done = false;
         $in = [];
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            foreach (['db_host', 'db_name', 'db_user', 'db_pass', 'guild', 'realm', 'region', 'email', 'name', 'password', 'password2'] as $k) {
+            foreach (['db_host', 'db_name', 'db_user', 'db_pass', 'guild', 'realm', 'region', 'flavor', 'email', 'name', 'password', 'password2'] as $k) {
                 $in[$k] = trim((string)($_POST[$k] ?? ''));
             }
             try {
@@ -118,6 +120,8 @@ final class Installer {
         if (!preg_match('/^[A-Za-z0-9._-]{1,64}$/D', $in['db_name']) || $in['db_host'] === '' || $in['db_user'] === '') throw new \RuntimeException('Datenbank-Angaben unvollständig.');
         if ($in['guild'] === '' || mb_strlen($in['guild']) > 120 || $in['realm'] === '' || mb_strlen($in['realm']) > 100) throw new \RuntimeException('Gildenname und Realm angeben.');
         if (!in_array($in['region'], ['EU', 'US', 'KR', 'TW'], true)) throw new \RuntimeException('Region wählen.');
+        require_once __DIR__.'/GameFlavor.php';
+        if (!GameFlavor::valid($in['flavor'])) throw new \RuntimeException('Spielversion wählen.');
         if (!filter_var($in['email'], FILTER_VALIDATE_EMAIL) || $in['name'] === '' || mb_strlen($in['name']) > 100) throw new \RuntimeException('E-Mail und Anzeigename des Admins angeben.');
         if (strlen($in['password']) < self::MIN_PASSWORD) throw new \RuntimeException('Das Admin-Passwort braucht mindestens '.self::MIN_PASSWORD.' Zeichen.');
         if ($in['password'] !== $in['password2']) throw new \RuntimeException('Die Passwörter stimmen nicht überein.');
@@ -133,7 +137,7 @@ final class Installer {
         foreach ($files as $file) {
             foreach (WebUpdater::queries((string)file_get_contents($file)) as $q) $db->exec($q);
         }
-        $db->prepare("INSERT INTO guilds (name,realm,region,wow_flavor) VALUES (?,?,?,'mop_classic')")->execute([$in['guild'], $in['realm'], $in['region']]);
+        $db->prepare("INSERT INTO guilds (name,realm,region,wow_flavor) VALUES (?,?,?,?)")->execute([$in['guild'], $in['realm'], $in['region'], $in['flavor']]);
         $guild = (int)$db->lastInsertId();
         $db->prepare('INSERT INTO users (email,display_name,password_hash) VALUES (?,?,?)')
             ->execute([strtolower($in['email']), $in['name'], password_hash($in['password'], PASSWORD_DEFAULT)]);
@@ -183,6 +187,9 @@ final class Installer {
             '<label for="realm">Realm</label><input id="realm" name="realm" required maxlength="100" value="', $v('realm'), '">',
             '<label for="region">Region</label><select id="region" name="region">';
         foreach (['EU', 'US', 'KR', 'TW'] as $r) echo '<option', ($in['region'] ?? 'EU') === $r ? ' selected' : '', '>', $r, '</option>';
+        echo '</select><label for="flavor">Spielversion</label><select id="flavor" name="flavor">';
+        require_once __DIR__.'/GameFlavor.php';
+        foreach (GameFlavor::ALL as $key => $info) echo '<option value="', $key, '"', ($in['flavor'] ?? GameFlavor::DEFAULT) === $key ? ' selected' : '', '>', htmlspecialchars($info[0]), '</option>';
         echo '</select></fieldset>',
             '<fieldset><legend>3 · Dein Admin-Konto</legend>',
             '<label for="email">E-Mail (Anmeldename)</label><input id="email" name="email" type="email" required value="', $v('email'), '">',

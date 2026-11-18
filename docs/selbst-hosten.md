@@ -17,7 +17,7 @@ Banklord darf jede Gilde kostenlos auf ihrem eigenen Webspace betreiben ([Lizenz
 
 1. **Datenbank** beim Hoster anlegen (leer).
 2. **Dateien hochladen:** den Ordner `backend/` aus dem [neuesten Release](https://github.com/lastrevolution0410/banklord/releases) (Web-Paket). Das **Document Root** der Domain muss auf `backend/public` zeigen.
-3. **Website öffnen.** Die Einrichtungsseite erscheint. Datenbank-Zugang, Gildenname, Realm und dein Admin-Konto eintragen – fertig.
+3. **Website öffnen.** Die Einrichtungsseite erscheint. Datenbank-Zugang, Gildenname, Realm, Spielversion und dein Admin-Konto eintragen – fertig. Die Spielversion lässt sich unter **System** noch ändern, solange die Gilde keinen Bestand hat.
 
 Die Einrichtungsseite existiert nur, bis Banklord konfiguriert ist. Die Einstellungen liegen in `backend/private/config.local.php`. Optionale Schlüssel zeigt [`backend/config.local.example.php`](../backend/config.local.example.php).
 

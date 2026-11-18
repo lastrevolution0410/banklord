@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.10.0"
+const companionVersion = "0.11.0"
 
 type controller struct {
 	mu           sync.Mutex
@@ -30,7 +31,7 @@ type controller struct {
 	token        string
 	active       bool
 	next         time.Time
-	lastHash     string
+	lastHashes   map[string]string // per Banklord.lua
 	nextState    time.Time
 	nextBeat     time.Time
 	lastOutbox   map[string]outboxResult
@@ -75,53 +76,66 @@ func (c *controller) run(ctx context.Context) {
 		}
 		p, tok := c.profile, c.token
 		c.next = time.Now().Add(time.Duration(p.IntervalSeconds) * time.Second)
-		last := c.lastHash
 		c.mu.Unlock()
-		data, err := stableRead(p.Source)
-		if err != nil {
-			if !os.IsNotExist(err) && !strings.Contains(err.Error(), "wird noch geschrieben") {
-				c.message("Datei noch nicht lesbar. Erst nach /reload oder Logout verfügbar.")
-			}
-			continue
-		}
-		digest := hash(data)
 		if time.Now().After(c.nextBeat) {
 			c.nextBeat = time.Now().Add(30 * time.Minute)
 			go heartbeat(ctx, p, tok)
 		}
-		if digest == last {
-			c.refreshState(ctx, p, tok)
-			continue
-		}
-		states := []ingameState{}
-		allOK := true
-		for _, cn := range p.connections(tok) {
-			result, err := uploadWithResult(ctx, cn.p, cn.token, data)
+		// One Banklord.lua per WoW installation: each file goes only to the
+		// guilds that play there, and their status is written back next to it.
+		unchanged := []sourceGroup{}
+		for _, g := range p.bySource(tok) {
+			data, err := stableRead(g.source)
 			if err != nil {
-				allOK = false
-				c.message(fmt.Sprintf("Gilde %d: Upload nicht bestätigt: %s", cn.p.GuildID, briefError(err)))
+				if !os.IsNotExist(err) && !strings.Contains(err.Error(), "wird noch geschrieben") {
+					c.message("Datei noch nicht lesbar. Erst nach /reload oder Logout verfügbar.")
+				}
 				continue
 			}
-			if result.State != nil {
-				st := *result.State
-				st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
-				states = append(states, st)
-			}
-			c.report(result)
-		}
-		c.mu.Lock()
-		// Prevent stale result from overwriting a newly saved profile.
-		if allOK && c.profile.Server == p.Server && c.profile.GuildID == p.GuildID && c.profile.Source == p.Source && c.token == tok && len(c.profile.Extra) == len(p.Extra) {
-			c.lastHash = digest
-			c.lastUploaded = time.Now().Format("02.01.2006 15:04:05")
-		}
-		c.mu.Unlock()
-		if len(states) > 0 {
-			merged := mergeStates(states)
+			digest := hash(data)
 			c.mu.Lock()
-			c.lastOutbox, c.lastManage = merged.Outbox, merged.ManageResults
+			last := c.lastHashes[g.source]
 			c.mu.Unlock()
-			c.applyState(p, merged)
+			if digest == last {
+				unchanged = append(unchanged, g)
+				continue
+			}
+			states := []ingameState{}
+			allOK := true
+			for _, cn := range g.conns {
+				result, err := uploadWithResult(ctx, cn.p, cn.token, data)
+				if err != nil {
+					allOK = false
+					c.message(fmt.Sprintf("Gilde %d: Upload nicht bestätigt: %s", cn.p.GuildID, briefError(err)))
+					continue
+				}
+				if result.State != nil {
+					st := *result.State
+					st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
+					states = append(states, st)
+				}
+				c.report(result)
+			}
+			c.mu.Lock()
+			// Prevent stale result from overwriting a newly saved profile.
+			if allOK && c.profile.Server == p.Server && c.profile.GuildID == p.GuildID && c.profile.Source == p.Source && c.token == tok && len(c.profile.Extra) == len(p.Extra) {
+				if c.lastHashes == nil {
+					c.lastHashes = map[string]string{}
+				}
+				c.lastHashes[g.source] = digest
+				c.lastUploaded = time.Now().Format("02.01.2006 15:04:05")
+			}
+			c.mu.Unlock()
+			if len(states) > 0 {
+				merged := mergeStates(states)
+				c.mu.Lock()
+				c.lastOutbox, c.lastManage = merged.Outbox, merged.ManageResults
+				c.mu.Unlock()
+				c.applyState(g.source, merged)
+			}
+		}
+		if len(unchanged) > 0 {
+			c.refreshState(ctx, unchanged)
 		}
 	}
 }
@@ -241,7 +255,7 @@ func (c *controller) addConnection(server string, guild int64, token, source str
 		if err := saveProfile(p, token); err != nil {
 			return err
 		}
-		c.profile, c.token, c.active, c.next, c.lastHash = p, token, true, time.Time{}, ""
+		c.profile, c.token, c.active, c.next, c.lastHashes = p, token, true, time.Time{}, nil
 		return nil
 	}
 	sealed, err := protectNamed(linkAccount(server, guild), token)
@@ -255,11 +269,15 @@ func (c *controller) addConnection(server string, guild int64, token, source str
 			extra = append(extra, l)
 		}
 	}
-	base.Extra = append(extra, Link{Server: server, GuildID: guild, EncryptedToken: sealed})
+	link := Link{Server: server, GuildID: guild, EncryptedToken: sealed}
+	if source != "" && !strings.EqualFold(filepath.Clean(source), filepath.Clean(base.Source)) {
+		link.Source = source
+	}
+	base.Extra = append(extra, link)
 	if err := saveProfile(base, c.token); err != nil {
 		return err
 	}
-	c.profile, c.lastHash, c.next = base, "", time.Time{}
+	c.profile, c.lastHashes, c.next = base, nil, time.Time{}
 	return nil
 }
 
@@ -290,7 +308,7 @@ func (c *controller) report(result uploadOutcome) {
 
 // refreshState polls the own order status every five minutes so that
 // approvals and issues show up in game after the next /reload.
-func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
+func (c *controller) refreshState(ctx context.Context, groups []sourceGroup) {
 	c.mu.Lock()
 	if time.Now().Before(c.nextState) {
 		c.mu.Unlock()
@@ -298,40 +316,42 @@ func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
 	}
 	c.nextState = time.Now().Add(2 * time.Minute)
 	c.mu.Unlock()
-	states := []ingameState{}
-	for _, cn := range p.connections(tok) {
-		if st, err := fetchState(ctx, cn.p, cn.token); err == nil {
-			st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
-			states = append(states, st)
+	for _, g := range groups {
+		states := []ingameState{}
+		for _, cn := range g.conns {
+			if st, err := fetchState(ctx, cn.p, cn.token); err == nil {
+				st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
+				states = append(states, st)
+			}
 		}
-	}
-	if len(states) == 0 {
-		return
-	}
-	st := mergeStates(states)
-	c.mu.Lock()
-	if st.Outbox == nil {
-		st.Outbox = map[string]outboxResult{}
-	}
-	for k, v := range c.lastOutbox {
-		if _, ok := st.Outbox[k]; !ok {
-			st.Outbox[k] = v
+		if len(states) == 0 {
+			continue
 		}
-	}
-	if st.ManageResults == nil {
-		st.ManageResults = map[string]manageResult{}
-	}
-	for k, v := range c.lastManage {
-		if _, ok := st.ManageResults[k]; !ok {
-			st.ManageResults[k] = v
+		st := mergeStates(states)
+		c.mu.Lock()
+		if st.Outbox == nil {
+			st.Outbox = map[string]outboxResult{}
 		}
+		for k, v := range c.lastOutbox {
+			if _, ok := st.Outbox[k]; !ok {
+				st.Outbox[k] = v
+			}
+		}
+		if st.ManageResults == nil {
+			st.ManageResults = map[string]manageResult{}
+		}
+		for k, v := range c.lastManage {
+			if _, ok := st.ManageResults[k]; !ok {
+				st.ManageResults[k] = v
+			}
+		}
+		c.mu.Unlock()
+		c.applyState(g.source, st)
 	}
-	c.mu.Unlock()
-	c.applyState(p, st)
 }
 
-func (c *controller) applyState(p Profile, st ingameState) {
-	changed, err := writeServerState(p.Source, st)
+func (c *controller) applyState(source string, st ingameState) {
+	changed, err := writeServerState(source, st)
 	if err != nil {
 		c.message("Bestellstatus nicht ins Addon geschrieben: " + briefError(err))
 	} else if changed {
@@ -343,6 +363,9 @@ func briefError(err error) string {
 	s := err.Error()
 	if strings.Contains(s, "HTTP 401") {
 		return "Token ungültig/abgelaufen oder Gilde nicht berechtigt"
+	}
+	if strings.Contains(s, "GAME_VERSION_MISMATCH") {
+		return "Die Datei stammt aus einer anderen WoW-Version als die Gilde. Bitte beim Hinzufügen die Banklord.lua der passenden Installation wählen"
 	}
 	if strings.Contains(s, "HTTP 409") {
 		return "Konflikt mit bestehender Inventur"
@@ -450,9 +473,9 @@ var page = template.Must(template.New("page").Parse(`<!doctype html><html lang="
 <button name="action" value="save">Konfiguration speichern und starten</button><button name="action" value="test" class="secondary">Server und Token prüfen</button></form>
 {{if .Result}}<p class="{{if .HasError}}error{{else}}status{{end}}">{{.Result}}</p>{{end}}
 <p class="warning"><strong>Sicherheit:</strong> Token liegt lokal mittels Windows-DPAPI verschlüsselt unter deinem Windows-Benutzerprofil; niemals im WoW-Addon. HTTPS-Zertifikate werden geprüft, Redirects blockiert. Kein direkter DB-Zugriff.</p></article>
-<article><h2>Weitere Gilden auf diesem PC</h2><p>Spielst du Charaktere in mehreren Gilden? Für jede weitere Gilde auf deren Website unter <b>Konto → Bestellen im Spiel</b> einen Verbindungscode erzeugen und hier einfügen. Banklord ordnet Bestellungen automatisch der Gilde des eingeloggten Charakters zu.</p>
+<article><h2>Weitere Gilden auf diesem PC</h2><p>Spielst du Charaktere in mehreren Gilden? Für jede weitere Gilde auf deren Website unter <b>Konto → Bestellen im Spiel</b> einen Verbindungscode erzeugen und hier einfügen. Banklord ordnet Bestellungen automatisch der Gilde des eingeloggten Charakters zu. Spielt die Gilde in einer anderen WoW-Version (z. B. Retail statt Classic), wähle die Banklord.lua dieser Installation.</p>
 {{range $i, $e := .Extra}}<form method="post"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="index" value="{{$i}}"><p>{{$e}} <button name="action" value="removeguild" class="secondary">Entfernen</button></p></form>{{end}}
-<form method="post" autocomplete="off"><input type="hidden" name="csrf" value="{{.CSRF}}"><label for="extra">Verbindungscode einer weiteren Gilde</label><input name="extra" id="extra" type="password" placeholder="BL1C:…" spellcheck="false" autocomplete="off"><button name="action" value="addguild">Gilde hinzufügen</button></form></article>
+<form method="post" autocomplete="off"><input type="hidden" name="csrf" value="{{.CSRF}}"><label for="extra">Verbindungscode einer weiteren Gilde</label><input name="extra" id="extra" type="password" placeholder="BL1C:…" spellcheck="false" autocomplete="off">{{if gt (len .Files) 1}}<label for="extrasource">WoW-Installation dieser Gilde</label><select name="extrasource" id="extrasource"><option value="">Wie die Hauptverbindung</option>{{range .Files}}<option value="{{.}}">{{.}}</option>{{end}}</select>{{end}}<button name="action" value="addguild">Gilde hinzufügen</button></form></article>
 <p>Hinweis: Dieses Programm verbindet die <strong>gespeicherte</strong> Inventur mit der Website, nicht das laufende Addon in Echtzeit. Im Browser kannst du Bestellungen unmittelbar verwalten.</p></main></body></html>`))
 
 type view struct {
@@ -586,7 +609,7 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 					c.token = token
 					c.active = true
 					c.next = time.Time{}
-					c.lastHash = ""
+					c.lastHashes = nil
 					c.status = "Überwachung gestartet"
 					c.mu.Unlock()
 					result = "Gespeichert. Automatischer Upload nach der nächsten Dateispeicherung gestartet."
@@ -630,13 +653,21 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 					result, failure = "Diese Gilde ist bereits die Hauptverbindung.", true
 					break
 				}
-				base.Extra = append(extra, Link{Server: q.Server, GuildID: q.GuildID, EncryptedToken: sealed})
+				link := Link{Server: q.Server, GuildID: q.GuildID, EncryptedToken: sealed}
+				if chosen := r.Form.Get("extrasource"); chosen != "" && !strings.EqualFold(chosen, base.Source) {
+					for _, allowed := range discover() {
+						if chosen == allowed {
+							link.Source = chosen
+						}
+					}
+				}
+				base.Extra = append(extra, link)
 				if err := saveProfile(base, primary); err != nil {
 					result, failure = "Speichern fehlgeschlagen: "+err.Error(), true
 					break
 				}
 				c.mu.Lock()
-				c.profile, c.lastHash, c.next = base, "", time.Time{}
+				c.profile, c.lastHashes, c.next = base, nil, time.Time{}
 				c.mu.Unlock()
 				result = fmt.Sprintf("Gilde %d verbunden. Bestellungen und Status laufen jetzt für alle Gilden.", q.GuildID)
 			}
@@ -681,7 +712,11 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 	p := c.profile
 	data := view{Version: companionVersion, CSRF: c.csrfToken, Status: c.status, Last: c.lastUploaded, Server: p.Server, Guild: strconv.FormatInt(p.GuildID, 10), Source: p.Source, Interval: strconv.Itoa(p.IntervalSeconds), Result: result, HasError: failure, Messages: append([]string(nil), c.messages...), Active: c.active, Configured: c.token != ""}
 	for _, l := range p.Extra {
-		data.Extra = append(data.Extra, fmt.Sprintf("%s · Gilde %d", l.Server, l.GuildID))
+		src := l.Source
+		if src == "" {
+			src = p.Source
+		}
+		data.Extra = append(data.Extra, fmt.Sprintf("%s · Gilde %d · %s", l.Server, l.GuildID, clientLabel(src)))
 	}
 	for _, o := range c.offers {
 		by := o.By

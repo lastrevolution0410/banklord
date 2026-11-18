@@ -134,7 +134,7 @@ function A:_FinishScan()
     guild = run.guild, character = run.character, mode = run.mode,
     totalTabs = run.totalTabs, eligibleTabs = #run.queue,
     tabs = run.tabs, errors = run.errors,
-    source = "mop-classic-guildbank", serverConfirmed = false,
+    source = "mop-classic-guildbank", serverConfirmed = false, flavor = A:GameFlavor(),
   }
   result.items, result.occupiedSlots, result.totalItemCount = Aggregate(run.tabs)
   result.scannedTabs = run.completed

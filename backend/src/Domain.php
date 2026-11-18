@@ -73,3 +73,4 @@ final class Domain
     }
 }
 class DomainError extends \RuntimeException {}
+require_once __DIR__.'/GameFlavor.php';

@@ -10,6 +10,7 @@ use Banklord\IngameOrders;
 use Banklord\Claims;
 use Banklord\Feedback;
 use Banklord\WebUpdater;
+use Banklord\GameFlavor;
 use Banklord\ReleasePublisher;
 use Banklord\UpstreamUpdater;
 use Banklord\Demo;
@@ -26,6 +27,7 @@ require dirname(__DIR__) . '/src/Domain.php';
 require dirname(__DIR__) . '/src/Database.php';
 require dirname(__DIR__) . '/src/Orders.php';
 require dirname(__DIR__) . '/src/OrderRules.php';
+
 require dirname(__DIR__) . '/src/SavedVariablesParser.php';
 require dirname(__DIR__) . '/src/ScanImport.php';
 require dirname(__DIR__) . '/src/ScanStaging.php';
@@ -151,7 +153,7 @@ function catalogIcons(PDO $db,int $guild,array &$rows,string $locale): void {
     $hashes=array_keys($requested);
     $holders=implode(',',array_fill(0,count($hashes),'?'));
     $s=$db->prepare("SELECT wow_item_id,variant_hash,icon_name,icon_file_id,quality,item_type,item_sub_type FROM item_client_metadata
-        WHERE guild_id=? AND client_flavor='mop_classic' AND client_version='5.5.4'
+        WHERE guild_id=? AND client_flavor=(SELECT wow_flavor FROM guilds WHERE id=guild_id)
         AND locale=? AND variant_hash IN ($holders) ORDER BY captured_at DESC, client_build DESC, id DESC");
     $s->execute(array_merge([$guild,$locale],$hashes));
     $known=[];
@@ -296,8 +298,11 @@ try {
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         $file=file_get_contents('php://input',false,null,0,4_194_305);
         if ($file===false || strlen($file)>4_194_304 || $file==='') reply(413,['error'=>'INVALID_BRIDGE_PAYLOAD']);
-        $g=$db->prepare('SELECT name,realm FROM guilds WHERE id=?');$g->execute([$guildId]);$record=$g->fetch();
+        $g=$db->prepare('SELECT name,realm,wow_flavor FROM guilds WHERE id=?');$g->execute([$guildId]);$record=$g->fetch();
         if (!$record) reply(404,['error'=>'GUILD_NOT_FOUND']);
+        // A file from another game version (e.g. a Retail guild of the same name) is never mixed in.
+        $fileFlavor=GameFlavor::ofFile($file);
+        if ($fileFlavor!==null && $fileFlavor!==$record['wow_flavor']) reply(409,['error'=>'GAME_VERSION_MISMATCH','guild_version'=>$record['wow_flavor'],'file_version'=>$fileFlavor]);
         $ingame=new IngameOrders($db);
         // Manager handovers first: they release reservations before a new scan lowers the stock.
         $managed=$ingame->processManage($guildId,$actor,$file,$record);
@@ -417,7 +422,7 @@ try {
     }
     $_SESSION['last_seen']=time();
     if ($method==='GET' && $path==='/guilds') {
-        $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);reply(200,['guilds'=>$s->fetchAll()]);
+        $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,g.wow_flavor,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);reply(200,['guilds'=>$s->fetchAll()]);
     }
     if (!preg_match('~^/guilds/([1-9][0-9]{0,17})/(.+)$~D',$path,$m)) reply(404,['error'=>'NOT_FOUND']);
     $guild=id($m[1]);$tail=$m[2];$role=hasMember($db,$guild,$user);
@@ -550,9 +555,11 @@ try {
         }
         $raw=file_get_contents($f['tmp_name']);
         if ($raw===false) reply(422,['error'=>'IMPORT_FILE_UNREADABLE']);
-        $s=$db->prepare('SELECT name,realm FROM guilds WHERE id=?');$s->execute([$guild]);
+        $s=$db->prepare('SELECT name,realm,wow_flavor FROM guilds WHERE id=?');$s->execute([$guild]);
         $expected=$s->fetch();
         if (!$expected) reply(404,['error'=>'GUILD_NOT_FOUND']);
+        $fileFlavor=GameFlavor::ofFile($raw);
+        if ($fileFlavor!==null && $fileFlavor!==$expected['wow_flavor']) reply(409,['error'=>'GAME_VERSION_MISMATCH']);
         $candidate=ScanImport::fromSavedVariables($raw,$expected['name'],$expected['realm']);
         $staged=(new ScanStaging($db))->stage($guild,$user,$candidate);
         $peers=(new PeerRelay($db))->stage($guild,$user,$raw);
@@ -580,13 +587,13 @@ try {
         $s=$db->prepare("SELECT l.wow_item_id,l.variant_key,MAX(l.item_name) AS item_name,SUM(l.quantity) AS scanned_qty,COUNT(*) AS stacks,
               s.physical_qty AS known_qty,s.reserved_qty,s.confidence
               FROM snapshot_source_lines l
-              LEFT JOIN items i ON i.wow_flavor='mop_classic' AND i.wow_item_id=l.wow_item_id AND i.variant_key=l.variant_key
+              LEFT JOIN items i ON i.wow_flavor=(SELECT wow_flavor FROM guilds WHERE id=?) AND i.wow_item_id=l.wow_item_id AND i.variant_key=l.variant_key
               LEFT JOIN guild_stock s ON s.guild_id=? AND s.item_id=i.id
               WHERE l.snapshot_id=?
               GROUP BY l.wow_item_id,l.variant_key,s.physical_qty,s.reserved_qty,s.confidence
               ORDER BY item_name,l.wow_item_id,l.variant_key LIMIT 101 OFFSET ?");
-        $s->bindValue(1,$guild,PDO::PARAM_INT);$s->bindValue(2,$snapshot,PDO::PARAM_INT);
-        $s->bindValue(3,$offset,PDO::PARAM_INT);$s->execute();
+        $s->bindValue(1,$guild,PDO::PARAM_INT);$s->bindValue(2,$guild,PDO::PARAM_INT);$s->bindValue(3,$snapshot,PDO::PARAM_INT);
+        $s->bindValue(4,$offset,PDO::PARAM_INT);$s->execute();
         $rows=$s->fetchAll();$more=count($rows)>100;
         if ($more) array_pop($rows);
         $preflight=(new StockReconciliation($db))->inspect($guild,$snapshot);
@@ -598,7 +605,7 @@ try {
         if ($ids) {
             $holders=implode(',',array_fill(0,count($ids),'?'));
             $q=$db->prepare("SELECT wow_item_id,variant_hash,icon_name,icon_file_id,completeness FROM item_client_metadata
-                WHERE guild_id=? AND client_flavor='mop_classic' AND locale=? AND wow_item_id IN ($holders)
+                WHERE guild_id=? AND client_flavor=(SELECT wow_flavor FROM guilds WHERE id=guild_id) AND locale=? AND wow_item_id IN ($holders)
                 ORDER BY captured_at DESC,id DESC LIMIT 5000");
             $q->execute(array_merge([$guild,$locale],$ids));
             while ($m=$q->fetch(PDO::FETCH_ASSOC)) {
@@ -737,7 +744,7 @@ try {
             // Legacy scans: external provider is fallback only, not an item-data source of truth.
             // No invented translations: a base tooltip is never represented as verified equipment.
             $fallback=in_array($locale,['deDE','enUS'],true)
-                ? \Banklord\ItemAppearance::resolve((int)$itemRecord['wow_item_id'], (string)$itemRecord['variant_key'], dirname(__DIR__,2).'/private/item-visual-cache', $locale)
+                ? \Banklord\ItemAppearance::resolve((int)$itemRecord['wow_item_id'], (string)$itemRecord['variant_key'], dirname(__DIR__,2).'/private/item-visual-cache', $locale, \Banklord\GameFlavor::of($db,$guild))
                 : ['icon'=>null,'quality'=>null];
             // A foreign provider is allowed to help identify an icon, not to invent
             // localized, variant-correct equipment descriptions.
@@ -753,7 +760,7 @@ try {
         if ($appearance!==null && empty($appearance['icon']) && in_array($locale,['deDE','enUS'],true)) {
             $fallback=\Banklord\ItemAppearance::resolve(
                 (int)$itemRecord['wow_item_id'],(string)$itemRecord['variant_key'],
-                dirname(__DIR__,2).'/private/item-visual-cache',$locale);
+                dirname(__DIR__,2).'/private/item-visual-cache',$locale,\Banklord\GameFlavor::of($db,$guild));
             if (!empty($fallback['icon'])) {
                 $appearance['icon']=$fallback['icon'];
                 $appearance['icon_fallback']='public-item-database';
@@ -802,6 +809,12 @@ try {
         $r=$rules->get($guild);$limit=OrderRules::limitFor($r,$role);
         reply(200,['rules'=>$r,'my_limit'=>$limit,'my_used'=>$limit>0?$rules->weeklyUsed($guild,$user):0]);
     }
+    if ($tail==='game-version') {
+        if ($method==='PUT') {$b=body();GameFlavor::change($db,$guild,$user,$b['wow_flavor']??null);}
+        elseif ($method!=='GET') reply(405,['error'=>'METHOD_NOT_ALLOWED']);
+        $c=$db->prepare('SELECT COUNT(*) FROM guild_stock WHERE guild_id=?');$c->execute([$guild]);
+        reply(200,['wow_flavor'=>GameFlavor::of($db,$guild),'locked'=>(int)$c->fetchColumn()>0]);
+    }
     if ($method==='POST' && preg_match('~^orders/([1-9][0-9]{0,17})/approve$~D',$tail,$o)) {
         $state=(new Orders($db))->approve($guild,$user,id($o[1]));reply(200,['status'=>$state]);
     }
@@ -841,8 +854,8 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
-    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED'];
+    $bad=['INVALID_GAME_VERSION','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
+    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED','GAME_VERSION_LOCKED','GAME_VERSION_MISMATCH'];
     if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
     if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);
     if (str_starts_with($e->getMessage(),'FEEDBACK_') || $e->getMessage()==='INVALID_EMAIL') reply(422,['error'=>$e->getMessage()]);

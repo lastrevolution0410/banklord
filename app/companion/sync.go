@@ -43,6 +43,9 @@ type Link struct {
 	Server         string `json:"server"`
 	GuildID        int64  `json:"guild_id"`
 	EncryptedToken string `json:"encrypted_token"`
+	// Banklord.lua of the WoW installation this guild plays in (e.g. _retail_);
+	// empty = the main file. Guilds of other game versions need their own file.
+	Source string `json:"saved_variables_file,omitempty"`
 }
 
 // conn is a ready-to-use connection: profile view plus clear-text token.
@@ -61,11 +64,54 @@ func (p Profile) connections(primary string) []conn {
 		}
 		q := p
 		q.Server, q.GuildID, q.Extra = l.Server, l.GuildID, nil
+		if l.Source != "" {
+			q.Source = l.Source
+		}
 		if q.validate() == nil {
 			out = append(out, conn{q, tok})
 		}
 	}
 	return out
+}
+
+// sourceGroup is every guild connection that reads the same Banklord.lua.
+type sourceGroup struct {
+	source string
+	conns  []conn
+}
+
+// bySource groups the connections per WoW installation, primary file first.
+func (p Profile) bySource(primary string) []sourceGroup {
+	out := []sourceGroup{}
+	idx := map[string]int{}
+	for _, cn := range p.connections(primary) {
+		k := strings.ToLower(filepath.Clean(cn.p.Source))
+		i, ok := idx[k]
+		if !ok {
+			i = len(out)
+			idx[k] = i
+			out = append(out, sourceGroup{source: cn.p.Source})
+		}
+		out[i].conns = append(out[i].conns, cn)
+	}
+	return out
+}
+
+// clientLabel names the WoW installation of a Banklord.lua path for the UI.
+func clientLabel(path string) string {
+	for _, part := range strings.Split(filepath.ToSlash(path), "/") {
+		switch strings.ToLower(part) {
+		case "_retail_":
+			return "Retail"
+		case "_classic_":
+			return "MoP Classic"
+		case "_anniversary_":
+			return "Classic Anniversary"
+		case "_classic_era_":
+			return "Classic Era"
+		}
+	}
+	return "WoW"
 }
 
 func (p Profile) validate() error {

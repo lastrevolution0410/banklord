@@ -73,7 +73,7 @@ final class StockReconciliation
             // All inventory admission for one guild is serialized through this row.
             $g=$this->db->prepare('SELECT id,wow_flavor FROM guilds WHERE id=? FOR UPDATE');
             $g->execute([$guild]);$gr=$g->fetch();
-            if (!$gr || $gr['wow_flavor']!=='mop_classic') throw new DomainError('GUILD_NOT_FOUND');
+            if (!$gr || !GameFlavor::valid($gr['wow_flavor'])) throw new DomainError('GUILD_NOT_FOUND');
             $role=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active' FOR UPDATE");
             $role->execute([$guild,$actor]);
             if (!in_array($role->fetchColumn(),['admin','bank_manager','officer'],true))throw new DomainError('FORBIDDEN');
@@ -102,12 +102,12 @@ final class StockReconciliation
             $rows=$this->db->prepare('SELECT wow_item_id,variant_key,MAX(item_name) AS item_name,SUM(quantity) AS quantity,'.$viewSql.' AS viewonly FROM snapshot_source_lines WHERE snapshot_id=? GROUP BY wow_item_id,variant_key ORDER BY wow_item_id,variant_key');
             $rows->execute([$snapshotId]);$sums=$rows->fetchAll();
             if (count($sums)>5000) throw new DomainError('SNAPSHOT_LIMIT');
-            $insertItem=$this->db->prepare("INSERT INTO items (wow_flavor,wow_item_id,variant_key,name) VALUES ('mop_classic',?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)");
+            $insertItem=$this->db->prepare("INSERT INTO items (wow_flavor,wow_item_id,variant_key,name) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)");
             $itemStocks=[];$viewonly=[];
             foreach ($sums as $entry) {
                 $qty=(int)$entry['quantity'];
                 if($qty<=0 || $qty>1000000)throw new DomainError('SNAPSHOT_QUANTITY');
-                $insertItem->execute([(int)$entry['wow_item_id'],$entry['variant_key'],$entry['item_name']]);
+                $insertItem->execute([$gr['wow_flavor'],(int)$entry['wow_item_id'],$entry['variant_key'],$entry['item_name']]);
                 $itemStocks[(int)$this->db->lastInsertId()]=$qty;
                 $viewonly[(int)$this->db->lastInsertId()]=min($qty,(int)$entry['viewonly']);
             }

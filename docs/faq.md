@@ -47,6 +47,8 @@ Den Inhalt der Gildenbank kann ein Addon nur lesen, wenn jemand sie geöffnet ha
 
 Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Für jede Gilde mit eigener Banklord-Website gibt es eine eigene Verbindung im Companion.
 
+Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde in MoP Classic und eine in Retail. Jede Gilde hat genau eine Spielversion; Gegenstände und Scans werden nie vermischt. Im Companion wählst du beim Hinzufügen der Gilde die Banklord.lua der passenden WoW-Installation (`_retail_`, `_classic_`, `_anniversary_`).
+
 ### Wie melde ich einen Fehler?
 
 - **Im Spiel:** `/banklord feedback` oder im Banklord-Fenster der Reiter **Hilfe & Feedback**. Die Meldung wird beim nächsten `/reload` über den Companion gesendet.

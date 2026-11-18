@@ -164,6 +164,9 @@ $ok($st===200 && isset($r['scan_skipped']) && !isset($r['import']),'upload witho
 $db->prepare("UPDATE guild_memberships SET role='member' WHERE guild_id=? AND user_id=?")->execute([$g,$mgr2]);
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(1));
 $ok($st===200 && !isset($r['import']),'demoted manager scan ignored');
+// A file from another WoW version (e.g. Retail) never reaches this guild.
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,"BanklordDB = {\n[\"gameFlavor\"] = \"retail\",\n}");
+$ok($st===409 && ($r['error']??'')==='GAME_VERSION_MISMATCH','file of another game version refused');
 $db->prepare("UPDATE guild_memberships SET status='disabled' WHERE guild_id=? AND user_id=?")->execute([$g,$member]);
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
 $ok($st===401,'disabled member token rejected');

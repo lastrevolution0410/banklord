@@ -90,6 +90,8 @@ Das Addon darf im Spiel nicht ins Internet. Deshalb gibt es den **Companion**, e
 | Retail (The War Within / Midnight) | ja | unterstützt |
 | Classic Era / Hardcore | nein | Addon lädt, Bestellungen ohne Gildenbank-Funktionen |
 
+Jede Gilde hat eine Spielversion. Ein Konto kann Gilden in mehreren Versionen haben; Daten werden dabei nie vermischt.
+
 | Desktop-App | Status |
 |---|---|
 | Windows 10/11 (x64) | Setup mit allen Funktionen |

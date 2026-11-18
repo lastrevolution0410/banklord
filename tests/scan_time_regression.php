@@ -1,6 +1,7 @@
 <?php
 /** Deterministic import-clock regression: no DB connection required. */
 declare(strict_types=1);
+require __DIR__.'/../backend/src/GameFlavor.php';
 require __DIR__.'/../backend/src/SavedVariablesParser.php';
 require __DIR__.'/../backend/src/ItemMetadata.php';
 require __DIR__.'/../backend/src/ScanImport.php';

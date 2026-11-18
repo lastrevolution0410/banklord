@@ -23,6 +23,10 @@ async function api(path,opts={}){
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
   return result;
 }
+// Game versions a guild can belong to: label, Wowhead path, Wowhead tooltip data environment.
+const GAME={retail:['Retail','',1],mop_classic:['MoP Classic','mop-classic',8],anniversary:['Classic Anniversary','tbc',5],classic_era:['Classic Era','classic',4]};
+function game(flavor){return GAME[flavor||state.guild?.wow_flavor]||GAME.mop_classic;}
+function wowheadItem(id){const p=game()[1];return 'https://www.wowhead.com/'+(p?p+'/':'')+'item='+encodeURIComponent(id);}
 const post=(p,body,extra={})=>api(p,{method:'POST',headers:{'Content-Type':'application/json',...extra},body:JSON.stringify(body)});
 const path=(suffix='')=>'/guilds/'+state.guild.id+'/'+suffix;
 function administrator(){return state.guild&&['officer','bank_manager','admin'].includes(state.guild.role);}
@@ -36,7 +40,7 @@ function setTab(tab){
   if(tab==='sync'&&!manager())return;
   if(tab==='procurement'&&!manager())return;
   if(tab==='updates'&&state.guild?.role!=='admin')return;
-  if(tab==='updates')loadReleases().catch(e=>notice(e.message,true));
+  if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));}
   state.tab=tab;
   for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -59,7 +63,7 @@ function switchGuild(){
   state.cart.clear();state.pendingOrder=null;state.details.clear();state.appearances.clear();state.appearanceRequests.clear();state.selectedStockId=null;state.inventoryFilter='all';state.categoryKey='all';state.expandedCategories.clear();state.catalogPage=0;appearanceLoading.queue=[];appearanceLoading.queued.clear();iconLookupByItemId.clear();updateCartBadge();
   $('guildTitle').textContent=state.guild.name;
   document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
-  $('guildSub').textContent=`${state.guild.realm} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2);$('bellBtn').classList.remove('hidden');
+  $('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2);$('bellBtn').classList.remove('hidden');
   $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
   state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
 }
@@ -79,7 +83,7 @@ async function initialize(){
     return;}
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;
-  $('guildSelector').replaceChildren();for(const g of data.guilds){const o=el('option','',`${g.name} · ${g.realm}`);o.value=g.id;$('guildSelector').append(o);}
+  $('guildSelector').replaceChildren();for(const g of data.guilds){const o=el('option','',`${g.name} · ${g.realm} · ${game(g.wow_flavor)[0]}`);o.value=g.id;$('guildSelector').append(o);}
   if(!data.guilds.length){notice('Für dein Konto ist noch keine freigeschaltete Gilde hinterlegt.',true);return;}
   switchGuild();loadNotifications().catch(()=>{});
 }
@@ -232,7 +236,7 @@ function fallbackIconFor(wowItemID){
     try{
       const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),3500);
       try{
-        const res=await fetch('https://nether.wowhead.com/tooltip/item/'+id+'?dataEnv=8',
+        const res=await fetch('https://nether.wowhead.com/tooltip/item/'+id+'?dataEnv='+game()[2],
           {mode:'cors',credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
         if(!res.ok)return null;
         const raw=await res.text();if(raw.length>100000)return null;
@@ -390,7 +394,7 @@ function renderItemDetail(){
     el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
   root.append(note);
   const tooltipBtn=el('button','secondary button-sm wow-detail-tooltip',T('openValues'));tooltipBtn.type='button';tooltipBtn.onclick=e=>{showTooltip(item,e,true);placeTooltip(e);};root.append(tooltipBtn);
-  const link=el('a','item-link','WoW-Gegenstand ansehen ↗');link.href='https://www.wowhead.com/mop-classic/item='+encodeURIComponent(item.wow_item_id);link.target='_blank';link.rel='noopener noreferrer';root.append(link);
+  const link=el('a','item-link','WoW-Gegenstand ansehen ↗');link.href=wowheadItem(item.wow_item_id);link.target='_blank';link.rel='noopener noreferrer';root.append(link);
   const controls=el('div','detail-order');
   const caption=el('label','','Gewünschte Menge');const amount=el('input');amount.type='number';amount.min='1';amount.max='1000000';amount.value='1';amount.inputMode='numeric';amount.setAttribute('aria-label','Menge für '+item.name);
   caption.append(amount);
@@ -1151,3 +1155,17 @@ $('feedbackForm').addEventListener('submit',submitFeedback);
 $('feedbackCancel').addEventListener('click',resetFeedbackForm);
 $('refreshFeedback').addEventListener('click',()=>loadFeedback().catch(e=>notice(e.message,true)));
 document.querySelectorAll('#feedbackInboxFilter .chip').forEach(c=>c.addEventListener('click',()=>{feedback.inboxStatus=c.dataset.status;loadFeedbackInbox().catch(e=>notice(e.message,true));}));
+
+// Game version of the guild (System view, admins). Locked once the guild has stock.
+async function loadGameVersion(){
+  const r=await api(path('game-version'));const sel=$('gameVersionSelect');sel.replaceChildren();
+  for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;o.selected=key===r.wow_flavor;sel.append(o);}
+  sel.disabled=r.locked;$('saveGameVersion').disabled=r.locked;
+  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion bitte eine eigene Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
+}
+$('saveGameVersion').onclick=async()=>{
+  try{const r=await api(path('game-version'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({wow_flavor:$('gameVersionSelect').value})});
+    state.guild.wow_flavor=r.wow_flavor;$('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;
+    await loadGameVersion();notice('Spielversion gespeichert.');}
+  catch(e){notice(e.message==='GAME_VERSION_LOCKED'?'Die Gilde hat schon Bestand. Die Spielversion ist deshalb festgelegt.':e.message,true);}
+};

@@ -18,9 +18,10 @@ final class ScanStaging
             $auth = $this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active' FOR UPDATE");
             $auth->execute([$guildId, $actorId]);
             if (!in_array($auth->fetchColumn(), ['admin','bank_manager','officer'], true)) throw new DomainError('FORBIDDEN');
-            if (!$record || $record['wow_flavor'] !== 'mop_classic' || $import['guild'] !== $record['name'] || $import['realm'] !== $record['realm']) {
+            if (!$record || $import['guild'] !== $record['name'] || $import['realm'] !== $record['realm']) {
                 throw new DomainError('IMPORT_GUILD_REALM_MISMATCH');
             }
+            if (($import['flavor'] ?? null) !== null && $import['flavor'] !== $record['wow_flavor']) throw new DomainError('GAME_VERSION_MISMATCH');
             // Serialize upload admission per guild. Duplicates remain repeatable
             // even after a quota has been reached; only new snapshots consume space.
             $exists = $this->db->prepare('SELECT id FROM stock_snapshots WHERE guild_id=? AND source=? AND source_key=?');

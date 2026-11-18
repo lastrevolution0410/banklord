@@ -90,6 +90,8 @@ Addons cannot access the internet in game. That is why there is the **Companion*
 | Retail (The War Within / Midnight) | yes | supported |
 | Classic Era / Hardcore | no | addon loads, orders without guild bank features |
 
+Every guild has one game version. One account can have guilds in several versions; their data is never mixed.
+
 | Desktop app | Status |
 |---|---|
 | Windows 10/11 (x64) | Setup with all features |

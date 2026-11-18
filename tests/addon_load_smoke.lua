@@ -46,7 +46,7 @@ function time()return os.time() end
 function date(...) return os.date(...) end
 function GetCursorPosition()return 0,0 end
 function GetLocale()return 'deDE' end
-function GetBuildInfo()return '5.5.4','70531' end
+function GetBuildInfo()return '5.5.4','70531','Jul 1 2026',50504 end
 function GetGuildBankTabInfo()return 'Tab',nil,true end
 function GetNumGuildBankTabs()return 8 end
 function GetCurrentGuildBankTab()return 1 end
@@ -433,6 +433,7 @@ do
   GetNumGuildMembers,GetGuildRosterInfo=nil,nil
   A.db.localCartDraft={};A.db.fullScans=nil;Banklord_ServerState={};for _,k in ipairs({'manageOutbox','manageDone','orderShipped','orderCancelPending'}) do A.db[k]={} end
 end
+assert(A:GameFlavor()=='mop_classic' and BanklordDB.gameFlavor=='mop_classic','game version recorded for the server')
 print('PASS: order rules in game (approval, partial delivery, shipping notice, cancel, view-only, tooltip, shopping list)')
 
 -- Localization: client language decides, BanklordDB.settings.locale overrides.

@@ -71,7 +71,7 @@ final class IngameOrders {
         $entries=array_values(array_filter($entries,fn($e)=>self::forGuild($e['guild'],$record)));
         $orders=new Orders($this->db);$results=[];
         $find=$this->db->prepare("SELECT gs.id FROM guild_stock gs JOIN items i ON i.id=gs.item_id
-            WHERE gs.guild_id=? AND i.wow_flavor='mop_classic' AND i.wow_item_id=? AND i.variant_key=?");
+            WHERE gs.guild_id=? AND i.wow_item_id=? AND i.variant_key=?");
         foreach ($entries as $entry) {
             $lines=[];$missing=false;
             foreach (explode('|',substr($entry['code'],4)) as $part) {

@@ -17,7 +17,7 @@ Any guild may run Banklord free of charge on its own web space ([license](../LIC
 
 1. **Create a database** at your host (empty).
 2. **Upload the files:** the `backend/` folder from the [latest release](https://github.com/lastrevolution0410/banklord/releases) (web package). The domain's **document root** must point to `backend/public`.
-3. **Open the website.** The setup page appears. Enter database access, guild name, realm and your admin account – done.
+3. **Open the website.** The setup page appears. Enter database access, guild name, realm, game version and your admin account – done. You can still change the game version under **System** while the guild has no stock.
 
 The setup page only exists until Banklord is configured. Settings are stored in `backend/private/config.local.php`. Optional keys are shown in [`backend/config.local.example.php`](../backend/config.local.example.php).
 
