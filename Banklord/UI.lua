@@ -760,10 +760,15 @@ push(bank,'Scan abbrechen',597,-225,211,35,function()
   if A.scanRun then A:AbortScan('Manuell abgebrochen')end
   A:RefreshUI()
 end)
-text(bank,'GameFontHighlightSmall',26,-296,890,
-  'Reguläre und mobile Gildenbank werden ausschließlich über Blizzard-APIs gelesen.\n'..
-  'Nur vollständig gelesene Fächer zählen als erfasst. Andere Addons werden nicht benötigt.\n'..
-  'Inventuren sind zunächst lokal und müssen anschließend im Webportal überprüft werden.',COLORS.warn)
+-- Open orders for bank managers: what is waiting, for whom, and who is on it.
+local bankOrdersTitle=text(bank,'GameFontNormal',26,-278,600,'Offene Bestellungen',COLORS.gold)
+local bankOrdersHint=text(bank,'GameFontHighlightSmall',26,-298,940,
+  'An der Gildenbank „Entnehmen“, am Briefkasten „Versenden“. Neue Bestellungen von der Website erscheinen nach /reload.',COLORS.muted)
+local bankOrderRows={}
+for i=1,6 do
+  bankOrderRows[i]=text(bank,'GameFontHighlightSmall',30,-322-(i-1)*20,940,'',COLORS.bright)
+end
+local bankOrdersMore=text(bank,'GameFontHighlightSmall',30,-446,940,'',COLORS.muted)
 
 -- Sync: instructions and existing peer inbox/outbox without making live promises.
 local help=panels.help
@@ -1040,6 +1045,18 @@ function A:RefreshUI()
       tostring(scan.totalTabs),tostring(scan.occupiedSlots),tostring(scan.quality)) or A:Tr('Noch keine Inventur vorhanden.')))
     bankProgress:SetText(run and A:Tr('Aktiver Scan: %s/%s Fächer'):format(tostring(run.completed),tostring(#run.queue)) or
       A:Tr('Kein aktiver Scan · SavedVariables werden beim /reload oder Ausloggen gespeichert.'))
+    local orders=self:IsBankManager() and self:OpenManageOrders() or {}
+    for i,row in ipairs(bankOrderRows) do
+      local o=orders[i]
+      if o then
+        local who=(o.recipient~='' and o.recipient) or o.requester or '?'
+        local why=self:OrderBlocked(o.id)
+        row:SetText(('#%d  ·  %s  ·  %s%s'):format(o.id,who,self:OrderSummary(o),why and '  ·  '..why or ''))
+      elseif i==1 then
+        row:SetText(self:IsBankManager() and A:Tr('Keine offenen Bestellungen.') or A:Tr('Nur für Bankverwalter, Offiziere und Admins.'))
+      else row:SetText('') end
+    end
+    bankOrdersMore:SetText(#orders>#bankOrderRows and A:Tr('… und %d weitere'):format(#orders-#bankOrderRows) or '')
   elseif active=='feedback' then
     refreshFeedback()
   elseif active=='help' then
@@ -1060,6 +1077,7 @@ function A:ToggleUI()
   if window:IsShown() then window:Hide()
   else self:RefreshUI();window:Show();if self.UpdateMinimapBadge then self:UpdateMinimapBadge(false) end end
 end
+function A:ShowTab(key) active=key;self:RefreshUI();window:Show() end
 function A:OpenCartUI()
   active='cart';self:RefreshUI();window:Show()
 end

@@ -157,6 +157,7 @@ do
   assert(lastChat():find('#7',1,true),'new order alerted: '..lastChat())
   assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'minimap badge shows 1 and blinks for a new order')
   A:ToggleUI();A:ToggleUI()
+  local okb,errb=pcall(A.ShowTab,A,'bank');assert(okb,errb)
   assert(A.minimapFlash==false and A:UpdateMinimapBadge()==1,'opening Banklord stops blinking, count stays')
   A:ShowManagePanel('bank')
   assert(A.manageMode=='bank','panel mode '..tostring(A.manageMode))

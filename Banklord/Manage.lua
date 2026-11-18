@@ -91,6 +91,8 @@ local function summary(o)
   return table.concat(parts,', ')
 end
 
+function A:OrderSummary(o) return summary(o) end
+
 local function randomTag()
   local s='';for _=1,6 do local n=math.random(0,35);s=s..(n<10 and tostring(n) or string.char(87+n)) end;return s
 end
