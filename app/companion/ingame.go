@@ -103,6 +103,7 @@ type stateConnection struct {
 	Server  string
 	GuildID int64
 	Guild   guildRef
+	Manager bool // bank manager, officer or admin in this guild (the addon's manager tools)
 }
 
 var manageKeyPattern = regexp.MustCompile(`^ma-[0-9]{6,12}-[a-z0-9]{6}$`)
@@ -347,8 +348,8 @@ func renderState(st ingameState) string {
 			if !strings.HasPrefix(c.Server, "https://") || c.GuildID <= 0 || c.Guild.Name == "" {
 				continue
 			}
-			fmt.Fprintf(&b, "    { server = %s, guildId = %d, guild = %s, guildRealm = %s },\n",
-				luaString(clip(c.Server, 200)), c.GuildID, luaString(clip(c.Guild.Name, 80)), luaString(clip(c.Guild.Realm, 80)))
+			fmt.Fprintf(&b, "    { server = %s, guildId = %d, guild = %s, guildRealm = %s, manager = %t },\n",
+				luaString(clip(c.Server, 200)), c.GuildID, luaString(clip(c.Guild.Name, 80)), luaString(clip(c.Guild.Realm, 80)), c.Manager)
 		}
 		b.WriteString("  },\n")
 	}
@@ -396,7 +397,7 @@ func mergeStates(states []ingameState) ingameState {
 			out.GeneratedAt = st.GeneratedAt
 		}
 		if st.Server != "" {
-			out.Connections = append(out.Connections, stateConnection{Server: st.Server, GuildID: st.GuildID, Guild: st.Guild})
+			out.Connections = append(out.Connections, stateConnection{Server: st.Server, GuildID: st.GuildID, Guild: st.Guild, Manager: st.Manage != nil})
 		}
 		for _, o := range st.Orders {
 			o.Guild = st.Guild

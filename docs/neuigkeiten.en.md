@@ -26,6 +26,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 - **Clear hints:** if the Companion is missing, the addon says exactly what to do. Waiting for the unlock shows “you do not need to do anything”.
 - **Guides with pictures,** step by step, with a “Not working?” table. For bank managers: “Your routine in 3 steps”.
 - Setup and Companion only explain the simple way (start WoW → “Connect”).
+- 1.8.1: **Manager role per guild:** an alt in another guild where you are only a member no longer gets the manager tools there.
 
 ### 1.7 – Cash book and "Urgent" in game (18 Nov 2026)
 - **Cash book in game:** the guild bank's gold and latest entries in the addon window (**Orders → Cash book** or `/bl kasse`).

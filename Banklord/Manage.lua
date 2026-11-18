@@ -40,7 +40,19 @@ local function splitBag(bag,slot,n) local f=(C_Container and C_Container.SplitCo
 
 -- Data -------------------------------------------------------------------
 local function state() return type(Banklord_ServerState)=='table' and Banklord_ServerState or {} end
-function A:IsBankManager() return type(state().manage)=='table' end
+-- Manager tools only in guilds where this account is bank manager, officer or
+-- admin: an alt in another guild is a normal member there.
+function A:IsBankManager()
+  local st=state()
+  if type(st.manage)~='table' then return false end
+  local g,r=self:CurrentGuild()
+  local c=g and self:ConnectionFor(g,r)
+  if c and c.manager~=nil then return c.manager==true end
+  for _,x in ipairs(type(st.connections)=='table' and st.connections or {}) do
+    if type(x)=='table' and x.manager~=nil then return false end
+  end
+  return true -- older Companion without the per-guild flag
+end
 local function store(name) A.db[name]=A.db[name] or {}; return A.db[name] end
 
 -- Guild of the logged-in character: name, realm (nil until the game knows it).

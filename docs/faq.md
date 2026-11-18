@@ -37,7 +37,7 @@ Nein. Der Updater hält Addon und Companion im Hintergrund automatisch aktuell �
 
 ### Warum muss ich so oft `/reload` machen?
 
-Addons dürfen im Spiel nicht ins Internet. WoW speichert Addon-Daten nur bei `/reload` oder beim Ausloggen und liest sie nur beim Laden ein. `/reload` ist der Moment, in dem Banklord mit der Website „spricht“.
+Addons dürfen im Spiel nicht ins Internet. WoW speichert Addon-Daten nur bei `/reload` oder beim Ausloggen und liest sie nur beim Laden ein. `/reload` ist der Moment, in dem Banklord mit der Website „spricht“. Seit 1.8 musst du es meist nicht mehr tippen: An den wichtigen Stellen erscheint ein Fenster mit **„Jetzt übertragen“**.
 
 ### Warum ist der Bestand nicht live?
 
@@ -48,6 +48,12 @@ Den Inhalt der Gildenbank kann ein Addon nur lesen, wenn jemand sie geöffnet ha
 Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Für jede Gilde mit eigener Banklord-Website gibt es eine eigene Verbindung im Companion.
 
 Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde in MoP Classic und eine in Retail. Jede Gilde hat genau eine Spielversion; Gegenstände und Scans werden nie vermischt. Im Companion wählst du beim Hinzufügen der Gilde die Banklord.lua der passenden WoW-Installation (`_retail_`, `_classic_`, `_anniversary_`).
+
+**Beispiel MoP Classic, ein Realm:** Charakter A und B in derselben Gilde, Charakter C in einer anderen Gilde – das geht. Banklord merkt bei jedem Einloggen, in welcher Gilde der Charakter ist, und zeigt nur deren Bestand und Bestellungen. Eine Bestellung im Spiel landet immer bei der Gilde des Charakters, mit dem du bestellst.
+
+**Bankverwalter mit dem einen, Mitglied mit dem anderen?** Die Rolle gehört zu deinem Website-Konto **pro Gilde**, nicht zum einzelnen Charakter:
+- Bist du in Gilde 1 Bankverwalter und in Gilde 2 nur Mitglied, hat dein Charakter in Gilde 1 die Verwalter-Werkzeuge, dein Charakter in Gilde 2 nicht (seit 1.8.1).
+- Innerhalb **derselben Gilde** haben alle deine Charaktere dieselbe Rolle – es bist ja dieselbe Person. Was ein Charakter aus der Gildenbank nehmen darf, bestimmt weiterhin der Gildenrang im Spiel.
 
 ### Wie melde ich einen Fehler?
 

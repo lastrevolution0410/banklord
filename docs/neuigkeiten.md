@@ -26,6 +26,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 - **Klare Hinweise:** Fehlt der Companion, sagt das Addon genau, was zu tun ist. Wer auf die Freischaltung wartet, liest „du musst nichts tun“.
 - **Anleitungen mit Bildern,** Schritt für Schritt, mit „Klappt nicht?“-Tabelle. Für Bankverwalter: „Dein Alltag in 3 Schritten“.
 - Setup und Companion erklären nur noch den einfachen Weg (WoW starten → „Verbinden“).
+- 1.8.1: **Verwalter-Rolle pro Gilde:** Ein Twink in einer anderen Gilde, in der du nur Mitglied bist, bekommt dort keine Verwalter-Werkzeuge mehr.
 
 ### 1.7 – Kassenbuch und „Dringend“ im Spiel (18.11.2026)
 - **Kassenbuch im Spiel:** Goldstand der Gildenbank und die letzten Einträge im Addon-Fenster (**Aufträge → Kassenbuch** oder `/bl kasse`).

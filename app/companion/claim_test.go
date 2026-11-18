@@ -65,11 +65,11 @@ func TestRedeemWaitsWhileNotConfirmed(t *testing.T) {
 
 func TestRenderConnections(t *testing.T) {
 	st := mergeStates([]ingameState{
-		{Server: "https://bank.example.org", GuildID: 3, Guild: guildRef{Name: "Nom", Realm: "Everlook"}},
+		{Server: "https://bank.example.org", GuildID: 3, Guild: guildRef{Name: "Nom", Realm: "Everlook"}, Manage: &[]manageOrder{}},
 		{Server: "https://other.example.org", GuildID: 9, Guild: guildRef{Name: "Zwei\"]] os.exit()", Realm: "X"}},
 	})
 	out := renderState(st)
-	if !strings.Contains(out, `{ server = "https://bank.example.org", guildId = 3, guild = "Nom", guildRealm = "Everlook" }`) {
+	if !strings.Contains(out, `{ server = "https://bank.example.org", guildId = 3, guild = "Nom", guildRealm = "Everlook", manager = true }`) || !strings.Contains(out, `guildRealm = "X", manager = false }`) {
 		t.Fatalf("connection missing:\n%s", out)
 	}
 	if !strings.Contains(out, `guild = "Zwei\"]] os.exit()"`) {

@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.13.0"
+const companionVersion = "0.13.1"
 
 type controller struct {
 	mu           sync.Mutex

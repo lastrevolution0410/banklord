@@ -266,6 +266,20 @@ do
   assert(not (A.db.claims or {})[key],'stranger not confirmed')
   A:ReceiveJoinMessage('BLJOIN1','K|'..key,'GUILD','Neuling-Everlook')
   assert(A.db.claims[key].character=='Neuling-Everlook' and A.db.claims[key].guild=='Hausmeister','roster member confirmed')
+  -- Same account, two guilds: manager tools only where the account is a manager.
+  do
+    local conns=Banklord_ServerState.connections
+    Banklord_ServerState.connections={{server='https://bank.example',guildId=12,guild='Hausmeister',guildRealm='Everlook',manager=true},
+      {server='https://bank.example',guildId=13,guild='Twinkgilde',guildRealm='Everlook',manager=false}}
+    assert(A:IsBankManager(),'manager in Hausmeister')
+    local oldInfo=GetGuildInfo;GetGuildInfo=function() return 'Twinkgilde','Rang',5,nil end
+    assert(not A:IsBankManager(),'alt in another guild is a normal member')
+    local before=A.db.claims[string.rep('cd',32)]
+    A:ReceiveJoinMessage('BLJOIN1','K|'..string.rep('cd',32),'GUILD','Neuling-Everlook')
+    assert(A.db.claims[string.rep('cd',32)]==before,'no confirmations from a guild where you are not a manager')
+    GetGuildInfo=function() return nil end;assert(not A:IsBankManager(),'no guild: no manager tools')
+    GetGuildInfo=oldInfo;Banklord_ServerState.connections=conns
+  end
   assert(sent[#sent][2]=='S|https://bank.example|12' and sent[#sent][3]=='WHISPER','answer whispered with website address')
   -- Member side: accepts the answer only from a guild member.
   A:ReceiveJoinMessage('BLJOIN1','S|https://evil.example|1','WHISPER','Fremder-Everlook')

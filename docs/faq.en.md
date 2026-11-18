@@ -37,7 +37,7 @@ No. The Updater keeps addon and Companion up to date automatically in the backgr
 
 ### Why do I have to `/reload` so often?
 
-Addons are not allowed to access the internet in game. WoW only saves addon data on `/reload` or logout and only reads it while loading. `/reload` is the moment Banklord “talks” to the website.
+Addons are not allowed to access the internet in game. WoW only saves addon data on `/reload` or logout and only reads it while loading. `/reload` is the moment Banklord “talks” to the website. Since 1.8 you rarely have to type it: at the important moments a window with **“Transfer now”** appears.
 
 ### Why is the stock not live?
 
@@ -48,6 +48,12 @@ An addon can only read the guild bank's contents while someone has it open. The 
 Yes. Every character is recognised on login and assigned to its guild. Each guild with its own Banklord website gets its own connection in the Companion.
 
 Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`).
+
+**Example MoP Classic, one realm:** characters A and B in the same guild, character C in another guild – that works. On every login Banklord notices which guild the character is in and only shows that guild's stock and orders. An in-game order always goes to the guild of the character you order with.
+
+**Bank manager on one character, member on another?** The role belongs to your website account **per guild**, not to a single character:
+- If you are bank manager in guild 1 and only a member in guild 2, your character in guild 1 has the manager tools and your character in guild 2 does not (since 1.8.1).
+- Within **the same guild** all your characters have the same role – it is the same person. What a character may take from the guild bank is still decided by the guild rank in game.
 
 ### How do I report a bug?
 
