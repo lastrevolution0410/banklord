@@ -14,6 +14,7 @@ func configureUpdaterAutostart(enabled bool) error {
 	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 	name := "BanklordAutoUpdater"
 	if !enabled {
+		removeCheckedLaunchShortcut(updaterPath())
 		err := command("reg.exe", "delete", key, "/v", name, "/f").Run()
 		if err == nil {
 			return nil
@@ -67,8 +68,8 @@ func configureUpdaterAutostart(enabled bool) error {
 	if err != nil {
 		return fmt.Errorf("Windows-Run-Eintrag: %s: %w", string(output), err)
 	}
-	// Failure to create a Desktop shortcut does NOT disable the independent
-	// background updater; users can still use the installer's browser button.
-	_ = installCheckedLaunchShortcut(dest)
+	// The background updater checks on its own (start, every 15 s, after WoW
+	// exits), so the old "sicher starten" desktop shortcut is no longer needed.
+	removeCheckedLaunchShortcut(dest)
 	return nil
 }

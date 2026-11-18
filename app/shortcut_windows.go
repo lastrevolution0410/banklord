@@ -10,16 +10,17 @@ import (
 	"unsafe"
 )
 
-// A Windows shortcut is a convenience, not a hook into Battle.net. Users must
-// explicitly launch via this shortcut to enforce a live preflight check.
-func installCheckedLaunchShortcut(updater string) error {
+// removeCheckedLaunchShortcut deletes the old "Banklord - sicher starten"
+// desktop shortcut, but only while it still points to our updater with the
+// preflight argument; a shortcut the user changed is left alone.
+func removeCheckedLaunchShortcut(updater string) {
 	script := `$sh = New-Object -ComObject WScript.Shell; ` +
-		`$link = $sh.CreateShortcut((Join-Path $sh.SpecialFolders('Desktop') 'Banklord - sicher starten.lnk')); ` +
-		`$link.TargetPath = $env:BANKLORD_UPDATE_EXE; $link.Arguments = '--preflight-launch'; ` +
-		`$link.WorkingDirectory = (Split-Path -Parent $env:BANKLORD_UPDATE_EXE); $link.Save()`
+		`$path = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Banklord - sicher starten.lnk'; ` +
+		`if (Test-Path -LiteralPath $path) { $link = $sh.CreateShortcut($path); ` +
+		`if ([string]::Equals($link.TargetPath,$env:BANKLORD_UPDATE_EXE,[StringComparison]::OrdinalIgnoreCase) -and $link.Arguments -eq '--preflight-launch') { Remove-Item -LiteralPath $path -Force } }`
 	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
 	cmd.Env = append(os.Environ(), "BANKLORD_UPDATE_EXE="+filepath.Clean(updater))
-	return cmd.Run()
+	_ = cmd.Run()
 }
 
 func showPreflightFailure(message string) {

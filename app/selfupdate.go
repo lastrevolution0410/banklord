@@ -94,7 +94,10 @@ func cleanupOldUpdater() {
 	// Lets the companion report the updater version in its heartbeat.
 	_ = os.WriteFile(filepath.Join(filepath.Dir(updaterPath()), "version.txt"), []byte(setupVersion), 0o644)
 	time.AfterFunc(30*time.Second, func() { removeOldCopies(updaterPath()) })
-	go refreshCompanionShortcutIcons()
+	go func() {
+		refreshCompanionShortcutIcons()
+		removeCheckedLaunchShortcut(updaterPath())
+	}()
 }
 
 // replaceRunningFile moves src over dest. Windows refuses to overwrite a

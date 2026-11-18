@@ -6,7 +6,7 @@
 - [Kostet Banklord etwas?](#kostet-banklord-etwas)
 - [Ist das erlaubt? Verstößt es gegen Blizzards Regeln?](#ist-das-erlaubt)
 - [Brauche ich den Companion?](#brauche-ich-den-companion)
-- [Was bringt „Banklord – sicher starten“?](#was-bringt-banklord--sicher-starten)
+- [Muss ich vor dem Spielen etwas aktualisieren?](#muss-ich-vor-dem-spielen-etwas-aktualisieren)
 
 **Benutzung**
 - [Warum muss ich so oft `/reload` machen?](#warum-muss-ich-so-oft-reload-machen)
@@ -31,9 +31,9 @@ Banklord ist ein normales Addon und nutzt nur die offizielle Addon-Schnittstelle
 
 Für das Bestellen im Spiel mit automatischer Übertragung: ja. Ohne Companion kannst du auf der Website bestellen oder deinen Warenkorb mit `/banklord senden <Spieler>` an jemanden übergeben, der ihn hochlädt. Bankverwalter brauchen den Companion, damit Scans und Ausgaben auf der Website ankommen.
 
-### Was bringt „Banklord – sicher starten“?
+### Muss ich vor dem Spielen etwas aktualisieren?
 
-Es prüft vor dem Spielstart online, ob das Addon die neueste Version hat, aktualisiert es falls nötig und startet dann WoW. Nötig ist es nicht – der Updater hält alles im Hintergrund aktuell. Siehe [Installation](installation.md#was-wird-installiert).
+Nein. Der Updater hält Addon und Companion im Hintergrund automatisch aktuell – beim Windows-Start, laufend auf neue Veröffentlichungen und direkt nach dem Beenden von WoW. Starte WoW einfach wie immer über Battle.net. Die frühere Verknüpfung „Banklord – sicher starten“ ist deshalb entfallen und wird beim Update entfernt.
 
 ### Warum muss ich so oft `/reload` machen?
 

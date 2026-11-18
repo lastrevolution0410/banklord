@@ -21,12 +21,9 @@
 | **Companion** | `%LOCALAPPDATA%\Banklord\Companion` | Bringt Daten zwischen Addon und Website. Startet mit Windows, läuft unsichtbar im Hintergrund. Bedienung im Browser. |
 | **Updater** | `%LOCALAPPDATA%\Banklord\Updater` | Prüft regelmäßig auf signierte Updates und installiert sie. Läuft unsichtbar. |
 
-Auf dem Desktop und im Startmenü liegen zwei Verknüpfungen:
+Auf dem Desktop und im Startmenü liegt **eine** Verknüpfung: **Banklord Companion**. Sie öffnet die Companion-Seite im Browser (Verbindung, Status, weitere Gilden, Freischaltung). Der Companion läuft auch ohne geöffnetes Fenster weiter.
 
-| Verknüpfung | Was sie tut | Brauche ich sie? |
-|---|---|---|
-| **Banklord Companion** | Öffnet die Companion-Seite im Browser: Verbindung, Status, weitere Gilden, Freischaltung. | Nur zum Nachschauen oder Einrichten. Der Companion läuft auch ohne geöffnetes Fenster. |
-| **Banklord – sicher starten** | Prüft vor dem Spielstart online, ob das Addon die neueste Version hat, aktualisiert es falls nötig und startet dann WoW. | Nein. Der Updater hält alles ohnehin aktuell. Praktisch, wenn ein PC lange aus war und du sicher mit der neuesten Version starten willst. |
+Die Prüfung auf neue Versionen läuft **immer automatisch**: beim Start von Windows, alle paar Sekunden auf neue Veröffentlichungen, spätestens alle 2 Minuten und direkt nach dem Beenden von WoW. Du startest WoW ganz normal über Battle.net.
 
 Banklord braucht **keine Administratorrechte**, keine Blizzard-Zugangsdaten und verändert nichts am Spiel außer dem eigenen Addon-Ordner.
 
