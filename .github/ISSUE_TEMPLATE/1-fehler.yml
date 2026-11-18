@@ -1,0 +1,39 @@
+name: Fehler melden / Bug report
+description: Etwas funktioniert nicht wie erwartet. / Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke! Bitte **keine Passwörter, Zugangsschlüssel oder Einladungscodes** eintragen.
+        Thanks! Please **never** include passwords, access keys or invite codes.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Wo tritt der Fehler auf? / Where?
+      options: [Addon im Spiel / in game, Website, Companion, Setup / Updater, Weiß nicht / not sure]
+    validations: {required: true}
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert? / What happened?
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachvollziehen / Steps to reproduce
+      placeholder: "1. …\n2. …\n3. …"
+  - type: textarea
+    id: expected
+    attributes:
+      label: Was hast du erwartet? / What did you expect?
+  - type: input
+    id: versions
+    attributes:
+      label: Versionen / Versions
+      description: Addon (`/banklord status`), Website (Fußzeile), WoW-Version, Windows/macOS/Linux
+      placeholder: "Addon 0.9.0, Website 1.2.2, MoP Classic 5.5.x, Windows 11"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Fehlermeldungen oder Screenshots / Error messages or screenshots

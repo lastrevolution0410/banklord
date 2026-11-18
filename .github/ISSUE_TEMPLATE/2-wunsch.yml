@@ -1,0 +1,26 @@
+name: Funktionswunsch / Feature request
+description: Idee für eine neue Funktion oder Verbesserung. / Idea for a new feature or improvement.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: part
+    attributes:
+      label: Betrifft / Affects
+      multiple: true
+      options: [Addon im Spiel / in game, Website, Companion, Setup / Updater]
+    validations: {required: true}
+  - type: dropdown
+    id: role
+    attributes:
+      label: Für wen? / For whom?
+      multiple: true
+      options: [Mitglieder / members, Bankverwalter / bank managers, Admins, Selbst-Hoster / self-hosters]
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll gelöst werden? / What problem should it solve?
+    validations: {required: true}
+  - type: textarea
+    id: idea
+    attributes:
+      label: Wie stellst du es dir vor? / How do you imagine it?
