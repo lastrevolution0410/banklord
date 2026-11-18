@@ -43,13 +43,45 @@ func installCompanionShortcuts(target string) error {
 		`$lnk.TargetPath=$env:BANKLORD_COMPANION_EXE; ` +
 		`$lnk.WorkingDirectory=(Split-Path -Parent $env:BANKLORD_COMPANION_EXE); ` +
 		`$lnk.Description='Banklord Companion - lokale Synchronisierung'; ` +
+		`$lnk.IconLocation=$env:BANKLORD_ICON+',0'; ` +
 		`$lnk.Save() } }`
 	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-	cmd.Env = append(os.Environ(), "BANKLORD_COMPANION_EXE="+filepath.Clean(target))
+	cmd.Env = append(os.Environ(), "BANKLORD_COMPANION_EXE="+filepath.Clean(target), "BANKLORD_ICON="+iconSource(target))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("Windows-Companion-Verknüpfungen: %v: %s", err, string(out))
 	}
 	return nil
+}
+
+// iconSource names a file that certainly carries the Banklord icon: the
+// updater (always built with it), else the companion itself.
+func iconSource(companion string) string {
+	if u := updaterPath(); u != "" {
+		if fi, err := os.Stat(u); err == nil && fi.Mode().IsRegular() {
+			return filepath.Clean(u)
+		}
+	}
+	return filepath.Clean(companion)
+}
+
+// refreshCompanionShortcutIcons gives EXISTING companion shortcuts (that still
+// point to our executable) the Banklord icon; it never creates new ones.
+func refreshCompanionShortcutIcons() {
+	dir, err := companionDirectory()
+	if err != nil {
+		return
+	}
+	target := filepath.Join(dir, "Banklord-Companion.exe")
+	script := `$sh=New-Object -ComObject WScript.Shell; ` +
+		`foreach($folder in @([Environment]::GetFolderPath('Desktop'),[Environment]::GetFolderPath('Programs'))) { ` +
+		`if(-not [string]::IsNullOrWhiteSpace($folder)) { ` +
+		`$path=Join-Path $folder 'Banklord Companion.lnk'; ` +
+		`if(Test-Path -LiteralPath $path) { $lnk=$sh.CreateShortcut($path); ` +
+		`if([string]::Equals($lnk.TargetPath,$env:BANKLORD_COMPANION_EXE,[StringComparison]::OrdinalIgnoreCase) -and $lnk.IconLocation -ne ($env:BANKLORD_ICON+',0')) { ` +
+		`$lnk.IconLocation=$env:BANKLORD_ICON+',0'; $lnk.Save() } } } }`
+	cmd := command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd.Env = append(os.Environ(), "BANKLORD_COMPANION_EXE="+target, "BANKLORD_ICON="+iconSource(target))
+	_ = cmd.Run()
 }
 
 // Remove ONLY shortcuts still pointing to our managed executable. Never
