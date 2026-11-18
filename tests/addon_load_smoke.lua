@@ -182,6 +182,21 @@ do
   Banklord_ServerState.manage=nil
 end
 print('PASS: bank manager alert, guild bank withdrawal and mail handover')
+do
+  IsInGuild=function() return true end
+  GetGuildInfo=function() return 'Hausmeister','Rang',1,nil end
+  A:RememberCharacter()
+  local ch=A.db.characters['Tester-Everlook']
+  assert(ch and ch.guild=='Hausmeister' and ch.guildRealm=='Everlook','character remembered with guild')
+  Banklord_ServerState.manage={{id=1,guild='Hausmeister',guildRealm='Everlook',recipient='',requester='A',lines={}},
+    {id=2,guild='Andere',guildRealm='Everlook',recipient='',requester='B',lines={}}}
+  local open=A:OpenManageOrders()
+  assert(#open==1 and open[1].id==1,'only orders of the current guild are shown')
+  A:QueueManageAction(1,'reject')
+  assert(A.db.manageOutbox[#A.db.manageOutbox].guild=='Hausmeister','manager action tagged with guild')
+  A.db.manageOutbox={};A.db.manageDone={};Banklord_ServerState.manage=nil;IsInGuild=nil;GetGuildInfo=nil
+end
+print('PASS: characters and orders are matched to the current guild')
 
 -- Localization: client language decides, BanklordDB.settings.locale overrides.
 local EN=assert(A._localeEN,'EN table not exposed')

@@ -34,6 +34,38 @@ type Profile struct {
 	Source          string `json:"saved_variables_file"`
 	IntervalSeconds int    `json:"interval_seconds"`
 	EncryptedToken  string `json:"encrypted_token"`
+	// Further guilds on this PC: same file, own server/guild/token each.
+	Extra []Link `json:"extra_links,omitempty"`
+}
+
+// Link is one more guild connection; the token stays sealed like the primary one.
+type Link struct {
+	Server         string `json:"server"`
+	GuildID        int64  `json:"guild_id"`
+	EncryptedToken string `json:"encrypted_token"`
+}
+
+// conn is a ready-to-use connection: profile view plus clear-text token.
+type conn struct {
+	p     Profile
+	token string
+}
+
+// connections returns the primary connection followed by every extra guild.
+func (p Profile) connections(primary string) []conn {
+	out := []conn{{p, primary}}
+	for _, l := range p.Extra {
+		tok, err := unprotectToken(l.EncryptedToken)
+		if err != nil || !tokenPattern.MatchString(tok) {
+			continue
+		}
+		q := p
+		q.Server, q.GuildID, q.Extra = l.Server, l.GuildID, nil
+		if q.validate() == nil {
+			out = append(out, conn{q, tok})
+		}
+	}
+	return out
 }
 
 func (p Profile) validate() error {
@@ -138,6 +170,7 @@ func request(ctx context.Context, p Profile, token, method, suffix string, body 
 	}
 	return resp.StatusCode, parsed, nil
 }
+
 type jsonBodyKey struct{}
 
 func requestJSON(ctx context.Context, p Profile, token, method, suffix string, body []byte) (int, map[string]any, error) {

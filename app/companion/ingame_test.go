@@ -65,3 +65,15 @@ func TestRenderManageView(t *testing.T) {
 		t.Fatal("invalid key or manager view for members rendered")
 	}
 }
+
+func TestMergeStatesTagsGuilds(t *testing.T) {
+	a := []manageOrder{{ID: 1, Recipient: "A-R"}}
+	st := mergeStates([]ingameState{
+		{GeneratedAt: 5, Guild: guildRef{"Hausmeister", "Everlook"}, Orders: []ingameOrder{{ID: 9}}, Manage: &a, Outbox: map[string]outboxResult{"ig-123456-aaaaaa": {OrderID: 9}}},
+		{GeneratedAt: 7, Guild: guildRef{"Zweite Gilde", "Everlook"}, Outbox: map[string]outboxResult{"ig-123456-bbbbbb": {Error: "X"}}},
+	})
+	out := renderState(st)
+	if st.GeneratedAt != 7 || len(st.Outbox) != 2 || !strings.Contains(out, `guild = "Hausmeister", guildRealm = "Everlook"`) || strings.Count(out, "guild = ") != 2 {
+		t.Fatalf("merge wrong:\n%s", out)
+	}
+}

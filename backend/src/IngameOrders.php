@@ -32,15 +32,43 @@ final class IngameOrders {
               || !is_string($char) || strlen($char)>80 || preg_match('/[|\x00-\x1f\x7f]/',$char)
               || !is_string($note) || strlen($note)>200 || preg_match('/[|\x00-\x1f\x7f]/',$note)
               || !is_int($at) || $at<time()-30*86400 || $at>time()+86400) throw new \InvalidArgumentException('OUTBOX_ROW_INVALID');
-            $out[]=['client_key'=>$key,'code'=>$code,'character'=>$char,'note'=>$note];
+            $out[]=['client_key'=>$key,'code'=>$code,'character'=>$char,'note'=>$note,'guild'=>self::tag($row)];
         }
         return $out;
     }
 
+    /** Guild tag of an outbox row: [name, realm] or null for untagged rows. */
+    private static function tag(array $row): ?array {
+        $g=$row['guild']??null;$r=$row['guildRealm']??'';
+        if (!is_string($g) || $g==='' || strlen($g)>80 || !is_string($r) || strlen($r)>100) return null;
+        return [$g,$r];
+    }
+    private static function norm(string $s): string { return mb_strtolower(str_replace([' ',"'",'-'],'',$s)); }
+    /** True when a row belongs to this guild; rows for another guild wait for that guild's connection. */
+    public static function forGuild(?array $tag, ?array $record): bool {
+        if ($tag===null || $record===null) return true;
+        return self::norm($tag[0])===self::norm((string)$record['name']) && ($tag[1]==='' || self::norm($tag[1])===self::norm((string)$record['realm']));
+    }
+
+    /** Characters seen in game (BanklordDB.characters) that are in this guild get linked to the uploader. */
+    public function syncCharacters(int $guild, int $user, string $savedVars, array $record): int {
+        try { $data=(new SavedVariablesParser($savedVars))->parse(); } catch (\Throwable $e) { return 0; }
+        $chars=$data['characters']??[];
+        if (!is_array($chars)) return 0;
+        $n=0;
+        foreach (array_slice($chars,0,40,true) as $key=>$row) {
+            if (!is_string($key) || !is_array($row) || strlen($key)>120) continue;
+            if (!self::forGuild(self::tag($row)??['',''],$record)) continue;
+            $this->rememberCharacter($guild,$user,$key);$n++;
+        }
+        return $n;
+    }
+
     /** @return array<string,array{order_id?:int,error?:string}> keyed by client key */
-    public function processOutbox(int $guild, int $user, string $savedVars): array {
+    public function processOutbox(int $guild, int $user, string $savedVars, ?array $record=null): array {
         try { $entries=self::extract($savedVars); }
         catch (\InvalidArgumentException $e) { return ['_file'=>['error'=>$e->getMessage()]]; }
+        $entries=array_values(array_filter($entries,fn($e)=>self::forGuild($e['guild'],$record)));
         $orders=new Orders($this->db);$results=[];
         $find=$this->db->prepare("SELECT gs.id FROM guild_stock gs JOIN items i ON i.id=gs.item_id
             WHERE gs.guild_id=? AND i.wow_flavor='mop_classic' AND i.wow_item_id=? AND i.variant_key=?");
@@ -85,15 +113,16 @@ final class IngameOrders {
             $key=$row['key']??null;$order=$row['order']??null;$action=$row['action']??null;
             if (!is_string($key) || !preg_match('/^ma-[0-9]{6,12}-[a-z0-9]{6}$/D',$key) || !is_int($order) || $order<1
               || !in_array($action,['deliver','reject'],true)) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
-            $out[]=['key'=>$key,'order'=>$order,'action'=>$action];
+            $out[]=['key'=>$key,'order'=>$order,'action'=>$action,'guild'=>self::tag($row)];
         }
         return $out;
     }
 
     /** Bank manager actions queued in game (mail sent, order rejected). */
-    public function processManage(int $guild, int $user, string $savedVars): array {
+    public function processManage(int $guild, int $user, string $savedVars, ?array $record=null): array {
         try { $rows=self::extractManage($savedVars); }
         catch (\InvalidArgumentException $e) { return []; }
+        $rows=array_filter($rows,fn($r)=>self::forGuild($r['guild'],$record));
         $orders=new Orders($this->db);$results=[];
         foreach ($rows as $r) {
             try {
@@ -151,7 +180,8 @@ final class IngameOrders {
         }
         $outbox=[];
         foreach ($outboxResults as $key=>$r) if ($key!=='_file') $outbox[$key]=$r;
-        $state=['generated_at'=>time(),'orders'=>$out,'outbox'=>(object)$outbox,'manage_results'=>(object)$manageResults];
+        $g=$this->db->prepare('SELECT name,realm FROM guilds WHERE id=?');$g->execute([$guild]);$gr=$g->fetch(PDO::FETCH_ASSOC)?:['name'=>'','realm'=>''];
+        $state=['generated_at'=>time(),'guild'=>['name'=>(string)$gr['name'],'realm'=>(string)$gr['realm']],'orders'=>$out,'outbox'=>(object)$outbox,'manage_results'=>(object)$manageResults];
         $manage=$this->manageView($guild,$user);
         if ($manage!==null) $state['manage']=$manage;
         return $state;

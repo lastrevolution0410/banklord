@@ -86,39 +86,59 @@ func (c *controller) run(ctx context.Context) {
 			c.refreshState(ctx, p, tok)
 			continue
 		}
-		result, err := uploadWithResult(ctx, p, tok, data)
-		if err != nil {
-			c.message("Upload nicht bestätigt: " + briefError(err))
-			continue
+		states := []ingameState{}
+		allOK := true
+		for _, cn := range p.connections(tok) {
+			result, err := uploadWithResult(ctx, cn.p, cn.token, data)
+			if err != nil {
+				allOK = false
+				c.message(fmt.Sprintf("Gilde %d: Upload nicht bestätigt: %s", cn.p.GuildID, briefError(err)))
+				continue
+			}
+			if result.State != nil {
+				states = append(states, *result.State)
+			}
+			c.report(result)
 		}
 		c.mu.Lock()
 		// Prevent stale result from overwriting a newly saved profile.
-		if c.profile.Server == p.Server && c.profile.GuildID == p.GuildID && c.profile.Source == p.Source && c.token == tok {
+		if allOK && c.profile.Server == p.Server && c.profile.GuildID == p.GuildID && c.profile.Source == p.Source && c.token == tok && len(c.profile.Extra) == len(p.Extra) {
 			c.lastHash = digest
 			c.lastUploaded = time.Now().Format("02.01.2006 15:04:05")
 		}
 		c.mu.Unlock()
-		if result.State != nil {
+		if len(states) > 0 {
+			merged := mergeStates(states)
 			c.mu.Lock()
-			c.lastOutbox = result.State.Outbox
-			c.lastManage = result.State.ManageResults
+			c.lastOutbox, c.lastManage = merged.Outbox, merged.ManageResults
 			c.mu.Unlock()
-			c.applyState(p, *result.State)
+			c.applyState(p, merged)
 		}
-		if result.OrdersOnly {
-			c.message("Bestellungen übertragen. Status erscheint ingame nach /reload oder dem nächsten Login.")
-			continue
-		}
-		switch result.AutoStatus {
-		case "reconciled":
-			c.message("Inventur #" + result.ID + " automatisch serverseitig abgeglichen.")
-		case "already_reconciled":
-			c.message("Inventur #" + result.ID + " war bereits bestätigt (keine erneute Buchung).")
-		case "review_required":
-			c.message("Inventur #" + result.ID + " hochgeladen; Sicherheitsprüfung erfordert manuelle Kontrolle: " + result.AutoReason)
-		default:
-			c.message("Inventur #" + result.ID + " hochgeladen (zur Prüfung vorgemerkt, noch keine Buchung).")
-		}
+	}
+}
+
+// withExtra keeps the further guild connections when the main one is re-saved.
+func withExtra(p Profile, c *controller) Profile {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	p.Extra = c.profile.Extra
+	return p
+}
+
+func (c *controller) report(result uploadOutcome) {
+	if result.OrdersOnly {
+		c.message("Bestellungen übertragen. Status erscheint ingame nach /reload oder dem nächsten Login.")
+		return
+	}
+	switch result.AutoStatus {
+	case "reconciled":
+		c.message("Inventur #" + result.ID + " automatisch serverseitig abgeglichen.")
+	case "already_reconciled":
+		c.message("Inventur #" + result.ID + " war bereits bestätigt (keine erneute Buchung).")
+	case "review_required":
+		c.message("Inventur #" + result.ID + " hochgeladen; Sicherheitsprüfung erfordert manuelle Kontrolle: " + result.AutoReason)
+	default:
+		c.message("Inventur #" + result.ID + " hochgeladen (zur Prüfung vorgemerkt, noch keine Buchung).")
 	}
 }
 
@@ -132,10 +152,16 @@ func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
 	}
 	c.nextState = time.Now().Add(2 * time.Minute)
 	c.mu.Unlock()
-	st, err := fetchState(ctx, p, tok)
-	if err != nil {
+	states := []ingameState{}
+	for _, cn := range p.connections(tok) {
+		if st, err := fetchState(ctx, cn.p, cn.token); err == nil {
+			states = append(states, st)
+		}
+	}
+	if len(states) == 0 {
 		return
 	}
+	st := mergeStates(states)
 	c.mu.Lock()
 	if st.Outbox == nil {
 		st.Outbox = map[string]outboxResult{}
@@ -273,11 +299,14 @@ var page = template.Must(template.New("page").Parse(`<!doctype html><html lang="
 <button name="action" value="save">Konfiguration speichern und starten</button><button name="action" value="test" class="secondary">Server und Token prüfen</button></form>
 {{if .Result}}<p class="{{if .HasError}}error{{else}}status{{end}}">{{.Result}}</p>{{end}}
 <p class="warning"><strong>Sicherheit:</strong> Token liegt lokal mittels Windows-DPAPI verschlüsselt unter deinem Windows-Benutzerprofil; niemals im WoW-Addon. HTTPS-Zertifikate werden geprüft, Redirects blockiert. Kein direkter DB-Zugriff.</p></article>
+<article><h2>Weitere Gilden auf diesem PC</h2><p>Spielst du Charaktere in mehreren Gilden? Für jede weitere Gilde auf deren Website unter <b>Konto → Bestellen im Spiel</b> einen Verbindungscode erzeugen und hier einfügen. Banklord ordnet Bestellungen automatisch der Gilde des eingeloggten Charakters zu.</p>
+{{range $i, $e := .Extra}}<form method="post"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="index" value="{{$i}}"><p>{{$e}} <button name="action" value="removeguild" class="secondary">Entfernen</button></p></form>{{end}}
+<form method="post" autocomplete="off"><input type="hidden" name="csrf" value="{{.CSRF}}"><label for="extra">Verbindungscode einer weiteren Gilde</label><input name="extra" id="extra" type="password" placeholder="BL1C:…" spellcheck="false" autocomplete="off"><button name="action" value="addguild">Gilde hinzufügen</button></form></article>
 <p>Hinweis: Dieses Programm verbindet die <strong>gespeicherte</strong> Inventur mit der Website, nicht das laufende Addon in Echtzeit. Im Browser kannst du Bestellungen unmittelbar verwalten.</p></main></body></html>`))
 
 type view struct {
 	Status, Last, Server, Guild, Source, Interval, Result, CSRF string
-	Files, Messages                                             []string
+	Files, Messages, Extra                                      []string
 	Active, Configured, HasError                                bool
 }
 
@@ -393,12 +422,12 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 					c.mu.Unlock()
 					result = "HTTPS, Gilde und Bridge-Token sind gültig. Jetzt Einstellungen speichern und starten."
 				}
-			} else if err := saveProfile(p, token); err != nil {
+			} else if err := saveProfile(withExtra(p, c), token); err != nil {
 				result = "Speichern fehlgeschlagen: " + err.Error()
 				failure = true
 			} else {
 				c.mu.Lock()
-				c.profile = p
+				c.profile = withExtra(p, c)
 				c.token = token
 				c.active = true
 				c.next = time.Time{}
@@ -408,6 +437,67 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 				result = "Gespeichert. Automatischer Upload nach der nächsten Dateispeicherung gestartet."
 			}
 			// No token is ever returned to the browser in rendered HTML.
+		case "addguild":
+			code, err := parseConnectCode(r.Form.Get("extra"))
+			c.mu.Lock()
+			base, primary := c.profile, c.token
+			c.mu.Unlock()
+			switch {
+			case err != nil:
+				result, failure = err.Error(), true
+			case primary == "":
+				result, failure = "Zuerst die erste Gilde einrichten.", true
+			default:
+				q := base
+				q.Server, q.GuildID, q.Extra = code.Server, code.Guild, nil
+				ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+				err = q.validate()
+				if err == nil {
+					err = probe(ctx, q, code.Token)
+				}
+				cancel()
+				sealed := ""
+				if err == nil {
+					sealed, err = protectToken(code.Token)
+				}
+				if err != nil {
+					result, failure = "Gilde nicht verbunden: "+briefError(err), true
+					break
+				}
+				extra := []Link{}
+				for _, l := range base.Extra {
+					if !(l.Server == q.Server && l.GuildID == q.GuildID) {
+						extra = append(extra, l)
+					}
+				}
+				if q.Server == base.Server && q.GuildID == base.GuildID {
+					result, failure = "Diese Gilde ist bereits die Hauptverbindung.", true
+					break
+				}
+				base.Extra = append(extra, Link{Server: q.Server, GuildID: q.GuildID, EncryptedToken: sealed})
+				if err := saveProfile(base, primary); err != nil {
+					result, failure = "Speichern fehlgeschlagen: "+err.Error(), true
+					break
+				}
+				c.mu.Lock()
+				c.profile, c.lastHash, c.next = base, "", time.Time{}
+				c.mu.Unlock()
+				result = fmt.Sprintf("Gilde %d verbunden. Bestellungen und Status laufen jetzt für alle Gilden.", q.GuildID)
+			}
+		case "removeguild":
+			idx, _ := strconv.Atoi(r.Form.Get("index"))
+			c.mu.Lock()
+			base, primary := c.profile, c.token
+			c.mu.Unlock()
+			if idx >= 0 && idx < len(base.Extra) && primary != "" {
+				base.Extra = append(append([]Link{}, base.Extra[:idx]...), base.Extra[idx+1:]...)
+				if err := saveProfile(base, primary); err == nil {
+					c.mu.Lock()
+					c.profile = base
+					c.mu.Unlock()
+					result = "Verbindung entfernt."
+				}
+			}
 		case "refresh":
 		default:
 			http.Error(w, "Aktion unbekannt", 400)
@@ -417,6 +507,9 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 	c.mu.Lock()
 	p := c.profile
 	data := view{CSRF: c.csrfToken, Status: c.status, Last: c.lastUploaded, Server: p.Server, Guild: strconv.FormatInt(p.GuildID, 10), Source: p.Source, Interval: strconv.Itoa(p.IntervalSeconds), Result: result, HasError: failure, Messages: append([]string(nil), c.messages...), Active: c.active, Configured: c.token != ""}
+	for _, l := range p.Extra {
+		data.Extra = append(data.Extra, fmt.Sprintf("%s · Gilde %d", l.Server, l.GuildID))
+	}
 	c.mu.Unlock()
 	if data.Guild == "0" {
 		data.Guild = "1"

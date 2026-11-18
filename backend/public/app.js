@@ -430,7 +430,15 @@ function renderItems(){
   }
   renderItemDetail();
 }
-function renderCart(){
+async function loadOrderCharacters(){
+  const select=$('orderCharacter');if(!select||!state.guild)return;
+  let list=[];try{list=(await api(path('characters'))).characters.filter(c=>Number(c.user_id)===Number(state.user)&&c.verification_status!=='revoked');}catch(e){}
+  const keep=select.value;select.replaceChildren();
+  for(const c of list){const o=el('option','',c.name+' – '+c.realm);o.value=c.id;select.append(o);}
+  if(keep&&list.some(c=>String(c.id)===keep))select.value=keep;
+  $('orderCharacterHint').classList.toggle('hidden',list.length>0);$('submitOrder').disabled=list.length===0;
+}
+function renderCart(){loadOrderCharacters();
   const root=$('cartItems');root.replaceChildren();if(state.cart.size===0){root.append(el('p','muted','Dein Warenkorb ist leer. Im Bankbestand kannst du Gegenstände auswählen.'));$('checkoutForm').classList.add('hidden');return;}
   $('checkoutForm').classList.remove('hidden');
   for(const [id,item] of state.cart){
@@ -444,7 +452,8 @@ async function submitOrder(event){
   event.preventDefault();if(!state.cart.size)return;
   const button=$('submitOrder');button.disabled=true;
   const lines=[...state.cart.values()].map(v=>({stock_id:v.id,quantity:v.quantity}));
-  const request={lines,note:$('orderNote').value};const fingerprint=JSON.stringify(request);
+  const character=Number($('orderCharacter').value);if(!character){notice('Bitte einen Empfänger-Charakter wählen.',true);button.disabled=false;return;}
+  const request={lines,note:$('orderNote').value,character_id:character};const fingerprint=JSON.stringify(request);
   if(!state.pendingOrder||state.pendingOrder.fingerprint!==fingerprint||state.pendingOrder.guild!==Number(state.guild.id))
     state.pendingOrder={key:freshId(),fingerprint,guild:Number(state.guild.id)};
   try{const result=await post(path('orders'),request,{'Idempotency-Key':state.pendingOrder.key});
@@ -526,7 +535,7 @@ async function loadNotifications(){
   if(!response.notifications.length)root.append(el('p','muted','Noch keine Mitteilungen.'));
   const labels={'order.submitted':'Neue Bestellung eingereicht','order.decided':'Deine Bestellung wurde bearbeitet','order.fulfilled':'Gegenstände wurden als ausgegeben gebucht','order.cancelled':'Bestellung storniert'};
   for(const n of response.notifications){
-    const card=el('article','order-card');card.append(add(el('div'),el('strong','',labels[n.kind]||n.kind),el('div','muted',`Auftrag #${n.order_id} · ${n.created_at} UTC${n.read_at?' · gelesen':''}`)));
+    const card=el('article','order-card');card.append(add(el('div'),el('strong','',labels[n.kind]||n.kind),el('div','muted',`Auftrag #${n.order_id} · ${when(n.created_at)}${n.read_at?' · gelesen':''}`)));
     if(!n.read_at){const mark=el('button','secondary button-sm','Gelesen');mark.onclick=async()=>{await post(path('notifications/'+n.id+'/read'),{});await loadNotifications();};card.append(mark);}
     root.append(card);
   }
@@ -536,7 +545,7 @@ async function loadImports(){
   const r=await api(path('imports'));const root=$('importList');root.replaceChildren();
   if(!r.imports.length){root.append(el('p','muted','Noch keine Scans importiert.'));return;}
   for(const scan of r.imports){
-    const card=el('div','row');card.append(el('strong','','#'+scan.id+' · '+scan.status+' · '+scan.quality),el('div','muted','Scanzeit: '+scan.observed_at+' UTC'));
+    const card=el('div','row');card.append(el('strong','','#'+scan.id+' · '+scan.status+' · '+scan.quality),el('div','muted','Scanzeit: '+when(scan.observed_at)));
     const view=el('button','secondary button-sm','Positionen prüfen');view.onclick=()=>reviewImport(scan.id).catch(e=>notice(e.message,true));card.append(view);root.append(card);
   }
 }
@@ -619,7 +628,7 @@ async function reviewImport(id,page=1){
       const warning=el('div','danger-note',explanations[preflight.reason]||'Diese Inventur kann momentan nicht bestätigt werden. Bitte eine aktuelle Inventur durchführen.');
       if(preflight.conflict){
         const c=preflight.conflict;
-        warning.append(el('p','',`Letzte kollidierende Buchung: ${({fulfill:'Ausgabe',manual_adjust:'manuelle Korrektur',scan_reconcile:'früherer Inventurabgleich'})[c.event_type]||c.event_type} · ${c.created_at} UTC · Buchung #${c.ledger_id}.`));
+        warning.append(el('p','',`Letzte kollidierende Buchung: ${({fulfill:'Ausgabe',manual_adjust:'manuelle Korrektur',scan_reconcile:'früherer Inventurabgleich'})[c.event_type]||c.event_type} · ${when(c.created_at)} · Buchung #${c.ledger_id}.`));
         if(c.clock_anomaly)warning.append(el('p','','Auffälligkeit: Diese Buchungszeit liegt mehr als fünf Minuten vor der Serverzeit in der Zukunft. Eine ältere Datenbank-Zeitzonenkonfiguration ist möglich. Keinen Zeitstempel manuell korrigieren; zunächst Datenbank-/Ledgerzeiten prüfen.'));
       }
       warning.append(el('p','','Die Buchungssperre bleibt aktiv. Bitte die Gildenbank nach dieser Buchung vollständig neu scannen, /reload ausführen und den neuen Scan übertragen. Der Scan muss nach der letzten Buchung beginnen und innerhalb von 12 Stunden bestätigt werden.'));
@@ -675,7 +684,7 @@ async function loadScanAutomation(){
 }
 async function loadTokens(){
   const result=await api(path('bridge-tokens'));const root=$('tokenList');root.replaceChildren();
-  for(const t of result.tokens){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`#${t.id} · ${t.scope} · gültig bis ${t.expires_at} UTC · ${t.revoked_at?'widerrufen':'aktiv'}`));
+  for(const t of result.tokens){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`#${t.id} · ${t.scope} · gültig bis ${when(t.expires_at)} · ${t.revoked_at?'widerrufen':'aktiv'}`));
     if(!t.revoked_at&&state.guild.role==='admin'){const btn=el('button','danger button-sm','Widerrufen');btn.onclick=async()=>{if(!confirm('Diesen Bridge-Schlüssel sofort sperren?'))return;await api(path('bridge-tokens/'+t.id),{method:'DELETE'});await loadTokens();};row.append(btn);}root.append(row);}
 }
 async function createToken(){
@@ -691,7 +700,7 @@ function showConnectCode(root,token,intro){root.replaceChildren();root.classList
 async function loadOrderTokens(){
   const result=await api(path('bridge-tokens'));const root=$('orderTokenList');root.replaceChildren();
   for(const t of result.tokens.filter(x=>x.scope==='member.orders'&&!x.revoked_at)){
-    const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`gültig bis ${t.expires_at} UTC · zuletzt benutzt ${t.last_used_at?t.last_used_at+' UTC':'noch nie'}`));
+    const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`gültig bis ${when(t.expires_at)} · zuletzt benutzt ${t.last_used_at?when(t.last_used_at):'noch nie'}`));
     const btn=el('button','danger button-sm','Sperren');
     btn.onclick=async()=>{if(!confirm('Diesen Schlüssel sofort sperren? Der Companion kann danach keine Bestellungen mehr übertragen.'))return;
       await api(path('bridge-tokens/'+t.id),{method:'DELETE'});await loadOrderTokens();};
@@ -728,10 +737,10 @@ async function loadReleases(){
   loadDemoSetting();
   loadUpstream();
   const r=await api(path('release-tokens'));const list=$('releaseTokenList');list.replaceChildren();
-  for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?t.last_used_at+' UTC':'noch nie'}`));
+  for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?when(t.last_used_at):'noch nie'}`));
     const b=el('button','danger button-sm','Sperren');b.onclick=async()=>{if(!confirm('Veröffentlichungs-Schlüssel sperren?'))return;await api(path('release-tokens/'+t.id),{method:'DELETE'});await loadReleases();};row.append(b);list.append(row);}
   const rel=$('releaseList');rel.replaceChildren();
-  for(const p of r.publications)rel.append(el('div','row muted',`${p.published_at} UTC · Web ${p.web_version}${Number(p.web_applied)?' (eingespielt)':''} · Addon ${p.addon_version} · Companion ${p.companion_version} · Updater ${p.updater_version}`));
+  for(const p of r.publications)rel.append(el('div','row muted',`${when(p.published_at)} · Web ${p.web_version}${Number(p.web_applied)?' (eingespielt)':''} · Addon ${p.addon_version} · Companion ${p.companion_version} · Updater ${p.updater_version}`));
   if(!r.publications.length)rel.append(el('div','muted','Noch keine automatische Veröffentlichung.'));
   const cur=r.current&&r.current.versions||null;const dev=$('deviceList');dev.replaceChildren();
   if(cur)dev.append(el('p','muted',`Aktuell: Addon ${cur.addon} · Companion ${cur.companion} · Update-Dienst ${cur.updater}`));
@@ -947,7 +956,7 @@ async function loadPeerDrafts(){
  if(!data.drafts.length){root.append(el('p','muted','Noch keine übertragenen Ingame-Entwürfe.'));return;}
  for(const row of data.drafts){
   const box=el('div','panel');
-  box.append(el('strong','',row.sender+' · '+row.received_at+' · ungeprüfter Entwurf'));
+  box.append(el('strong','',row.sender+' · '+when(row.received_at)+' · ungeprüfter Entwurf'));
   const area=el('textarea');area.value=row.transfer_code;area.readOnly=true;area.rows=2;area.setAttribute('aria-label','Nicht bestätigter Warenkorb-Transfercode');
   box.append(area,el('p','muted','Nicht als Bestellauftrag freigegeben. Absender nur nach separater Anmeldung/Prüfung zuordnen.'));
   root.append(box);

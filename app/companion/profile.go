@@ -85,7 +85,7 @@ func discover() []string {
 			if json.Unmarshal(raw, &installed) == nil {
 				for _, path := range installed {
 					path = filepath.Clean(path)
-					if filepath.IsAbs(path) && filepath.Base(path) == "_classic_" {
+					if b := filepath.Base(path); filepath.IsAbs(path) && strings.HasPrefix(b, "_") && strings.HasSuffix(b, "_") {
 						roots = append(roots, filepath.Dir(path))
 					}
 				}
@@ -106,24 +106,26 @@ func discover() []string {
 		if root == "" {
 			continue
 		}
-		accounts := filepath.Join(root, "_classic_", "WTF", "Account")
-		list, err := os.ReadDir(accounts)
-		if err != nil {
-			continue
-		}
-		for _, folder := range list {
-			if !folder.IsDir() {
+		for _, client := range []string{"_classic_", "_retail_", "_classic_era_", "_anniversary_"} {
+			accounts := filepath.Join(root, client, "WTF", "Account")
+			list, err := os.ReadDir(accounts)
+			if err != nil {
 				continue
 			}
-			file := filepath.Join(accounts, folder.Name(), "SavedVariables", "Banklord.lua")
-			if st, err := os.Stat(file); err == nil && st.Mode().IsRegular() {
-				key := strings.ToLower(file)
-				if !unique[key] {
-					unique[key] = true
-					found = append(found, file)
+			for _, folder := range list {
+				if !folder.IsDir() {
+					continue
 				}
-				if len(found) >= 20 {
-					return found
+				file := filepath.Join(accounts, folder.Name(), "SavedVariables", "Banklord.lua")
+				if st, err := os.Stat(file); err == nil && st.Mode().IsRegular() {
+					key := strings.ToLower(file)
+					if !unique[key] {
+						unique[key] = true
+						found = append(found, file)
+					}
+					if len(found) >= 20 {
+						return found
+					}
 				}
 			}
 		}

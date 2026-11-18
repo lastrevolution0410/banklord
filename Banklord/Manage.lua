@@ -43,13 +43,41 @@ local function state() return type(Banklord_ServerState)=='table' and Banklord_S
 function A:IsBankManager() return type(state().manage)=='table' end
 local function store(name) A.db[name]=A.db[name] or {}; return A.db[name] end
 
+-- Guild of the logged-in character: name, realm (nil until the game knows it).
+function A:CurrentGuild()
+  if not (GetGuildInfo and IsInGuild and IsInGuild()) then return nil end
+  local name,_,_,realm=GetGuildInfo('player')
+  if not name or name=='' then return nil end
+  return name,(realm and realm~='' and realm) or (GetRealmName and GetRealmName()) or ''
+end
+
+-- Remember character + guild so the website can offer it as order recipient.
+function A:RememberCharacter()
+  if not self.db or not UnitName then return end
+  local name,realm=UnitName('player'),GetRealmName and GetRealmName() or ''
+  if not name or name=='' or realm=='' then return end
+  local chars,key=store('characters'),name..'-'..realm:gsub('%s','')
+  local guild,guildRealm=self:CurrentGuild()
+  if guild then chars[key]={guild=guild,guildRealm=guildRealm,seen=time()}
+  elseif IsInGuild and not IsInGuild() then chars[key]=nil end
+end
+
+-- True when an order/state entry belongs to the current guild (or carries no tag).
+local function sameGuild(entry)
+  local g,r=A:CurrentGuild()
+  if not g or type(entry)~='table' or not entry.guild then return true end
+  local n=function(s) return tostring(s or ''):gsub("[%s'%-]",''):lower() end
+  return n(entry.guild)==n(g) and (not entry.guildRealm or entry.guildRealm=='' or n(entry.guildRealm)==n(r))
+end
+A.SameGuild=sameGuild
+
 -- Open orders the manager still has to handle (sent ones are hidden at once).
 function A:OpenManageOrders()
   local out={}
   if not self.db then return out end
   local done=store('manageDone')
   for _,o in ipairs(state().manage or {}) do
-    if type(o)=='table' and not done[o.id] then out[#out+1]=o end
+    if type(o)=='table' and not done[o.id] and sameGuild(o) then out[#out+1]=o end
   end
   return out
 end
@@ -70,7 +98,8 @@ end
 -- Queue a handover/rejection; the companion uploads it after /reload.
 function A:QueueManageAction(orderId,action)
   local box=store('manageOutbox')
-  box[#box+1]={key=('ma-%d-%s'):format(time(),randomTag()),order=orderId,action=action}
+  local g,r=self:CurrentGuild()
+  box[#box+1]={key=('ma-%d-%s'):format(time(),randomTag()),order=orderId,action=action,guild=g,guildRealm=r}
   store('manageDone')[orderId]=true
 end
 
@@ -375,10 +404,11 @@ end
 
 local events=CreateFrame('Frame')
 A._manageEvents=events
-for _,e in ipairs({'MAIL_SHOW','MAIL_CLOSED','MAIL_SEND_SUCCESS','MAIL_FAILED','BAG_UPDATE_DELAYED'}) do pcall(events.RegisterEvent,events,e) end
+for _,e in ipairs({'PLAYER_ENTERING_WORLD','PLAYER_GUILD_UPDATE','MAIL_SHOW','MAIL_CLOSED','MAIL_SEND_SUCCESS','MAIL_FAILED','BAG_UPDATE_DELAYED'}) do pcall(events.RegisterEvent,events,e) end
 events:SetScript('OnEvent',function(_,event)
   if not A.db then return end
-  if event=='MAIL_SHOW' then A:ShowManagePanel('mail',MailFrame)
+  if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter()
+  elseif event=='MAIL_SHOW' then A:ShowManagePanel('mail',MailFrame)
   elseif event=='MAIL_CLOSED' then A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
   elseif event=='MAIL_SEND_SUCCESS' then
     local id=A.mailSending

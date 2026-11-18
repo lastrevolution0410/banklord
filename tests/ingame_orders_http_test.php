@@ -68,6 +68,34 @@ $ok(($r['ingame_state']['manage']??null)===[],'no open orders left');
 $ok(($r['ingame_state']['manage_results']["ma-$now-aaaaaa"]['status']??'')==='fulfilled','deliver is idempotent');
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,"BanklordDB = {[\"manageOutbox\"]={{[\"key\"]=\"ma-$now-cccccc\",[\"order\"]=$oid2,[\"action\"]=\"deliver\"}}}");
 $ok(isset($r['ingame_state']['manage_results']["ma-$now-cccccc"]['error']),'members cannot deliver');
+// Several guilds per PC: rows tagged for another guild wait; characters from game data get linked.
+$tagged="BanklordDB = {[\"orderOutbox\"]={{[\"clientKey\"]=\"ig-$now-other1\",[\"code\"]=\"BL1|2589,1,item:2589:0:0:0:0:0:0:0:0\",[\"character\"]=\"Alt-Everlook\",[\"note\"]=\"\",[\"createdAt\"]=$now,[\"guild\"]=\"Andere Gilde\",[\"guildRealm\"]=\"Everlook\"}},"
+  ."[\"characters\"]={[\"Mainchar-Everlook\"]={[\"guild\"]=\"Demo Guild\",[\"guildRealm\"]=\"Everlook\"},[\"Fremd-Everlook\"]={[\"guild\"]=\"Andere Gilde\",[\"guildRealm\"]=\"Everlook\"}}}";
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,$tagged);
+$ok(!isset($r['ingame_orders']["ig-$now-other1"]),'order tagged for another guild is left for that guild');
+$ok(($r['ingame_state']['guild']['name']??'')==='Demo Guild','state names its guild');
+$c=$db->prepare("SELECT GROUP_CONCAT(name ORDER BY name) FROM characters WHERE guild_id=? AND user_id=?");$c->execute([$g,$member]);
+$ok($c->fetchColumn()==='Mainchar,Testchar','only characters of this guild are linked');
+// Website order: recipient character is mandatory and must be the member's own.
+$db->prepare("INSERT INTO users (email,password_hash,display_name) VALUES (?,?,'Web')")->execute(["web$g@x.invalid",password_hash('test-password-123',PASSWORD_DEFAULT)]);$web=(int)$db->lastInsertId();
+$db->prepare("INSERT INTO guild_memberships (guild_id,user_id,role) VALUES (?,?,'member')")->execute([$g,$web]);
+$jar='';$csrf='';
+$s=function(string $method,string $path,?array $body=null,array $extra=[]) use(&$jar,&$csrf,$base){
+  $h="Content-Type: application/json\r\n".($jar?"Cookie: $jar\r\n":'').($csrf?"X-CSRF-Token: $csrf\r\n":'').implode('',array_map(fn($k,$v)=>"$k: $v\r\n",array_keys($extra),$extra));
+  $raw=file_get_contents($base.'/api/v1'.$path,false,stream_context_create(['http'=>['method'=>$method,'ignore_errors'=>true,'header'=>$h,'content'=>$body===null?'':json_encode($body)]]));
+  foreach($http_response_header as $line) if(preg_match('/^Set-Cookie: ([^;]+)/i',$line,$m)) $jar=$m[1];
+  preg_match('~ (\d{3}) ~',$http_response_header[0],$m);$j=json_decode((string)$raw,true);if(isset($j['csrf']))$csrf=$j['csrf'];return [(int)$m[1],$j];};
+$s('GET','/session');$s('POST','/login',['email'=>"web$g@x.invalid",'password'=>'test-password-123']);
+$stock=(int)$db->query("SELECT gs.id FROM guild_stock gs JOIN items i ON i.id=gs.item_id WHERE gs.guild_id=$g AND i.wow_item_id=2589")->fetchColumn();
+$foreign=(int)$db->query("SELECT id FROM characters WHERE guild_id=$g AND name='Testchar'")->fetchColumn();
+[$st,$r]=$s('POST',"/guilds/$g/orders",['lines'=>[['stock_id'=>$stock,'quantity'=>1]],'note'=>''],['Idempotency-Key'=>"web-$now-order1"]);
+$ok($st===422 && ($r['error']??'')==='CHARACTER_REQUIRED','web order without character rejected');
+[$st,$r]=$s('POST',"/guilds/$g/orders",['lines'=>[['stock_id'=>$stock,'quantity'=>1]],'note'=>'','character_id'=>$foreign],['Idempotency-Key'=>"web-$now-order2"]);
+$ok($st===422,'another member\'s character rejected');
+$db->prepare("INSERT INTO characters (guild_id,user_id,name,realm) VALUES (?,?,'Webchar','Everlook')")->execute([$g,$web]);$own=(int)$db->lastInsertId();
+[$st,$r]=$s('POST',"/guilds/$g/orders",['lines'=>[['stock_id'=>$stock,'quantity'=>1]],'note'=>'','character_id'=>$own],['Idempotency-Key'=>"web-$now-order3"]);
+$rc=$db->prepare('SELECT recipient FROM orders WHERE id=?');$rc->execute([$r['id']??0]);
+$ok($st===200 && $rc->fetchColumn()==='Webchar-Everlook','web order stores chosen recipient');
 $db->prepare("UPDATE guild_memberships SET status='disabled' WHERE guild_id=? AND user_id=?")->execute([$g,$member]);
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
 $ok($st===401,'disabled member token rejected');

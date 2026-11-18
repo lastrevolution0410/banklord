@@ -26,6 +26,7 @@ type ingameLine struct {
 	Decision  string `json:"decision"`
 }
 type ingameOrder struct {
+	Guild     guildRef     `json:"-"`
 	ID        int64        `json:"id"`
 	ClientKey string       `json:"client_key"`
 	Status    string       `json:"status"`
@@ -42,6 +43,7 @@ type manageLine struct {
 	Qty    int64  `json:"qty"`
 }
 type manageOrder struct {
+	Guild     guildRef     `json:"-"`
 	ID        int64        `json:"id"`
 	Status    string       `json:"status"`
 	CreatedAt int64        `json:"created_at"`
@@ -53,8 +55,13 @@ type manageResult struct {
 	Status string `json:"status,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
+type guildRef struct {
+	Name  string `json:"name"`
+	Realm string `json:"realm"`
+}
 type ingameState struct {
 	GeneratedAt   int64                   `json:"generated_at"`
+	Guild         guildRef                `json:"guild"`
 	Orders        []ingameOrder           `json:"orders"`
 	Outbox        map[string]outboxResult `json:"outbox"`
 	Manage        *[]manageOrder          `json:"manage"`
@@ -62,6 +69,13 @@ type ingameState struct {
 }
 
 var manageKeyPattern = regexp.MustCompile(`^ma-[0-9]{6,12}-[a-z0-9]{6}$`)
+
+func guildFields(g guildRef) string {
+	if g.Name == "" {
+		return ""
+	}
+	return fmt.Sprintf(" guild = %s, guildRealm = %s,", luaString(clip(g.Name, 80)), luaString(clip(g.Realm, 100)))
+}
 
 func clip(s string, n int) string {
 	if r := []rune(s); len(r) > n {
@@ -154,8 +168,8 @@ func renderState(st ingameState) string {
 		if !clientKeyPattern.MatchString(o.ClientKey) && o.ClientKey != "" {
 			o.ClientKey = ""
 		}
-		fmt.Fprintf(&b, "    { id = %d, clientKey = %s, status = %s, createdAt = %d, lines = {\n",
-			o.ID, luaString(o.ClientKey), luaString(word(o.Status)), o.CreatedAt)
+		fmt.Fprintf(&b, "    { id = %d, clientKey = %s, status = %s, createdAt = %d,%s lines = {\n",
+			o.ID, luaString(o.ClientKey), luaString(word(o.Status)), o.CreatedAt, guildFields(o.Guild))
 		for _, l := range o.Lines {
 			name := l.Name
 			if len([]rune(name)) > 80 {
@@ -198,8 +212,8 @@ func renderState(st ingameState) string {
 	if st.Manage != nil {
 		b.WriteString("  manage = {\n")
 		for _, o := range *st.Manage {
-			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s, lines = {\n",
-				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)))
+			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s,%s lines = {\n",
+				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)), guildFields(o.Guild))
 			for i, l := range o.Lines {
 				if i >= 12 {
 					break
@@ -244,3 +258,34 @@ func writeServerState(source string, st ingameState) (bool, error) {
 var generatedLine = regexp.MustCompile(`(?m)^  generatedAt = [0-9]+,$`)
 
 func stripGenerated(b []byte) string { return generatedLine.ReplaceAllString(string(b), "") }
+
+// mergeStates combines the answers of several guild connections into the one
+// ServerState.lua the addon reads; each order keeps its guild tag.
+func mergeStates(states []ingameState) ingameState {
+	out := ingameState{Outbox: map[string]outboxResult{}, ManageResults: map[string]manageResult{}}
+	for _, st := range states {
+		if st.GeneratedAt > out.GeneratedAt {
+			out.GeneratedAt = st.GeneratedAt
+		}
+		for _, o := range st.Orders {
+			o.Guild = st.Guild
+			out.Orders = append(out.Orders, o)
+		}
+		for k, v := range st.Outbox {
+			out.Outbox[k] = v
+		}
+		for k, v := range st.ManageResults {
+			out.ManageResults[k] = v
+		}
+		if st.Manage != nil {
+			if out.Manage == nil {
+				out.Manage = &[]manageOrder{}
+			}
+			for _, o := range *st.Manage {
+				o.Guild = st.Guild
+				*out.Manage = append(*out.Manage, o)
+			}
+		}
+	}
+	return out
+}

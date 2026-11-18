@@ -45,9 +45,12 @@ function A:SubmitCartOrder()
   end
   local realm=type(GetRealmName)=='function' and GetRealmName() or ''
   local name=type(UnitName)=='function' and UnitName('player') or ''
+  local guild,guildRealm
+  if self.CurrentGuild then guild,guildRealm=self:CurrentGuild() end
   table.insert(self.db.orderOutbox,{
     clientKey=('ig-%d-%s'):format(time(),randomTag()),
-    code=code,character=clean(name..(realm~='' and '-'..realm or ''),80),note='',createdAt=time()})
+    code=code,character=clean(name..(realm~='' and '-'..realm:gsub('%s','') or ''),80),note='',createdAt=time(),
+    guild=guild,guildRealm=guildRealm})
   if self.BroadcastNewOrder then self:BroadcastNewOrder(name,code) end
   self.db.localCartDraft={}
   self:Message(A:Tr('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.'))

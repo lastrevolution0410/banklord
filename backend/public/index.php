@@ -288,10 +288,11 @@ try {
         if (!$record) reply(404,['error'=>'GUILD_NOT_FOUND']);
         $ingame=new IngameOrders($db);
         // Manager handovers first: they release reservations before a new scan lowers the stock.
-        $managed=$ingame->processManage($guildId,$actor,$file);
+        $managed=$ingame->processManage($guildId,$actor,$file,$record);
+        $ingame->syncCharacters($guildId,$actor,$file,$record);
         if ($auth['scope']==='member.orders') {
             // Personal token: orders only. Scans and peer drafts in the file are ignored.
-            $results=$ingame->processOutbox($guildId,$actor,$file);
+            $results=$ingame->processOutbox($guildId,$actor,$file,$record);
             reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
         }
         $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']);
@@ -313,7 +314,7 @@ try {
                 $autoResult=['status'=>'review_required','reason'=>$e->getMessage()];
             }
         }
-        $results=$ingame->processOutbox($guildId,$actor,$file);
+        $results=$ingame->processOutbox($guildId,$actor,$file,$record);
         reply($staged['created']?201:200,['import'=>$staged,'auto_reconcile'=>$autoResult,'new_peer_drafts'=>$peers,
             'ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
     }
@@ -713,7 +714,11 @@ try {
     if ($method==='POST' && $tail==='orders') {
         $b=body(); $key=$_SERVER['HTTP_IDEMPOTENCY_KEY']??'';
         if (!is_array($b['lines']??null) || !is_string($b['note']??'')) reply(422,['error'=>'INVALID_ORDER_PAYLOAD']);
+        $c=$db->prepare("SELECT CONCAT(name,'-',realm) FROM characters WHERE id=? AND guild_id=? AND user_id=? AND verification_status<>'revoked'");
+        $c->execute([is_int($b['character_id']??null)?$b['character_id']:0,$guild,$user]);$recipient=$c->fetchColumn();
+        if ($recipient===false) reply(422,['error'=>'CHARACTER_REQUIRED']);
         $order=(new Orders($db))->create($guild,$user,$key,$b['lines'],$b['note']??'');
+        $db->prepare('UPDATE orders SET recipient=? WHERE id=? AND recipient IS NULL')->execute([$recipient,$order]);
         $s=$db->prepare('SELECT status FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);
         reply(200,['id'=>$order,'status'=>$s->fetchColumn()]);
     }
