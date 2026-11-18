@@ -89,6 +89,8 @@ Ist längere Zeit kein Verwalter online, kann dir ein Admin auf der Website unte
 
 5. Es erscheint ein Fenster: **„Jetzt übertragen“** klicken. Damit geht die Bestellung sofort an die Bankverwaltung. (Klickst du „Später“, geht sie beim nächsten Ausloggen raus.)
 
+**Vertan?** Rechtsklick auf die Bestellung rechts unter **„Meine Bestellungen“** storniert sie (der Hinweis steht auch direkt darunter). Auf der Website gibt es dafür den Knopf **„Bestellung / Restmenge stornieren“**.
+
 Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reserviert“ ist, hat schon jemand anderes bestellt.
 
 ## Bestellen auf der Website

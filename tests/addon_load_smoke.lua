@@ -17,7 +17,7 @@ local meta;meta={__index=function(self,key)
  if key=='GetHighlightTexture' then return function()return rawget(self,'highlight') end end
  if key=='CreateFontString' or key=='CreateTexture' then return function() return setmetatable({},meta) end end
  if key=='SetScript' then return function(_,name,callback)local scripts=rawget(self,'scripts') or {};rawset(self,'scripts',scripts);scripts[name]=callback end end
- if key=='SetText' then return function(_,value) self.text=value end end
+ if key=='SetText' then return function(_,value) self.text=value;SEEN_TEXT=SEEN_TEXT or {};SEEN_TEXT[tostring(value)]=true end end
  if key=='SetSize' then return function(_,w,h)self.width=w;self.height=h end end
  if key=='SetHeight' then return function(_,h)self.height=h end end
  if key=='SetWidth' then return function(_,w)self.width=w end end
@@ -125,6 +125,8 @@ Banklord_ServerState={generatedAt=time(),orders={{id=42,clientKey=queued.clientK
 A.db.orderOutbox[2]={clientKey='ig-1-zzzzzz',code='BL1|1,1,item:1:',createdAt=time()}
 Banklord_ServerState.outbox['ig-1-zzzzzz']={error='UNKNOWN_ITEM'}
 A:ReconcileOrderOutbox()
+SEEN_TEXT={};local okr,errr=pcall(A.RefreshUI,A);assert(okr,errr)
+assert(SEEN_TEXT['Rechtsklick auf eine Bestellung: stornieren'] or SEEN_TEXT['Right-click an order: cancel'],'visible hint: right-click cancels an open order')
 assert(#A.db.orderOutbox==0,'answered orders must leave the outbox')
 assert(#A.db.orderFailures==1 and A.db.orderFailures[1].error=='UNKNOWN_ITEM','failure must be kept for display')
 local rows=A:GetOrderOverview()
@@ -461,6 +463,8 @@ do
   local list=A:ShoppingList();local auct,tsm=A:ShoppingExport(list)
   assert(#list==1 and auct=='Banklord^"Leinenstoff";;0;0;0;0;0;0;0;0;;#;;47' and tsm=='i:2589','shopping list exports')
   local oks,errs=pcall(A.ShowShoppingList,A);assert(oks,errs)
+  do local f=BanklordShoppingList;local body=f.body;f.edit:SetText('penis');f.edit.scripts.OnTextChanged(f.edit,true)
+     assert(f.edit:GetText()==body,'shopping list cannot be edited') end
   local okr,errr=pcall(A.ShowTab,A,'cart');assert(okr,errr)
   C_ChatInfo=oldCI;IsInGuild,GetGuildInfo=oldIG,oldGI;C_Timer.After=oldAfter;DEFAULT_CHAT_FRAME.AddMessage=oldAdd
   GetNumGuildMembers,GetGuildRosterInfo=nil,nil
@@ -503,12 +507,23 @@ do
   assert(#log.prices==1 and log.prices[1].c==1250 and log.prices[1].s=='tsm','TSM price captured')
   local queried={};QueryGuildBankLog=function(t) queried[#queried+1]=t end
   A:CaptureBankLog();assert(#queried==3 and queried[3]==(MAX_GUILDBANK_TABS or 8)+1,'all tab logs and the gold log requested')
-  -- In-game cash book window.
-  local body=assert(A:BankLogText(),'cash book text')
-  assert(body:find('123g 45s 67c',1,true) and body:find('Kaelis',1,true) and body:find('15g',1,true) and body:find('Leinenstoff',1,true),'cash book shows gold and entries: '..body)
-  assert(A:FormatGold(0)=='0c' and A:FormatGold(10000)=='1g','gold formatting')
+  -- In-game cash book: read-only window with tabs, columns and coins like the game.
+  local coin=A:CoinText(16615761)
+  assert(coin:find('1.661|TInterface\\MoneyFrame\\UI-GoldIcon',1,true) and coin:find('57|TInterface\\MoneyFrame\\UI-SilverIcon',1,true) and coin:find('61|TInterface\\MoneyFrame\\UI-CopperIcon',1,true),'coins like in game: '..coin)
+  assert(A:CoinText(4000000):find('^400|T') and not A:CoinText(4000000):find('Silver'),'whole gold without silver/copper')
+  assert(A:CoinText(0):find('^0|T.*Copper'),'zero shows 0 copper')
+  assert(A:FormatGold(0)=='0c' and A:FormatGold(10000)=='1g','plain gold formatting')
+  local gold=assert(A:BankLogRows('gold'))
+  assert(#gold==1 and gold[1].cells[2]=='Kaelis' and gold[1].cells[3]:find('entnommen',1,true) and gold[1].cells[4]:find('15|T',1,true),'gold row: time, player, action, amount')
+  local items=assert(A:BankLogRows('items'))
+  assert(#items==2 and items[1].cells[4]:find('Leinenstoff',1,true),'item rows')
+  local over=assert(A:BankLogRows('overview'))
+  assert(#over==1 and over[1].cells[1]=='Kaelis' and over[1].cells[3]:find('15|T',1,true),'overview per player')
   A.db.bankLog.items[#A.db.bankLog.items+1]={t='deposit',p='Ohne',i=7,q=1,tab=1,at=0};A.db.bankLog.gold[#A.db.bankLog.gold+1]={p='X',q='kaputt',at=0}
-  assert(A:BankLogText():find('Item 7',1,true),'entry without name or action still shown')
+  local found=false;for _,r in ipairs(A:BankLogRows('items')) do if r.cells[4]:find('Item 7',1,true) then found=true end end
+  assert(found and #A:BankLogRows('gold')==2,'entries without name, action or number still shown')
+  for _,k in ipairs({'overview','gold','items'}) do local okb,errb=pcall(A.ShowBankLog,A,k);assert(okb,errb) end
+  assert(BanklordCashBook and BanklordCashBook.kind=='items','cash book window with tabs')
   local okl,errl=pcall(SlashCmdList.BANKLORD,'kasse');assert(okl,errl)
   TSM_API=nil;A.bankOpen=oldOpen;A.db.bankLog=nil
   local msg,oldAdd='',DEFAULT_CHAT_FRAME.AddMessage;DEFAULT_CHAT_FRAME.AddMessage=function(_,m) msg=m end

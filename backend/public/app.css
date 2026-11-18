@@ -625,3 +625,8 @@ details.panel>summary{cursor:pointer;font-weight:700;color:#f1d48f}
 .login-again{font-size:18px;margin:26px 0 0}
 .doc img{display:block;max-width:100%;height:auto;margin:12px 0;border:1px solid var(--outline);border-radius:10px}
 .doc li img{margin:8px 0 4px}
+
+/* Coins like in game: number followed by a gold, silver or copper coin */
+.coins{white-space:nowrap}.coin{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin:0 .35em 0 .15em;vertical-align:-.05em;box-shadow:inset -1px -1px 0 #0006,inset 1px 1px 0 #fff5}
+.coin-g{background:radial-gradient(circle at 35% 35%,#ffe680,#d4a017 60%,#8a6508)}.coin-s{background:radial-gradient(circle at 35% 35%,#ffffff,#b8c0c8 60%,#6d757d)}.coin-c{background:radial-gradient(circle at 35% 35%,#ffc89a,#c26a2b 60%,#7a3a12)}
+.coins .coin:last-child{margin-right:0}

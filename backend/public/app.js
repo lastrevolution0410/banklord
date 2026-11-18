@@ -393,7 +393,7 @@ function renderItemDetail(){
   note.append(el('p','','Inventur: '+qty(item.physical_qty)+' Stück'),el('p','','Reserviert: '+qty(item.reserved_qty)+' Stück'),
     el('p',item.available_qty===null?'status-warn':'status-available',item.available_qty===null?'Verfügbarkeit nicht bestätigt':'Anforderbar: '+qty(item.available_qty)+' Stück'),
     ...(Number(item.viewonly_qty)>0?[el('p','muted','Davon nur ansehen (gesperrter Tab): '+qty(item.viewonly_qty)+' Stück')]:[]),
-    ...(item.unit_price?[el('p','muted','Marktwert: '+gold(item.unit_price)+' pro Stück ('+(item.price_source==='tsm'?'TSM':'Auctionator')+')')]:[]),
+    ...(item.unit_price?[add(el('p','muted'),'Marktwert: ',coins(item.unit_price),' pro Stück ('+(item.price_source==='tsm'?'TSM':'Auctionator')+')')]:[]),
     el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
   root.append(note);
   const tooltipBtn=el('button','secondary button-sm wow-detail-tooltip',T('openValues'));tooltipBtn.type='button';tooltipBtn.onclick=e=>{showTooltip(item,e,true);placeTooltip(e);};root.append(tooltipBtn);
@@ -1176,12 +1176,17 @@ $('saveGameVersion').onclick=async()=>{
 };
 
 // Gold amounts like in game: 1.234g 56s 78c (silver/copper only when not zero).
+// Gold like in game: 1.661 (gold coin) 57 (silver coin) 61 (copper coin).
+function coins(copper){const c=Math.max(0,Math.round(Number(copper)||0));const g=Math.floor(c/10000),si=Math.floor(c%10000/100),co=c%100;
+  const out=el('span','coins');out.title=gold(c);
+  const part=(n,k)=>{out.append(document.createTextNode(n),el('span','coin coin-'+k));};
+  if(g)part(qty(g),'g');if(si)part(String(si),'s');if(co||(!g&&!si))part(String(co),'c');return out;}
 function gold(copper){const c=Math.max(0,Math.round(Number(copper)||0));const g=Math.floor(c/10000),si=Math.floor(c%10000/100),co=c%100;
   return [g?qty(g)+'g':'',si?si+'s':'',co||(!g&&!si)?co+'c':''].filter(Boolean).join(' ');}
 // Bank gold and estimated value for everyone (from the last bank visit of a bank manager).
 function bankStats(){const b=state.bankSummary;if(!b)return[];const out=[];
-  if(b.money)out.push(add(el('div','stat'),el('strong','',gold(b.money.copper)),el('span','','Gold in der Gildenbank')));
-  if(b.stock_value&&b.stock_value.priced_items>0)out.push(add(el('div','stat'),el('strong','','≈ '+gold(b.stock_value.copper)),el('span','','Marktwert der Gegenstände')));
+  if(b.money)out.push(add(el('div','stat'),add(el('strong'),coins(b.money.copper)),el('span','','Gold in der Gildenbank')));
+  if(b.stock_value&&b.stock_value.priced_items>0)out.push(add(el('div','stat'),add(el('strong'),'≈ ',coins(b.stock_value.copper)),el('span','','Marktwert der Gegenstände')));
   return out;}
 async function loadBankSummary(){try{state.bankSummary=await api(path('bank-log/summary?days=30'));if(state.items)renderItems();}catch(_e){state.bankSummary=null;}}
 const LEDGER_ACTION={deposit:['eingezahlt','in'],withdraw:['entnommen','out'],move:['verschoben',''],repair:['Reparatur','out'],withdrawForTab:['für Fach entnommen','out'],buyTab:['Fach gekauft','out'],depositSummary:['Einzahlung (gesammelt)','in']};
@@ -1191,18 +1196,22 @@ async function loadLedger(){
   const [sum,list]=await Promise.all([api(path('bank-log/summary?days=30')),api(path('bank-log?days=90&kind='+encodeURIComponent(state.ledgerKind)+'&player='+encodeURIComponent(player)))]);
   state.bankSummary=sum;
   const stats=$('ledgerStats');stats.replaceChildren(
-    add(el('div','stat'),el('strong','',sum.money?gold(sum.money.copper):'–'),el('span','',sum.money?'Gold in der Bank · Stand '+when(sum.money.observed_at):'Noch kein Goldstand erfasst')),
-    add(el('div','stat'),el('strong','',sum.stock_value.priced_items?'≈ '+gold(sum.stock_value.copper):'–'),el('span','',sum.stock_value.priced_items?'Marktwert von '+qty(sum.stock_value.priced_items)+' Gegenständen (TSM/Auctionator)':'Kein Marktwert: TSM oder Auctionator beim Bankverwalter nötig')),
+    add(el('div','stat'),add(el('strong'),sum.money?coins(sum.money.copper):'–'),el('span','',sum.money?'Gold in der Bank · Stand '+when(sum.money.observed_at):'Noch kein Goldstand erfasst')),
+    add(el('div','stat'),add(el('strong'),...(sum.stock_value.priced_items?['≈ ',coins(sum.stock_value.copper)]:['–'])),el('span','',sum.stock_value.priced_items?'Marktwert von '+qty(sum.stock_value.priced_items)+' Gegenständen (TSM/Auctionator)':'Kein Marktwert: TSM oder Auctionator beim Bankverwalter nötig')),
     add(el('div','stat'),el('strong','',qty(list.entries.length)),el('span','','Einträge in der Liste')));
   const root=$('ledgerEntries');root.replaceChildren();
   for(const e of list.entries){const [text,dir]=LEDGER_ACTION[e.action]||[e.action,''];
-    const what=e.kind==='money'?gold(e.quantity):qty(e.quantity)+'× '+(e.item_name||('Item '+e.wow_item_id));
+    const what=e.kind==='money'?coins(e.quantity):qty(e.quantity)+'× '+(e.item_name||('Item '+e.wow_item_id));
     const where=e.kind==='item'?(e.action==='move'?' · Fach '+e.tab_no+' → '+e.tab_to:' · Fach '+e.tab_no):'';
-    root.append(add(el('div','ledger-row'),el('span','muted',when(e.happened_at)),el('span','',e.player+' '+text+where),el('span','amount'+(dir?' amount-'+dir:''),(dir==='in'?'+ ':dir==='out'?'− ':'')+what)));}
+    root.append(add(el('div','ledger-row'),el('span','muted',when(e.happened_at)),el('span','',e.player+' '+text+where),add(el('span','amount'+(dir?' amount-'+dir:'')),(dir==='in'?'+ ':dir==='out'?'− ':''),what)));}
   if(!list.entries.length)root.append(el('p','muted','Noch keine Einträge. Sie erscheinen, sobald ein Bankverwalter mit Banklord 0.13 oder neuer die Gildenbank öffnet und danach /reload macht.'));
   const people=$('ledgerPlayers');people.replaceChildren();
-  for(const p of sum.players){const parts=[];if(p.gold_in)parts.push('+'+gold(p.gold_in));if(p.gold_out)parts.push('−'+gold(p.gold_out));if(p.items_in)parts.push('+'+qty(p.items_in)+' Stück');if(p.items_out)parts.push('−'+qty(p.items_out)+' Stück');
-    people.append(add(el('div','ledger-row'),el('strong','',p.player),el('span','muted',''),el('span','amount',parts.join(' · '))));}
+  for(const p of sum.players){const parts=[];const sep=()=>{if(parts.length)parts.push(' · ');};
+    if(p.gold_in){sep();parts.push(add(el('span','amount-in'),'+ ',coins(p.gold_in)));}
+    if(p.gold_out){sep();parts.push(add(el('span','amount-out'),'− ',coins(p.gold_out)));}
+    if(p.items_in){sep();parts.push(el('span','amount-in','+'+qty(p.items_in)+' Stück'));}
+    if(p.items_out){sep();parts.push(el('span','amount-out','−'+qty(p.items_out)+' Stück'));}
+    people.append(add(el('div','ledger-row'),el('strong','',p.player),el('span','muted',''),add(el('span','amount'),...parts)));}
   if(!sum.players.length)people.append(el('p','muted','Noch keine Beiträge erfasst.'));
 }
 $('ledgerFilter').addEventListener('click',e=>{const b=e.target.closest('button[data-kind]');if(!b)return;state.ledgerKind=b.dataset.kind;

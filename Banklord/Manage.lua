@@ -417,7 +417,7 @@ function A:ShowShoppingList()
   local lines={}
   for _,r in ipairs(list) do lines[#lines+1]=A:Tr('%dx %s (vorhanden %d, Ziel %d)'):format(r.missing,cleanName(r.name),r.have or 0,r.target or 0) end
   local auct,tsm=self:ShoppingExport(list)
-  local body=table.concat(lines,'\n')..'\n\n'..A:Tr('Auctionator (Einkaufen → Importieren):')..'\n'..auct..'\n\n'..A:Tr('TSM (Gruppe → Importieren):')..'\n'..tsm
+  local body=table.concat(lines,'\n')..'\n\n'..A:Tr('Auctionator (Einkaufen » Importieren):')..'\n'..auct..'\n\n'..A:Tr('TSM (Gruppe » Importieren):')..'\n'..tsm
   self:ShowTextWindow(A:Tr('Banklord – Einkaufsliste (%d Gegenstände)'):format(#list),
     A:Tr('Text markieren und mit Strg+C kopieren. Ziele legst du auf der Website unter „Nachkauf“ fest.'),body,true)
 end
@@ -439,12 +439,15 @@ function A:ShowTextWindow(title,hint,body,select)
     listFrame.edit=CreateFrame('EditBox',nil,scroll)
     listFrame.edit:SetMultiLine(true);listFrame.edit:SetFontObject(ChatFontNormal or 'GameFontHighlightSmall');listFrame.edit:SetWidth(460);listFrame.edit:SetAutoFocus(false)
     listFrame.edit:SetScript('OnEscapePressed',function() listFrame:Hide() end)
+    -- Copyable (Ctrl+C) but not editable: typing puts the original text back.
+    listFrame.edit:SetScript('OnTextChanged',function(self,byUser) if byUser then self:SetText(listFrame.body or '');self:HighlightText() end end)
     scroll:SetScrollChild(listFrame.edit)
     local close=CreateFrame('Button',nil,listFrame,'UIPanelButtonTemplate')
     close:SetSize(110,24);close:SetPoint('BOTTOMRIGHT',-16,14);close:SetText(A:Tr('Schließen'));close:SetScript('OnClick',function() listFrame:Hide() end)
   end
   listFrame.title:SetText(title)
   listFrame.hint:SetText(hint or '')
+  listFrame.body=body
   listFrame.edit:SetText(body)
   if select then listFrame.edit:SetFocus();listFrame.edit:HighlightText() else listFrame.edit:ClearFocus() end
   listFrame:Show()

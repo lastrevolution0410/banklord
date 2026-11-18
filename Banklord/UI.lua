@@ -703,6 +703,8 @@ end
 local orderEmpty=text(cart,'GameFontHighlightSmall',741,-120,229,
   'Noch keine Bestellungen.\n\nWarenkorb füllen und unten auf „Bestellung absenden“ klicken. Der Companion überträgt sie nach /reload oder Logout.',COLORS.muted)
 local orderStamp=text(cart,'GameFontDisableSmall',741,-363,229,'',COLORS.muted)
+-- Visible hint (not only in the tooltip) that own open orders can be cancelled.
+orderStamp.hint=text(cart,'GameFontHighlightSmall',741,-343,229,'',COLORS.gold)
 local submitButton=push(cart,'Bestellung absenden',740,-385,234,30,function()A:SubmitCartOrder()end)
 -- Urgent orders are marked for the bank managers (in game, on the website and in Discord).
 local urgentOption=CreateFrame('CheckButton','BanklordUrgentCheckbox',cart,'UICheckButtonTemplate')
@@ -789,7 +791,7 @@ text(bank,'GameFontNormalLarge',22,-16,330,'Aufträge',COLORS.gold)
 ob.state=text(bank,'GameFontHighlightSmall',360,-21,620,'',COLORS.muted)
 ob.state:SetJustifyH('RIGHT')
 text(bank,'GameFontHighlightSmall',22,-46,960,
-  'So geht es:   1. Gildenbank öffnen → „Entnehmen“     2. Briefkasten öffnen → „Versenden“     3. /reload → die Website wird aktualisiert',COLORS.muted)
+  'So geht es:   1. Gildenbank öffnen » „Alle entnehmen“     2. Briefkasten öffnen » „Alle versenden“     3. Briefkasten schließen » „Jetzt übertragen“',COLORS.muted)
 ob.size=9
 local cols={{'Nr.',26,46},{'Empfänger',78,140},{'Gegenstände',226,260},{'Status',496,236}}
 for _,c in ipairs(cols) do text(bank,'GameFontNormalSmall',c[2],-74,c[3],c[1],COLORS.gold) end
@@ -1092,6 +1094,9 @@ function A:RefreshUI()
       if row then r.title:SetText(row.title);r.status:SetText(row.status);r:Show() else r:Hide() end
     end
     if #orders==0 then orderEmpty:Show() else orderEmpty:Hide() end
+    local canCancel=false
+    for i=1,#orderRows do local o=orders[i] and orders[i].order; if o and A:IsCancellable(o) then canCancel=true end end
+    orderStamp.hint:SetText(canCancel and A:Tr('Rechtsklick auf eine Bestellung: stornieren') or '')
     orderStamp:SetText(stamp and A:Tr('Serverstand: %s'):format(stamp) or A:Tr('Serverstand: noch keiner (Companion?)'))
     if positions==0 then submitButton:Disable() else submitButton:Enable() end
   elseif active=='bank' then

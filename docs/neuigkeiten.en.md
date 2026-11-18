@@ -23,6 +23,9 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.1: **New in-game cash book:** clear window with an overview per player, gold and items in columns, deposits green, withdrawals red, no longer editable (the shopping list can only be copied, not changed, too). **Gold like in the game** with coin icons and thousands separators (1,661 ● 57 ● 61 ●) – in game and on the website.
+- 1.9.1: arrows that showed as empty boxes in game are replaced.
+- 1.9.1: in game, **“My orders”** shows “Right-click an order: cancel” whenever something can be cancelled.
 
 ### 1.8 – As simple as it gets (18 Nov 2026)
 - **No more typing `/reload`:** at the important moments Banklord shows a window in game with a **“Transfer now”** button – after you are confirmed as a new member, after an order, for managers after confirming a member and when closing the mailbox after sending. Never in combat.

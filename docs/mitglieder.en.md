@@ -89,6 +89,8 @@ If no manager is online for a longer time, an admin can create an invitation for
 
 5. A window appears: click **“Transfer now”**. The order goes to the bank managers right away. (If you click “Later”, it goes out the next time you log out.)
 
+**Made a mistake?** Right-click the order on the right under **“My orders”** to cancel it (the hint is shown right below the list too). On the website use the cancel button of the order.
+
 The stock shown in game is the state of the last guild bank scan. Items marked “reserved” have already been ordered by someone else.
 
 ## Ordering on the website
