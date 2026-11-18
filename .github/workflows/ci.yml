@@ -29,6 +29,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # GitHub's macOS runners are often out of capacity. The Ubuntu job cross-builds
+    # the macOS binaries anyway, so a missing Mac runner must not fail the run.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
+    timeout-minutes: 20
     defaults:
       run:
         shell: bash
