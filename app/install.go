@@ -106,6 +106,10 @@ func installAddon(clientPath string, archive []byte) (InstallOutcome, error) {
 		if e = os.MkdirAll(backupDir, 0700); e != nil {
 			return InstallOutcome{}, e
 		}
+		// The companion writes these files (bank manager role, open orders,
+		// unlock offers). An update must keep them, or the addon treats a
+		// manager as a member until the companion rewrites them.
+		keepCompanionFiles(target, stage)
 		backup := filepath.Join(backupDir, fmt.Sprintf("Banklord.backup-%s", time.Now().Format("20060102-150405.000000000")))
 		if e = os.Rename(target, backup); e != nil {
 			return InstallOutcome{}, fmt.Errorf("Altversion konnte nicht gesichert werden: %w", e)
@@ -121,6 +125,23 @@ func installAddon(clientPath string, archive []byte) (InstallOutcome, error) {
 		return InstallOutcome{}, fmt.Errorf("Installation fehlgeschlagen; vorherige Version zurückgesetzt: %w", e)
 	}
 	return result, nil
+}
+
+// keepCompanionFiles copies ServerState.lua and Claim.lua from the installed
+// addon into the new one (regular files up to 2 MB only; links are ignored).
+func keepCompanionFiles(from, to string) {
+	for _, name := range []string{"ServerState.lua", "Claim.lua"} {
+		src := filepath.Join(from, name)
+		info, err := os.Lstat(src)
+		if err != nil || !info.Mode().IsRegular() || info.Size() > 2<<20 {
+			continue
+		}
+		data, err := os.ReadFile(src)
+		if err != nil {
+			continue
+		}
+		_ = os.WriteFile(filepath.Join(to, name), data, 0644)
+	}
 }
 
 // pinInterface writes the detected client's interface number into the TOC so

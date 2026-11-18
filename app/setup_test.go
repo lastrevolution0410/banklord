@@ -81,9 +81,14 @@ func TestAddonInstallAndUpgradeBackup(t *testing.T) {
 	os.WriteFile(external, []byte("keep"), 0600)
 	oldPath := filepath.Join(outcome.AddonPath, "UI.lua")
 	os.WriteFile(oldPath, []byte("old version"), 0600)
+	state := "Banklord_ServerState = {\n  manage = {\n  },\n}\n"
+	os.WriteFile(filepath.Join(outcome.AddonPath, "ServerState.lua"), []byte(state), 0644)
 	second, e := installAddon(mop, archive)
 	if e != nil {
 		t.Fatal(e)
+	}
+	if b, e := os.ReadFile(filepath.Join(second.AddonPath, "ServerState.lua")); e != nil || string(b) != state {
+		t.Fatal("update must keep the companion's ServerState.lua (manager role and orders)")
 	}
 	if second.BackupPath == "" {
 		t.Fatal("keine Backup-Dateien angelegt")
