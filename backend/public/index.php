@@ -8,6 +8,7 @@ use Banklord\ScanStaging;
 use Banklord\BridgeTokens;
 use Banklord\IngameOrders;
 use Banklord\Claims;
+use Banklord\Feedback;
 use Banklord\WebUpdater;
 use Banklord\ReleasePublisher;
 use Banklord\UpstreamUpdater;
@@ -28,6 +29,7 @@ require dirname(__DIR__) . '/src/ScanImport.php';
 require dirname(__DIR__) . '/src/ScanStaging.php';
 require dirname(__DIR__) . '/src/BridgeTokens.php';
 require dirname(__DIR__) . '/src/IngameOrders.php';
+require dirname(__DIR__) . '/src/Feedback.php';
 require dirname(__DIR__) . '/src/Claims.php';
 require dirname(__DIR__) . '/src/WebUpdater.php';
 require dirname(__DIR__) . '/src/ReleasePublisher.php';
@@ -127,6 +129,7 @@ function csrf(): void {
     $token=$_SERVER['HTTP_X_CSRF_TOKEN']??'';
     if (!is_string($token) || !hash_equals($_SESSION['csrf'],$token)) reply(403,['error'=>'CSRF_INVALID']);
 }
+function siteOrigin(): string { return (getenv('APP_HTTPS')==='off'?'http':'https').'://'.preg_replace('/[^A-Za-z0-9.:\-]/','',(string)($_SERVER['HTTP_HOST']??'')); }
 function id(string $value): int { if (!preg_match('/^[1-9][0-9]{0,17}$/D',$value)) reply(400,['error'=>'INVALID_ID']); return (int)$value; }
 /**
  * Catalog icons: one bounded, guild-scoped lookup for the entire visible page.
@@ -242,7 +245,9 @@ try {
         if (!preg_match('/^Bearer (bl1_[a-f0-9]{64})$/D',$bearer,$match)) reply(401,['error'=>'BRIDGE_TOKEN_REQUIRED']);
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
-        reply(200,['ingame_state'=>(new IngameOrders($db))->state($guildId,$auth['actor'])]);
+        $st=(new IngameOrders($db))->state($guildId,$auth['actor']);
+        $st['feedback']=(new Feedback($db))->stateView($guildId,$auth['actor'],siteOrigin());
+        reply(200,['ingame_state'=>$st]);
     }
     // Release publishing from the maintainer's machine: bearer publish token + Ed25519 signature.
     if (str_starts_with($path,'/releases/')) {
@@ -293,10 +298,17 @@ try {
         $managed=$ingame->processManage($guildId,$actor,$file,$record);
         $ingame->syncCharacters($guildId,$actor,$file,$record);
         (new Claims($db))->record($guildId,$actor,$file,$record);
+        $feedback=new Feedback($db);
+        $fbResults=$feedback->processIngame($guildId,$actor,$file,siteOrigin(),[]);
+        $withFeedback=function(array $st) use ($feedback,$guildId,$actor,$fbResults): array {
+            $st['feedback']=$feedback->stateView($guildId,$actor,siteOrigin());
+            $st['feedback_results']=(object)$fbResults;
+            return $st;
+        };
         if ($auth['scope']==='member.orders') {
             // Personal token: orders only. Scans and peer drafts in the file are ignored.
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
-            reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
+            reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$withFeedback($ingame->state($guildId,$actor,$results,$managed))]);
         }
         $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']);
         $auto=$auth['scope']==='scan.auto';
@@ -319,7 +331,7 @@ try {
         }
         $results=$ingame->processOutbox($guildId,$actor,$file,$record);
         reply($staged['created']?201:200,['import'=>$staged,'auto_reconcile'=>$autoResult,'new_peer_drafts'=>$peers,
-            'ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
+            'ingame_orders'=>(object)$results,'ingame_state'=>$withFeedback($ingame->state($guildId,$actor,$results,$managed))]);
     }
     // Joining by in-game confirmation (see Claims.php). No session; the key signature is the proof.
     $origin=(getenv('APP_HTTPS')==='off'?'http':'https').'://'.preg_replace('/[^A-Za-z0-9.:\-]/','',(string)($_SERVER['HTTP_HOST']??''));
@@ -327,6 +339,15 @@ try {
     if ($method==='POST' && $path==='/claims/redeem') {
         $b=body();
         reply(200,['grants'=>(new Claims($db))->redeem((string)($b['key']??''),(string)($b['signature']??''),$origin)]);
+    }
+    // Central feedback inbox (official site): guild websites forward reports here.
+    if ($method==='POST' && ($path==='/feedback/submit' || $path==='/feedback/status')) {
+        if (!UpstreamUpdater::isPublisher() || !Feedback::enabled()) reply(404,['error'=>'NOT_FOUND']);
+        if ((int)($_SERVER['CONTENT_LENGTH']??0)>65536) reply(413,['error'=>'FEEDBACK_TOO_LARGE']);
+        $b=body();
+        if ($path==='/feedback/status') reply(200,['reports'=>(object)(new Feedback($db))->lookup(is_array($b['receipts']??null)?$b['receipts']:[])]);
+        if (!is_array($b['report']??null)) reply(422,['error'=>'FEEDBACK_INVALID']);
+        reply(201,(new Feedback($db))->accept($b['report'],(string)($b['site']??''),'ip|'.($_SERVER['REMOTE_ADDR']??'')));
     }
     if (in_array($method,['POST','PUT','PATCH','DELETE'],true)) csrf();
 
@@ -381,6 +402,23 @@ try {
     }
     if (!preg_match('~^/guilds/([1-9][0-9]{0,17})/(.+)$~D',$path,$m)) reply(404,['error'=>'NOT_FOUND']);
     $guild=id($m[1]);$tail=$m[2];$role=hasMember($db,$guild,$user);
+    // Help & feedback: every member reports; the inbox exists only where reports arrive.
+    if ($tail==='feedback' || str_starts_with($tail,'feedback/')) {
+        $fb=new Feedback($db);
+        $inbox=$role==='admin' && Feedback::centralUrl()===null;
+        if ($method==='GET' && $tail==='feedback') reply(200,['enabled'=>Feedback::enabled(),'inbox'=>$inbox,'mine'=>$fb->mine($guild,$user,siteOrigin())]);
+        if ($method==='POST' && $tail==='feedback') {
+            $b=body();
+            reply(201,['report'=>$fb->submit($guild,$user,$b,'web',null,siteOrigin())]);
+        }
+        if (!$inbox) reply(403,['error'=>'FORBIDDEN']);
+        if ($method==='GET' && $tail==='feedback/inbox') reply(200,$fb->inbox((string)($_GET['status']??''),(string)($_GET['kind']??'')));
+        if ($method==='PATCH' && preg_match('~^feedback/inbox/([1-9][0-9]{0,17})$~D',$tail,$fm)) {
+            $b=body();$fb->answer(id($fm[1]),(string)($b['status']??''),(string)($b['reply']??''));
+            reply(200,['ok'=>true]);
+        }
+        reply(404,['error'=>'NOT_FOUND']);
+    }
     // Guild-scoped restock rules and manually executed shipment worklists.
     if ($method==='GET' && $tail==='procurement/rules') {
         $rules=(new Procurement($db))->rules($guild,$user);
@@ -775,6 +813,9 @@ try {
 } catch (DomainError $e) {
     $bad=['DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL'];
     $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE'];
+    if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
+    if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);
+    if (str_starts_with($e->getMessage(),'FEEDBACK_') || $e->getMessage()==='INVALID_EMAIL') reply(422,['error'=>$e->getMessage()]);
     reply($e->getMessage()==='FORBIDDEN'?403:(in_array($e->getMessage(),$conflict,true)?409:(in_array($e->getMessage(),$bad,true)?422:404)),['error'=>$e->getMessage()]);
 } catch (\Throwable $e) {
     error_log('Banklord error: '.get_class($e));

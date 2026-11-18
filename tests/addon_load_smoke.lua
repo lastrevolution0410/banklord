@@ -277,6 +277,30 @@ do
 end
 print('PASS: several bank managers coordinate reservations and never send twice')
 
+-- Help & feedback in game: validation, outbox, status from the website.
+do
+  A.db.feedbackOutbox=nil
+  local ok,why=A:QueueFeedback('bug',{title='x',text='kurz',area='addon'})
+  assert(not ok and why,'too short report refused')
+  ok=A:QueueFeedback('bug',{title='Fenster|bleibt offen',text='Nach dem Schließen\nbleibt es sichtbar.',area='addon'})
+  assert(ok and #A.db.feedbackOutbox==1,'bug report queued')
+  local row=A.db.feedbackOutbox[1]
+  assert(row.key:match('^fb%-%d+%-[a-z0-9]+$') and row.title=='Fenster/bleibt offen' and row.addon==A.version and row.build:find('5.5.4',1,true),'row carries key, versions, no pipes')
+  ok=A:QueueFeedback('language',{language='Français',help='yes',text=''})
+  assert(ok and A.db.feedbackOutbox[2].title:find('Français',1,true) and #A.db.feedbackOutbox[2].text>=10,'language request gets title and text')
+  local rows=A:FeedbackOverview()
+  assert(#rows==2 and rows[1].status=='queued','waiting reports listed')
+  Banklord_ServerState.feedback={{key=row.key,number=12,kind='bug',title=row.title,status='planned',reply='Kommt bald.'}}
+  Banklord_ServerState.feedbackResults={[row.key]={status='new',number=12},[A.db.feedbackOutbox[2].key]={status='pending'}}
+  A:ReconcileFeedback()
+  assert(#A.db.feedbackOutbox==1 and A.db.feedbackOutbox[1].language=='Français','forwarded report leaves the outbox, unsent one stays')
+  rows=A:FeedbackOverview()
+  assert(#rows==2 and rows[2].status=='planned' and rows[2].reply=='Kommt bald.','status and answer shown')
+  local okc,errc=pcall(SlashCmdList.BANKLORD,'feedback');assert(okc,errc)
+  Banklord_ServerState.feedback=nil;Banklord_ServerState.feedbackResults=nil;A.db.feedbackOutbox=nil
+end
+print('PASS: help & feedback in game (queue, validation, status)')
+
 -- Localization: client language decides, BanklordDB.settings.locale overrides.
 local EN=assert(A._localeEN,'EN table not exposed')
 -- 1) Every literal A:Tr('...') in the addon has an English entry.

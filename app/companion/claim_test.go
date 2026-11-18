@@ -76,3 +76,20 @@ func TestRenderConnections(t *testing.T) {
 		t.Fatalf("unescaped guild name:\n%s", out)
 	}
 }
+
+func TestRenderFeedback(t *testing.T) {
+	st := mergeStates([]ingameState{{
+		Feedback:    []feedbackRow{{Key: "fb-1700000000-abc123", Number: 12, Kind: "bug", Title: "Fenster \"offen\"", Status: "planned", Reply: "Kommt bald.\nDanke"}, {Key: "evil\"]]", Kind: "x y", Status: "new"}},
+		FeedbackRes: map[string]feedbackRes{"fb-1700000000-abc123": {Status: "new"}, "bad key": {Status: "new"}},
+	}})
+	out := renderState(st)
+	if !strings.Contains(out, `{ key = "fb-1700000000-abc123", number = 12, kind = "bug", title = "Fenster \"offen\"", status = "planned", reply = "Kommt bald.\10Danke" }`) {
+		t.Fatalf("feedback row missing:\n%s", out)
+	}
+	if !strings.Contains(out, `key = "", number = 0, kind = "unknown"`) || strings.Contains(out, "bad key") {
+		t.Fatalf("invalid keys not filtered:\n%s", out)
+	}
+	if !strings.Contains(out, `["fb-1700000000-abc123"] = { status = "new", error = "unknown" }`) {
+		t.Fatalf("feedback result missing:\n%s", out)
+	}
+}

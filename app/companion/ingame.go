@@ -66,6 +66,8 @@ type ingameState struct {
 	Outbox        map[string]outboxResult `json:"outbox"`
 	Manage        *[]manageOrder          `json:"manage"`
 	ManageResults map[string]manageResult `json:"manage_results"`
+	Feedback      []feedbackRow           `json:"feedback"`
+	FeedbackRes   map[string]feedbackRes  `json:"feedback_results"`
 	Server        string                  `json:"-"`
 	GuildID       int64                   `json:"-"`
 	Connections   []stateConnection       `json:"-"`
@@ -80,6 +82,23 @@ type stateConnection struct {
 }
 
 var manageKeyPattern = regexp.MustCompile(`^ma-[0-9]{6,12}-[a-z0-9]{6}$`)
+
+// feedbackKeyPattern matches the addon's help & feedback outbox keys.
+var feedbackKeyPattern = regexp.MustCompile(`^fb-[0-9]{6,12}-[a-z0-9]{6}$`)
+
+type feedbackRow struct {
+	Key    string `json:"key"`
+	Number int64  `json:"number"`
+	Kind   string `json:"kind"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+	Reply  string `json:"reply"`
+}
+
+type feedbackRes struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
 
 func guildFields(g guildRef) string {
 	if g.Name == "" {
@@ -235,6 +254,36 @@ func renderState(st ingameState) string {
 		}
 		b.WriteString("  },\n")
 	}
+	if len(st.Feedback) > 0 {
+		b.WriteString("  feedback = {\n")
+		for i, f := range st.Feedback {
+			if i >= 10 {
+				break
+			}
+			key := f.Key
+			if !feedbackKeyPattern.MatchString(key) {
+				key = ""
+			}
+			fmt.Fprintf(&b, "    { key = %s, number = %d, kind = %s, title = %s, status = %s, reply = %s },\n",
+				luaString(key), f.Number, luaString(word(f.Kind)), luaString(clip(f.Title, 80)), luaString(word(f.Status)), luaString(clip(f.Reply, 300)))
+		}
+		b.WriteString("  },\n")
+	}
+	if len(st.FeedbackRes) > 0 {
+		keys := make([]string, 0, len(st.FeedbackRes))
+		for k := range st.FeedbackRes {
+			if feedbackKeyPattern.MatchString(k) {
+				keys = append(keys, k)
+			}
+		}
+		sort.Strings(keys)
+		b.WriteString("  feedbackResults = {\n")
+		for _, k := range keys {
+			r := st.FeedbackRes[k]
+			fmt.Fprintf(&b, "    [%s] = { status = %s, error = %s },\n", luaString(k), luaString(word(r.Status)), luaString(word(r.Error)))
+		}
+		b.WriteString("  },\n")
+	}
 	if len(st.Connections) > 0 {
 		b.WriteString("  connections = {\n")
 		for _, c := range st.Connections {
@@ -301,6 +350,13 @@ func mergeStates(states []ingameState) ingameState {
 		}
 		for k, v := range st.ManageResults {
 			out.ManageResults[k] = v
+		}
+		out.Feedback = append(out.Feedback, st.Feedback...)
+		for k, v := range st.FeedbackRes {
+			if out.FeedbackRes == nil {
+				out.FeedbackRes = map[string]feedbackRes{}
+			}
+			out.FeedbackRes[k] = v
 		}
 		if st.Manage != nil {
 			if out.Manage == nil {

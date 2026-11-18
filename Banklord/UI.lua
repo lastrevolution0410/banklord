@@ -380,7 +380,7 @@ local function updateWindowBackdrop()
   opaqueFill:SetAlpha(settings and settings.solidBackground==true and .98 or 0)
 end
 
-local tabDefs={{'items','Gegenstände'},{'cart','Warenkorb'},{'bank','Bankverwaltung'},{'help','Synchronisierung'},{'advanced','Erweitert'}}
+local tabDefs={{'items','Gegenstände'},{'cart','Warenkorb'},{'bank','Bankverwaltung'},{'help','Synchronisierung'},{'advanced','Erweitert'},{'feedback','Hilfe & Feedback'}}
 for i,t in ipairs(tabDefs) do
   local key,caption=t[1],t[2]
   local b=push(window,caption,18+(i-1)*161,-72,153,29,function()
@@ -783,6 +783,89 @@ push(help,'Eingänge anzeigen',28,-411,192,31,function()A:ShowPeerInbox()end)
 push(help,'Ausgänge anzeigen',234,-411,192,31,function()A:ShowPeerOutbox()end)
 push(help,'Zustellung erneut versuchen',440,-411,256,31,function()A:RetryPendingPeers(true)end)
 
+
+-- Help & feedback: three clear choices, one short form, the own reports beside it.
+local fb=panels.feedback
+panelSurface(fb,0,0,1004,469)
+text(fb,'GameFontNormalLarge',22,-16,470,'Hilfe & Feedback',COLORS.gold)
+text(fb,'GameFontHighlightSmall',22,-42,470,'Deine Meldung geht an das Banklord-Projekt. Keine Konto- oder Charakterdaten.',COLORS.muted)
+local fbKind,fbArea,fbHelp='bug',1,1
+local fbKindButtons={}
+for i,k in ipairs(A.FeedbackKinds) do
+  fbKindButtons[k.key]=push(fb,k.caption,22+(i-1)*158,-64,150,30,function() fbKind=k.key;A:RefreshUI() end)
+end
+local fbKindHint=text(fb,'GameFontHighlightSmall',24,-100,470,'',COLORS.muted)
+local fbAreaButton=push(fb,'',22,-124,230,26,function() fbArea=fbArea%#A.FeedbackAreas+1;A:RefreshUI() end)
+local fbHelpButton=push(fb,'',262,-124,230,26,function() fbHelp=fbHelp%#A.FeedbackHelp+1;A:RefreshUI() end)
+local fbTitleLabel=text(fb,'GameFontNormalSmall',24,-160,470,'Kurzer Titel',COLORS.gold)
+local fbTitle=entry(fb,28,-176,462,120)
+local fbTextLabel=text(fb,'GameFontNormalSmall',24,-210,470,'',COLORS.gold)
+backdrop(fb,22,-228,470,166,.03,.028,.024,.92)
+local fbScroll=CreateFrame('ScrollFrame','BanklordFeedbackScroll',fb,'UIPanelScrollFrameTemplate')
+fbScroll:SetPoint('TOPLEFT',fb,'TOPLEFT',28,-233)
+fbScroll:SetSize(436,156)
+local fbText=CreateFrame('EditBox','BanklordFeedbackText',fbScroll)
+if fbText.SetMultiLine then fbText:SetMultiLine(true) end
+if fbText.SetFontObject then fbText:SetFontObject(ChatFontNormal or GameFontHighlight) end
+fbText:SetWidth(430);fbText:SetHeight(156)
+fbText:SetAutoFocus(false)
+fbText:SetMaxLetters(2000)
+fbText:SetScript('OnEscapePressed',function(self) self:ClearFocus() end)
+if fbScroll.SetScrollChild then fbScroll:SetScrollChild(fbText) end
+local fbFocus=CreateFrame('Button',nil,fb)
+fbFocus:SetPoint('TOPLEFT',fb,'TOPLEFT',22,-228);fbFocus:SetSize(470,166)
+if fbFocus.SetFrameLevel then fbFocus:SetFrameLevel(math.max(1,(fbScroll:GetFrameLevel() or 2)-1)) end
+fbFocus:SetScript('OnClick',function() fbText:SetFocus() end)
+text(fb,'GameFontHighlightSmall',24,-400,470,'Wird beim nächsten /reload über den Companion gesendet. Bitte niemals Passwörter eintragen.',COLORS.muted)
+push(fb,'Absenden',22,-430,170,30,function()
+  local f={area=A.FeedbackAreas[fbArea].key,help=A.FeedbackHelp[fbHelp].key,text=fbText:GetText()}
+  if fbKind=='language' then f.language=fbTitle:GetText() else f.title=fbTitle:GetText() end
+  local ok,why=A:QueueFeedback(fbKind,f)
+  if not ok then A:Message(why);return end
+  fbTitle:SetText('');fbText:SetText('');fbTitle:ClearFocus();fbText:ClearFocus()
+  A:Message(A:Tr('Danke! Deine Meldung wird beim nächsten /reload gesendet.'))
+  A:RefreshUI()
+end)
+push(fb,'Leeren',202,-430,120,30,function() fbTitle:SetText('');fbText:SetText('') end)
+-- Right side: own reports with status and answer.
+backdrop(fb,512,-14,1,440,.42,.34,.22,.7)
+text(fb,'GameFontNormal',530,-18,450,'Meine Meldungen',COLORS.gold)
+text(fb,'GameFontHighlightSmall',530,-38,450,'Status und Antworten erscheinen nach dem nächsten /reload.',COLORS.muted)
+local fbRows={}
+for i=1,8 do
+  local r={}
+  r.title=text(fb,'GameFontHighlight',530,-62-(i-1)*48,330,'',COLORS.bright)
+  r.status=text(fb,'GameFontNormalSmall',870,-62-(i-1)*48,115,'',COLORS.green)
+  r.reply=text(fb,'GameFontHighlightSmall',540,-80-(i-1)*48,440,'',COLORS.muted)
+  fbRows[i]=r
+end
+local fbEmpty=text(fb,'GameFontHighlightSmall',530,-64,450,'Du hast noch nichts gemeldet.',COLORS.muted)
+local fbHints={bug='Was ist passiert? Wie kann man es nachstellen?',idea='Was soll besser werden, und wie stellst du es dir vor?',language='Anmerkungen (optional)'}
+local fbIcons={bug='|TInterface\\Icons\\INV_Misc_Bug_02:14|t ',idea='|TInterface\\Icons\\INV_Misc_Note_01:14|t ',language='|TInterface\\Icons\\INV_Misc_Book_09:14|t '}
+local function refreshFeedback()
+  for _,k in ipairs(A.FeedbackKinds) do
+    local b=fbKindButtons[k.key];b.blSelected=k.key==fbKind;colorButton(b,b.blSelected)
+    if k.key==fbKind then fbKindHint:SetText(A:Tr(k.hint)) end
+  end
+  fitText(fbAreaButton.caption,A:Tr('Betrifft: %s'):format(A:Tr(A.FeedbackAreas[fbArea].caption)),210)
+  fitText(fbHelpButton.caption,A:Tr('Hilfe beim Übersetzen: %s'):format(A:Tr(A.FeedbackHelp[fbHelp].caption)),210)
+  if fbKind=='language' then fbHelpButton:Show() else fbHelpButton:Hide() end
+  fbTitleLabel:SetText(A:Tr(fbKind=='language' and 'Welche Sprache?' or 'Kurzer Titel'))
+  fbTextLabel:SetText(A:Tr(fbHints[fbKind]))
+  local rows=A:FeedbackOverview()
+  for i,r in ipairs(fbRows) do
+    local row=rows[i]
+    if row then
+      fitText(r.title,(fbIcons[row.kind] or '')..(row.number and ('#'..row.number..' ') or '')..tostring(row.title or ''),330,60)
+      r.status:SetText(A:Tr(A.FeedbackStatus[row.status] or tostring(row.status)))
+      fitText(r.reply,row.reply~='' and A:Tr('Antwort: %s'):format(row.reply) or '',440,90)
+      r.title:Show();r.status:Show();r.reply:Show()
+    else r.title:Hide();r.status:Hide();r.reply:Hide() end
+  end
+  if #rows==0 then fbEmpty:Show() else fbEmpty:Hide() end
+end
+A._refreshFeedbackPanel=refreshFeedback
+
 search:SetScript('OnTextChanged',function(self,userInput)
   if userInput then itemOffset=0;A:RefreshUI()end
 end)
@@ -957,6 +1040,8 @@ function A:RefreshUI()
       tostring(scan.totalTabs),tostring(scan.occupiedSlots),tostring(scan.quality)) or A:Tr('Noch keine Inventur vorhanden.')))
     bankProgress:SetText(run and A:Tr('Aktiver Scan: %s/%s Fächer'):format(tostring(run.completed),tostring(#run.queue)) or
       A:Tr('Kein aktiver Scan · SavedVariables werden beim /reload oder Ausloggen gespeichert.'))
+  elseif active=='feedback' then
+    refreshFeedback()
   elseif active=='help' then
     peerStatus:SetText(A:Tr('Ingame-Eingänge: %d   |   Ingame-Ausgänge: %d   |   Keine Serverbestätigung'):format(
       #(self.db.peerInbox or {}),#(self.db.peerOutbox or {})))
@@ -977,4 +1062,7 @@ function A:ToggleUI()
 end
 function A:OpenCartUI()
   active='cart';self:RefreshUI();window:Show()
+end
+function A:OpenFeedbackUI()
+  active='feedback';self:RefreshUI();window:Show()
 end

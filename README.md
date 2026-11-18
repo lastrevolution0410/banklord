@@ -48,6 +48,7 @@ Weitere Eigenschaften:
 - **Mehrere Bankverwalter** arbeiten gleichzeitig, ohne dass eine Bestellung doppelt verschickt wird ([wie das funktioniert](docs/bankverwalter.md#mehrere-bankverwalter)).
 - **Mehrere Gilden und Charaktere** auf einem PC; jede Bestellung gehört zum richtigen Charakter und zur richtigen Gilde.
 - **Verträgt sich mit anderen Addons** (zusammengefasste Bankfächer, Postfach-Addons), weil Banklord die Spiel-API nutzt und nicht die Blizzard-Fenster.
+- **Hilfe & Feedback** im Spiel und auf der Website: Fehler melden, Ideen vorschlagen, neue Sprachen anfragen – mit Status und Antwort.
 - **Deutsch und Englisch**, Zeiten immer in der Ortszeit des Nutzers.
 - **Signierte automatische Updates** für Website, Addon und Desktop-App.
 
@@ -108,7 +109,7 @@ Das Addon darf im Spiel nicht ins Internet. Deshalb gibt es den **Companion**, e
 
 ## Mitmachen und Hilfe
 
-- Fehler oder Wunsch? [Issue anlegen](https://github.com/lastrevolution0410/banklord/issues/new/choose).
+- Fehler, Idee oder Sprachwunsch? Am einfachsten über **Hilfe & Feedback** im Spiel oder auf der Website – oder als [Issue auf GitHub](https://github.com/lastrevolution0410/banklord/issues/new/choose).
 - Sicherheitsproblem? Bitte **nicht** öffentlich melden, sondern wie in [SECURITY.md](SECURITY.md) beschrieben.
 - Beiträge sind willkommen: [CONTRIBUTING.md](CONTRIBUTING.md).
 

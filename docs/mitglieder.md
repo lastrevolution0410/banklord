@@ -8,7 +8,8 @@
 2. [Bestellen im Spiel](#bestellen-im-spiel)
 3. [Bestellen auf der Website](#bestellen-auf-der-website)
 4. [Was passiert nach der Bestellung?](#was-passiert-nach-der-bestellung)
-5. [Befehle im Spiel](#befehle-im-spiel)
+5. [Hilfe & Feedback](#hilfe--feedback)
+6. [Befehle im Spiel](#befehle-im-spiel)
 
 ---
 
@@ -71,6 +72,23 @@ Neuigkeiten siehst du auf der Website unter **Mitteilungen** und im Spiel nach d
 
 ---
 
+## Hilfe & Feedback
+
+Etwas klemmt, du hast eine Idee oder möchtest Banklord in deiner Sprache?
+
+| Wo | So geht's |
+|---|---|
+| **Im Spiel** | `/banklord feedback` oder Reiter **Hilfe & Feedback** im Banklord-Fenster. Gesendet wird beim nächsten `/reload`. |
+| **Website** | Reiter **Hilfe & Feedback**. |
+
+1. Wähle **Fehler melden**, **Idee vorschlagen** oder **Sprache anfragen**.
+2. Fülle das kurze Formular aus und klicke **Absenden**.
+3. Unter **Meine Meldungen** siehst du, ob deine Meldung eingegangen, geplant oder erledigt ist – und die Antwort.
+
+Die Meldung geht direkt an das Banklord-Projekt. Mitgeschickt werden nur deine Angaben und die Versionsnummern, keine Konto- oder Charakterdaten. Eine E-Mail für Rückfragen ist freiwillig.
+
+---
+
 ## Befehle im Spiel
 
 Alle Befehle beginnen mit `/banklord`:
@@ -87,5 +105,6 @@ Alle Befehle beginnen mit `/banklord`:
 | `eingang`, `ausgang`, `erneut` | Übergebene Warenkörbe ansehen oder erneut senden |
 | `status` | Zustand von Addon und letztem Scan |
 | `bestellungen` | Offene Bestellungen (nur Bankverwalter) |
+| `feedback` | Hilfe & Feedback: Fehler melden, Idee vorschlagen, Sprache anfragen |
 | `minimap` | Minikarten-Knopf ein- oder ausblenden |
 | `lang de`, `lang en`, `lang auto` | Sprache umstellen |

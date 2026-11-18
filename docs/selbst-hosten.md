@@ -39,6 +39,13 @@ Die Website aktualisiert sich selbst aus dem offiziellen, signierten Release-Kan
 
 Addon und Desktop-App holen ihre Updates selbst; dafür musst du nichts tun.
 
+## Hilfe & Feedback
+
+Meldungen deiner Mitglieder (Fehler, Ideen, Sprachwünsche) leitet deine Website an das Banklord-Projekt weiter – an dieselbe Adresse wie der Update-Kanal, ohne Konto- oder Charakterdaten.
+
+- `'FEEDBACK' => 'off'` – Meldungen ausschalten.
+- Mit `'UPDATE_SOURCE' => 'off'` bleiben Meldungen auf deiner eigenen Website; Admins sehen sie dann unter **Hilfe & Feedback → Posteingang**.
+
 ## Backups
 
 Vor jedem Update legt Banklord ein Backup an. Zusätzlich empfohlen: das regelmäßige Datenbank-Backup deines Hosters einschalten.

@@ -49,12 +49,14 @@ Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Fü
 
 ### Wie melde ich einen Fehler?
 
-- **Im Spiel:** `/banklord` → **Hilfe & Feedback** *(ab einer der nächsten Versionen)*.
-- **Auf der Website:** Menü **Hilfe & Feedback** *(ab einer der nächsten Versionen)*.
+- **Im Spiel:** `/banklord feedback` oder im Banklord-Fenster der Reiter **Hilfe & Feedback**. Die Meldung wird beim nächsten `/reload` über den Companion gesendet.
+- **Auf der Website:** Reiter **Hilfe & Feedback**.
 - **Auf GitHub:** [Issue anlegen](https://github.com/lastrevolution0410/banklord/issues/new/choose).
+
+Dort wählst du **Fehler melden**, **Idee vorschlagen** oder **Sprache anfragen**. Die Meldung geht direkt an das Banklord-Projekt; unter **Meine Meldungen** siehst du den Status und die Antwort. Mitgeschickt werden nur deine Angaben und die Versionsnummern – keine Konto- oder Charakterdaten.
 
 Bitte nie Passwörter, Zugangsschlüssel oder Einladungscodes mitschicken.
 
 ### Ich möchte Banklord in meiner Sprache
 
-Banklord gibt es auf Deutsch und Englisch. Weitere Sprachen kannst du über **Hilfe & Feedback** oder auf GitHub als [Sprachwunsch](https://github.com/lastrevolution0410/banklord/issues/new/choose) anfragen – gern auch mit Hilfe beim Übersetzen.
+Banklord gibt es auf Deutsch und Englisch. Weitere Sprachen kannst du im Spiel oder auf der Website über **Hilfe & Feedback → Sprache anfragen** oder auf GitHub als [Sprachwunsch](https://github.com/lastrevolution0410/banklord/issues/new/choose) anfragen – gern auch mit Hilfe beim Übersetzen.

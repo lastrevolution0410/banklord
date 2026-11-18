@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.9.0"
+A.version = "0.10.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -143,6 +143,7 @@ function A:OnEvent(event, ...)
     if A.ApplyUILocale then A:ApplyUILocale() end
     if A.InitPeer then A:InitPeer() end
     if A.ReconcileOrderOutbox then A:ReconcileOrderOutbox() end
+    if A.ReconcileFeedback then A:ReconcileFeedback() end
     if A.InitManage then A:InitManage() end
     if A.InitMinimapButton then A:InitMinimapButton() end
     A:Message(A:Tr("v%s geladen. /banklord zeigt die Befehle."):format(A.version))
@@ -246,6 +247,8 @@ SlashCmdList.BANKLORD = function(text)
     if A.ShowPeerOutbox then A:ShowPeerOutbox() end
   elseif cmd == "erneut" then
     if A.RetryPendingPeers then A:RetryPendingPeers(true) end
+  elseif cmd == "feedback" or cmd == "hilfe" or cmd == "help" or cmd == "fehler" then
+    if A.OpenFeedbackUI then A:OpenFeedbackUI() end
   elseif cmd == "minimap" then
     if A.ToggleMinimapButton then A:ToggleMinimapButton() end
   elseif cmd == "lang" or cmd:match("^lang%s") then
@@ -253,6 +256,6 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, debug, minimap, lang de|en|auto"))
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, feedback, debug, minimap, lang de|en|auto"))
   end
 end

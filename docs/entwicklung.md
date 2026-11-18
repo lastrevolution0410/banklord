@@ -22,6 +22,7 @@
 | `Orders.lua` | Warenkorb und Bestellungen im Spiel |
 | `Manage.lua` | Bankverwalter: Hinweise, Entnehmen, Versenden, Absprache, Freischaltung |
 | `Peer.lua` | Warenkorb an Mitspieler übergeben |
+| `Feedback.lua` | Hilfe & Feedback im Spiel |
 | `Locale.lua` | Englische Texte (Deutsch ist der Quelltext) |
 | `ServerState.lua`, `Claim.lua` | Werden vom Companion geschrieben |
 

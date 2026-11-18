@@ -38,7 +38,7 @@ function setTab(tab){
   if(tab==='updates'&&state.guild?.role!=='admin')return;
   if(tab==='updates')loadReleases().catch(e=>notice(e.message,true));
   state.tab=tab;
-  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','members','activity','procurement','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
+  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   if(tab==='cart')renderCart();
   if(tab==='orders'||tab==='admin'||tab==='inventory')loadOrders().catch(e=>notice(e.message,true));
@@ -46,6 +46,7 @@ function setTab(tab){
   if(tab==='notifications')loadNotifications().catch(e=>notice(e.message,true));
   if(tab==='favorites')loadPersonal().catch(e=>notice(e.message,true));
   if(tab==='account'){loadCharacters().catch(e=>notice(e.message,true));loadOrderTokens().catch(e=>notice(e.message,true));}
+  if(tab==='help')loadFeedback().catch(e=>notice(e.message,true));
   if(tab==='members')loadMembers().catch(e=>notice(e.message,true));
   if(tab==='activity')loadActivity().catch(e=>notice(e.message,true));
   if(tab==='procurement')loadProcurement().catch(e=>notice(e.message,true));
@@ -1012,3 +1013,99 @@ $('demoEndBtn').onclick=async()=>{try{await post('/logout',{});}finally{location
 (()=>{const ua=navigator.userAgent||'',a=$('downloadMain');if(!a)return;
   if(/Mac OS X|Macintosh/.test(ua)){a.href='/api/v1/download/setup?os=mac-arm64';a.textContent='⬇ Banklord für macOS herunterladen';}
   else if(/Linux/.test(ua)&&!/Android/.test(ua)){a.href='/api/v1/download/setup?os=linux-x64';a.textContent='⬇ Banklord für Linux herunterladen';}})();
+
+// ---- Help & feedback ------------------------------------------------------
+const feedback={kind:null,inboxStatus:'new',inbox:false};
+const feedbackKinds={bug:{title:'Fehler melden',icon:'🐞',area:'Wo tritt es auf?'},idea:{title:'Idee vorschlagen',icon:'💡',area:'Was betrifft es?'},language:{title:'Sprache anfragen',icon:'🌐',area:'Wo wird die Sprache gebraucht?'}};
+const feedbackStatus={new:['Eingegangen','badge-wait'],seen:['Gesehen','badge-wait'],planned:['Geplant','badge-ok'],done:['Erledigt','badge-done'],rejected:['Abgelehnt','badge-bad'],duplicate:['Schon gemeldet','badge-done'],pending:['Wird gesendet','badge-wait']};
+const feedbackErrors={FEEDBACK_TITLE_REQUIRED:'Bitte einen kurzen Titel angeben (mindestens 4 Zeichen).',FEEDBACK_TEXT_REQUIRED:'Bitte etwas genauer beschreiben (mindestens 10 Zeichen).',FEEDBACK_LANGUAGE_REQUIRED:'Bitte die gewünschte Sprache angeben.',INVALID_EMAIL:'Die E-Mail-Adresse ist ungültig.',FEEDBACK_RATE_LIMIT:'Zu viele Meldungen in kurzer Zeit. Bitte später erneut versuchen.',FEEDBACK_UNREACHABLE:'Das Banklord-Projekt ist gerade nicht erreichbar. Bitte später erneut versuchen.',FEEDBACK_DISABLED:'Meldungen sind auf dieser Website ausgeschaltet.'};
+function feedbackBadge(status){const [text,cls]=feedbackStatus[status]||[status,'badge-wait'];return el('span','badge '+cls,text);}
+function chooseFeedbackKind(kind){
+  feedback.kind=kind;
+  document.querySelectorAll('.feedback-kind').forEach(b=>b.classList.toggle('active',b.dataset.kind===kind));
+  const form=$('feedbackForm');form.classList.remove('hidden');
+  $('feedbackFormTitle').textContent=T(feedbackKinds[kind].title);$('feedbackAreaLabel').textContent=T(feedbackKinds[kind].area);
+  form.querySelectorAll('[data-for]').forEach(x=>x.classList.toggle('hidden',!x.dataset.for.split(' ').includes(kind)));
+  $('feedbackArea').value=kind==='bug'?'unknown':'addon';
+  (kind==='language'?$('feedbackLanguage'):$('feedbackTitle')).focus();
+}
+function resetFeedbackForm(){
+  $('feedbackForm').reset();$('feedbackForm').classList.add('hidden');feedback.kind=null;
+  document.querySelectorAll('.feedback-kind').forEach(b=>b.classList.remove('active'));
+}
+async function submitFeedback(ev){
+  ev.preventDefault();if(!feedback.kind||!state.guild)return;
+  const k=feedback.kind;
+  const body={kind:k,area:$('feedbackArea').value,contact:$('feedbackContact').value.trim(),meta:{lang:webLocale()}};
+  if(k==='bug')Object.assign(body,{title:$('feedbackTitle').value,text:$('feedbackTextBug').value,steps:$('feedbackSteps').value,expected:$('feedbackExpected').value});
+  if(k==='idea')Object.assign(body,{title:$('feedbackTitle').value,text:$('feedbackTextIdea').value});
+  if(k==='language')Object.assign(body,{language:$('feedbackLanguage').value,help:$('feedbackHelp').value,text:$('feedbackTextLanguage').value});
+  const button=$('feedbackSubmit');button.disabled=true;
+  try{
+    const r=await post(path('feedback'),body);
+    resetFeedbackForm();
+    notice(T('Danke! Deine Meldung ist angekommen.')+(r.report.number?' #'+r.report.number:''));
+    await loadFeedback();
+  }catch(e){notice(T(feedbackErrors[e.message]||e.message),true);}
+  finally{button.disabled=false;}
+}
+async function loadFeedback(){
+  if(!state.guild)return;
+  const r=await api(path('feedback'));
+  $('feedbackDisabled').classList.toggle('hidden',r.enabled!==false);
+  $('feedbackKinds').classList.toggle('hidden',r.enabled===false);
+  const root=$('feedbackMine');root.replaceChildren();
+  if(!r.mine.length)root.append(el('p','muted','Du hast noch nichts gemeldet.'));
+  for(const f of r.mine){
+    const item=el('article','order-card2 feedback-item');
+    const head=el('div','order-head');
+    head.append(add(el('div'),el('strong','',(feedbackKinds[f.kind]?.icon||'')+' '+f.title)),feedbackBadge(f.status));
+    const meta=el('div','muted');meta.append(el('span','',T(feedbackKinds[f.kind]?.title||f.kind)));
+    if(f.number)meta.append(el('span','',' · #'+f.number));
+    meta.append(el('span','',' · '+(f.source==='ingame'?T('aus dem Spiel'):T('von der Website'))));
+    meta.append(el('span','',' · '+new Date(f.created_at*1000).toLocaleString(webLocale()==='enUS'?'en-US':'de-DE',{dateStyle:'medium',timeStyle:'short'})));
+    item.append(head,meta);
+    if(f.reply){const reply=el('div','feedback-reply');reply.append(el('strong','','Antwort: '),el('span','',f.reply));item.append(reply);}
+    root.append(item);
+  }
+  feedback.inbox=!!r.inbox;
+  $('feedbackInboxPanel').classList.toggle('hidden',!feedback.inbox);
+  if(feedback.inbox)await loadFeedbackInbox();
+}
+async function loadFeedbackInbox(){
+  const q=feedback.inboxStatus?'?status='+encodeURIComponent(feedback.inboxStatus):'';
+  const r=await api(path('feedback/inbox'+q));
+  document.querySelectorAll('#feedbackInboxFilter .chip').forEach(c=>{
+    c.classList.toggle('active',c.dataset.status===feedback.inboxStatus);
+    const n=c.dataset.status?(r.counts[c.dataset.status]||0):Object.values(r.counts).reduce((a,b)=>a+b,0);
+    let count=c.querySelector('.count');if(!count){count=el('span','count');c.append(count);}count.textContent=String(n);
+  });
+  const root=$('feedbackInbox');root.replaceChildren();
+  if(!r.items.length)root.append(el('p','muted','Keine Meldungen in dieser Ansicht.'));
+  const labels={steps:'Schritte',expected:'Erwartet',language:'Sprache',help:'Hilft beim Übersetzen'};
+  const areas={addon:'Addon im Spiel',web:'Website',companion:'Companion',setup:'Setup oder Updates',unknown:'Weiß nicht'};
+  for(const f of r.items){
+    const item=el('article','order-card2 feedback-item');
+    const head=el('div','order-head');
+    head.append(add(el('div'),el('strong','',(feedbackKinds[f.kind]?.icon||'')+' #'+f.id+' '+f.title)),feedbackBadge(f.status));
+    const meta=el('div','muted');
+    meta.append(el('span','',feedbackKinds[f.kind]?.title||f.kind),el('span','',' · '+T(areas[f.details.area]||f.details.area||'')),el('span','',' · '+when(f.created_at)),el('span','',' · '+f.site));
+    const versions=Object.entries(f.meta||{}).map(([k,v])=>k+' '+v).join(', ');
+    if(versions)meta.append(el('span','',' · '+versions));
+    item.append(head,meta,el('div','feedback-details',f.details.text||''));
+    for(const [k,label] of Object.entries(labels)) if(f.details[k]){const d=el('div','feedback-details');d.append(el('strong','',T(label)+': '),el('span','',f.details[k]));item.append(d);}
+    if(f.contact){const c=el('div','muted');c.append(el('span','','Kontakt: '),add(el('a','',f.contact)));c.querySelector('a').href='mailto:'+f.contact;item.append(c);}
+    const form=el('form','feedback-answer');
+    const sel=el('select');for(const [v,[t]] of Object.entries(feedbackStatus)) if(v!=='pending'){const o=el('option','',t);o.value=v;sel.append(o);}sel.value=f.status;
+    const reply=el('textarea');reply.rows=2;reply.maxLength=1000;reply.value=f.reply||'';reply.placeholder=T('Antwort an die meldende Person (optional)');
+    const save=el('button','button-sm','Speichern');save.type='submit';
+    form.append(add(el('label','','Status'),sel),add(el('label','','Antwort'),reply),save);
+    form.onsubmit=async ev=>{ev.preventDefault();save.disabled=true;try{await api(path('feedback/inbox/'+f.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:sel.value,reply:reply.value})});notice(T('Gespeichert.'));await loadFeedbackInbox();}catch(e){notice(e.message,true);}finally{save.disabled=false;}};
+    item.append(form);root.append(item);
+  }
+}
+document.querySelectorAll('.feedback-kind').forEach(b=>b.addEventListener('click',()=>chooseFeedbackKind(b.dataset.kind)));
+$('feedbackForm').addEventListener('submit',submitFeedback);
+$('feedbackCancel').addEventListener('click',resetFeedbackForm);
+$('refreshFeedback').addEventListener('click',()=>loadFeedback().catch(e=>notice(e.message,true)));
+document.querySelectorAll('#feedbackInboxFilter .chip').forEach(c=>c.addEventListener('click',()=>{feedback.inboxStatus=c.dataset.status;loadFeedbackInbox().catch(e=>notice(e.message,true));}));

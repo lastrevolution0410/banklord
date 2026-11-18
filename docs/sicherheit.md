@@ -16,6 +16,7 @@
 | Bestellungen, Empfänger-Charakter | Website der Gilde | Das Mitglied selbst, Bankverwalter, Offiziere, Admins |
 | E-Mail, Anzeigename, Passwort-Hash | Website der Gilde | Admins (E-Mail), niemand (Passwort) |
 | Charakternamen und Realm | Website der Gilde | Mitglieder der Gilde |
+| Hilfe-&-Feedback-Meldungen | Banklord-Projekt (offizielle Seite); auf der Gilden-Website nur Titel und Status | Projektbetreuer. Ohne Konto-, Charakter- oder Gildendaten; E-Mail nur, wenn freiwillig angegeben |
 | Zugangsschlüssel des Companions | PC: Windows-Datenschutz (DPAPI), macOS-Schlüsselbund, Linux Secret Service. Website: nur als Hash. | Niemand im Klartext |
 
 ## Freischaltung im Spiel
