@@ -695,7 +695,8 @@ for i=1,8 do
   r:SetScript('OnEnter',function(self)A:ShowOrderTooltip(self,self.row)end)
   r:SetScript('OnLeave',function()if GameTooltip then GameTooltip:Hide()end end)
   r:SetScript('OnClick',function(self)
-    if self.row and self.row.failure then A:DismissOrderFailures();A:RefreshUI() end
+    if self.row and self.row.failure then A:DismissOrderFailures();A:RefreshUI()
+    elseif self.row and self.row.order and A:IsCancellable(self.row.order) then A:CancelOwnOrder(self.row.order.id) end
   end)
   orderRows[i]=r
 end
@@ -749,7 +750,7 @@ text(advanced,'GameFontHighlightSmall',29,-152,920,
   'Aus: durchsichtig, die Spielwelt bleibt sichtbar. An: dunkle Fläche, besser lesbar in hellen Gegenden.',COLORS.muted)
 text(advanced,'GameFontNormal',26,-200,900,'Sprache und Minikarte',COLORS.gold)
 text(advanced,'GameFontHighlightSmall',26,-222,924,
-  'Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap',COLORS.muted)
+  'Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap.   Bestand in Tooltips ein/aus: /banklord tooltip',COLORS.muted)
 text(advanced,'GameFontNormal',26,-270,900,'Warenkorb ohne Companion übergeben',COLORS.gold)
 text(advanced,'GameFontHighlightSmall',26,-292,924,
   'Wer keinen Companion hat, kann seinen Warenkorb im Reiter „Warenkorb“ an einen Mitspieler schicken, der ihn hochlädt. Hier siehst du, was angekommen oder unterwegs ist.',COLORS.muted)
@@ -785,8 +786,8 @@ for i=1,ob.size do
   r.go=push(r,'Entnehmen',736,-3,108,26,function(self)
     local row=self:GetParent()
     if not row.order then return end
-    A.manageMode=row.action=='mail' and 'mail' or 'bank'
-    A:ManageOne(row.order)
+    A.manageMode=(row.action=='mail' or row.action=='mailpart') and 'mail' or 'bank'
+    A:ManageOne(row.order,row.action)
     A:RefreshUI()
   end)
   r.no=push(r,'Ablehnen',850,-3,104,26,function(self) A:RejectOrder(self:GetParent().order) end)
@@ -801,7 +802,8 @@ ob.scan=push(bank,'Bank neu scannen',232,-414,200,30,function()
   if A.scanRun then A:AbortScan('Manuell abgebrochen') else A:StartScan('all') end
   A:RefreshUI()
 end)
-ob.pager=text(bank,'GameFontNormalSmall',450,-422,330,'',COLORS.muted)
+push(bank,'Einkaufsliste',442,-414,150,30,function() A:ShowShoppingList() end)
+ob.pager=text(bank,'GameFontNormalSmall',602,-422,182,'',COLORS.muted)
 push(bank,'Zurück',792,-414,90,30,function() ob.offset=math.max(0,ob.offset-ob.size);A:RefreshUI() end)
 push(bank,'Weiter',890,-414,90,30,function() ob.offset=ob.offset+ob.size;A:RefreshUI() end)
 function A:RefreshOrdersTab() if window:IsShown() and active=='bank' then self:RefreshUI() end end
@@ -1016,7 +1018,7 @@ function A:RefreshUI()
         r.icon:SetTexture(itemIcon(item.id,item.iconTexture))
         fitText(r.name,item.name,365,65)
         r.name:SetTextColor(itemColor(item.quality))
-        r.stock:SetText(A:Tr('%s Stk.'):format(tostring(item.count)))
+        r.stock:SetText(self:OrderableCount(item.key,item.count)>0 and A:Tr('%s Stk.'):format(tostring(item.count)) or A:Tr('Nur ansehen'))
         r.bg:SetVertexColor(item.key==selectedKey and .30 or (i%2==0 and .092 or .12),
           item.key==selectedKey and .23 or .093,item.key==selectedKey and .11 or .088,.91)
         r:Show()
@@ -1033,8 +1035,11 @@ function A:RefreshUI()
       detailName:SetTextColor(itemColor(chosen.quality))
       detailType:SetText(A:Tr('Kategorie: %s'):format(prefixChars(chosen.class,25))..'\n'..prefixChars(chosen.subclass or '',26))
       detailLevel:SetText(A:Tr('Stufe %s  -  Item-ID %s'):format(tostring(chosen.level or '?'),tostring(chosen.id)))
-      detailStock:SetText(A:Tr('Inventur: %s Stück'):format(tostring(chosen.count)))
-      addButton:Enable()
+      local free=self:OrderableCount(chosen.key,chosen.count)
+      if free<(chosen.count or 0) then
+        detailStock:SetText(A:Tr('Inventur: %s Stück (%s nur ansehen)'):format(tostring(chosen.count),tostring(chosen.count-free)))
+      else detailStock:SetText(A:Tr('Inventur: %s Stück'):format(tostring(chosen.count))) end
+      if free>0 then addButton:Enable() else addButton:Disable() end
     else
       lastDetailKey=nil
       detailIcon:SetTexture('Interface\\Icons\\INV_Misc_QuestionMark')
@@ -1046,7 +1051,8 @@ function A:RefreshUI()
     detailSnapshot:SetText(A:Tr('Snapshot: %s\nMengen können inzwischen abweichen.'):format(snapshotTime(scan)))
   elseif active=='cart' then
     cartOffset=math.max(0,math.min(cartOffset,math.max(0,#cartRows-8)))
-    cartSummary:SetText(A:Tr('%d Positionen  ·  %d Stück  ·  lokal'):format(positions,units))
+    local limit,used=self:WeeklyLimit()
+    cartSummary:SetText(A:Tr('%d Positionen  ·  %d Stück  ·  lokal'):format(positions,units)..(limit and A:Tr('  ·  Wochenlimit %d/%d'):format(used,limit) or ''))
     for i,r in ipairs(cartButtons) do
       local row=cartRows[cartOffset+i]
       if row then
@@ -1087,7 +1093,7 @@ function A:RefreshUI()
         r.status:SetTextColor(rgb(ob.tone[tone] or COLORS.bright))
         r.action=action
         if action then
-          fitText(r.go.caption,action=='mail' and A:Tr('Versenden') or A:Tr('Entnehmen'),93)
+          fitText(r.go.caption,self:ActionCaption(action),93)
           r.go:SetEnabled(possible==true);r.go:Show()
         else r.go:Hide() end
         r.no:SetEnabled(not self:OrderBlocked(o.id));r.no:Show()

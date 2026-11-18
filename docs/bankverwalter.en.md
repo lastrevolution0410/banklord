@@ -18,7 +18,7 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 
 ## Noticing new orders
 
-- **Live:** If a member orders in game while you are online, a notice appears in the middle of the screen with a sound.
+- **Live:** If a member orders in game while you are online, you get a chat message with a sound and the minimap button blinks with the number of open orders.
 - **On login:** Orders received since your last visit (including those from the website) are announced after you log in.
 - **List:** `/banklord bestellungen` shows all open orders.
 
@@ -46,6 +46,16 @@ The window can be moved and remembers its position.
 Only mails Banklord prepared itself count as issued. If you change the subject, nothing is booked.
 
 **Bags full?** Banklord stops, tells you which order is only partly withdrawn, and the next “Withdraw” takes only the rest.
+
+**Partial delivery:** If the stock is not enough, Banklord offers “Take part”. At the mailbox “Send part” mails what is in your bags. Exactly that amount is booked; the rest stays open for every manager.
+
+**Member notice:** After sending, the recipient gets a message in game right away if they are online.
+
+**Weekly limit:** Orders above the limit show “waiting for an officer”. Officers and admins see “Approve” instead (in game or on the website under **Orders**). An admin sets the rules on the website under **Members → Order rules**: weekly limits, automatic cancelling of old orders and view-only tabs.
+
+**Shopping list:** **Orders → Shopping list** (or `/banklord einkauf`) shows what fell below the minimum stock, ready to copy for Auctionator and TSM. Set minimum and target stock on the website under **Restock**; the same lists can be copied there.
+
+**If a member cancels** their order in game, it is locked for you right away.
 
 **Reject:** In the Banklord window under **Orders**, “Reject” next to each order (with confirmation), or `/banklord ablehnen <no>`. Other managers see the order as rejected right away; the website and the member learn about it after your next `/reload`.
 

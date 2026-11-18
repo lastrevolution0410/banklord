@@ -47,7 +47,7 @@ function setTab(tab){
   if(tab==='favorites')loadPersonal().catch(e=>notice(e.message,true));
   if(tab==='account'){loadCharacters().catch(e=>notice(e.message,true));loadOrderTokens().catch(e=>notice(e.message,true));}
   if(tab==='help')loadFeedback().catch(e=>notice(e.message,true));
-  if(tab==='members')loadMembers().catch(e=>notice(e.message,true));
+  if(tab==='members'){loadMembers().catch(e=>notice(e.message,true));loadWeeklyLimit();}
   if(tab==='activity')loadActivity().catch(e=>notice(e.message,true));
   if(tab==='procurement')loadProcurement().catch(e=>notice(e.message,true));
 }
@@ -385,6 +385,7 @@ function renderItemDetail(){
   const note=el('div','item-detail-stats');
   note.append(el('p','','Inventur: '+qty(item.physical_qty)+' Stück'),el('p','','Reserviert: '+qty(item.reserved_qty)+' Stück'),
     el('p',item.available_qty===null?'status-warn':'status-available',item.available_qty===null?'Verfügbarkeit nicht bestätigt':'Anforderbar: '+qty(item.available_qty)+' Stück'),
+    ...(Number(item.viewonly_qty)>0?[el('p','muted','Davon nur ansehen (gesperrter Tab): '+qty(item.viewonly_qty)+' Stück')]:[]),
     el('p','muted','Bestands-ID: '+item.stock_id+' · WoW-Item: '+item.wow_item_id));
   root.append(note);
   const tooltipBtn=el('button','secondary button-sm wow-detail-tooltip',T('openValues'));tooltipBtn.type='button';tooltipBtn.onclick=e=>{showTooltip(item,e,true);placeTooltip(e);};root.append(tooltipBtn);
@@ -393,6 +394,7 @@ function renderItemDetail(){
   const caption=el('label','','Gewünschte Menge');const amount=el('input');amount.type='number';amount.min='1';amount.max='1000000';amount.value='1';amount.inputMode='numeric';amount.setAttribute('aria-label','Menge für '+item.name);
   caption.append(amount);
   const addBtn=el('button','','In Warenkorb legen');addBtn.type='button';
+  if(viewOnly(item)){addBtn.disabled=true;addBtn.textContent='Nur ansehen';}
   addBtn.onclick=()=>{const n=Number(amount.value);if(!Number.isSafeInteger(n)||n<1||n>1000000){notice('Ungültige Menge.',true);return;}
     const id=Number(item.stock_id);const previous=state.cart.get(id)?.quantity||0;
     if(n+previous>1000000){notice('Maximale Anfragemenge überschritten.',true);return;}
@@ -413,6 +415,7 @@ function renderItemDetail(){
   controls.querySelector('.cart-jump').onclick=()=>setTab('cart');
   root.append(controls);
 }
+function viewOnly(item){return Number(item.viewonly_qty)>0&&Number(item.physical_qty)-Number(item.reserved_qty)<=Number(item.viewonly_qty);}
 function renderItems(){
   const root=$('inventoryItems');root.replaceChildren();$('itemPage').textContent=T('page')+' '+state.itemPage;$('prevItems').disabled=state.itemPage===1;$('nextItems').disabled=!state.hasNextItems;
   const confirmed=state.items.filter(x=>x.available_qty!==null);
@@ -433,7 +436,7 @@ function renderItems(){
     /* Native browser title causes a second, overlapping tooltip. Use our accessible tooltip only. */
     const icon=makeItemIcon(item);const name=el('span','catalog-item-name'+qualityClass(stockVisual(item)||{quality:item.icon_quality}),stockVisual(item)?.name||item.name);name.dataset.stockQuality=String(item.stock_id);name.dataset.stockLocalizedName=String(item.stock_id);
     card.append(icon,name,el('span',item.available_qty===null?'catalog-item-qty unconfirmed':'catalog-item-qty',
-      item.available_qty===null?T('stockUnverified'):qty(item.available_qty)+' Stk.'));
+      viewOnly(item)?'Nur ansehen':item.available_qty===null?T('stockUnverified'):qty(item.available_qty)+' Stk.'));
     card.onclick=()=>{hideTooltip();state.selectedStockId=Number(item.stock_id);root.querySelectorAll('.catalog-item').forEach(x=>{const selected=x===card;x.classList.toggle('selected',selected);x.setAttribute('aria-pressed',String(selected));});renderItemDetail();};root.append(card);
     observeAppearance(icon,item);tooltipBindings(card,item);
   }
@@ -447,7 +450,26 @@ async function loadOrderCharacters(){
   if(keep&&list.some(c=>String(c.id)===keep))select.value=keep;
   $('orderCharacterHint').classList.toggle('hidden',list.length>0);$('submitOrder').disabled=list.length===0;
 }
-function renderCart(){loadOrderCharacters();
+async function loadWeeklyLimit(){
+  const info=$('weeklyLimitInfo');if(!info||!state.guild)return;
+  try{const r=await api(path('order-rules'));info.classList.toggle('hidden',!r.my_limit);
+    if(r.my_limit)info.textContent=`Wochenlimit: ${qty(r.my_used)} von ${qty(r.my_limit)} Stück bestellt. Darüber gibt ein Offizier frei.`;
+    fillOrderRules(r.rules);}catch(e){}
+}
+function fillOrderRules(r){
+  if(!$('orderRulesForm')||!r)return;
+  $('ruleMemberLimit').value=r.member_weekly_limit;$('ruleManagerLimit').value=r.manager_weekly_limit;$('ruleExpiry').value=r.expiry_days;$('ruleViewTabs').value=(r.viewonly_tabs||[]).join(',');
+  const admin=state.guild&&state.guild.role==='admin';
+  $('orderRulesForm').querySelectorAll('input,button').forEach(x=>x.disabled=!admin);
+}
+$('orderRulesForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const n=id=>Number($(id).value);const tabs=$('ruleViewTabs').value.split(/[ ,;]+/).filter(Boolean).map(Number);
+  const body={member_weekly_limit:n('ruleMemberLimit'),manager_weekly_limit:n('ruleManagerLimit'),expiry_days:n('ruleExpiry'),viewonly_tabs:tabs};
+  if(Object.values(body).slice(0,3).some(v=>!Number.isSafeInteger(v)||v<0)||tabs.some(t=>!Number.isInteger(t)||t<1||t>8)){notice('Bitte Zahlen prüfen (Tabs 1 bis 8).',true);return;}
+  try{const r=await api(path('order-rules'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});fillOrderRules(r.rules);notice('Bestellregeln gespeichert.');}catch(err){notice(err.message,true);}
+});
+function renderCart(){loadOrderCharacters();loadWeeklyLimit();
   const root=$('cartItems');root.replaceChildren();if(state.cart.size===0){root.append(el('p','muted','Dein Warenkorb ist leer. Im Bankbestand kannst du Gegenstände auswählen.'));$('checkoutForm').classList.add('hidden');return;}
   $('checkoutForm').classList.remove('hidden');
   for(const [id,item] of state.cart){
@@ -483,7 +505,7 @@ function orderGroup(status){return status==='submitted'?'review':['reserved','pa
 function orderCard(order,adminMode){
   const card=el('article','order-card2');const head=el('div','order-head');const title=el('div');
   title.append(el('div','item-title',(adminMode&&order.display_name?order.display_name+' · ':'')+'Bestellung #'+order.id),el('div','muted',when(order.created_at)+(order.note?' · „'+order.note+'“':'')));
-  head.append(title,statusBadge(order.status));card.append(head);
+  head.append(title,statusBadge(order.status));if(Number(order.needs_approval)===1)head.append(el('span','badge badge-wait','Freigabe nötig'));card.append(head);
   if(order.summary)card.append(el('p','order-summary',order.summary));
   card.append(orderProgress(order.status));
   const group=orderGroup(order.status);const box=el('div','order-detail hidden');
@@ -509,6 +531,12 @@ async function showOrder(id,adminMode,target){
   const lines=el('div','stack');for(const line of response.lines){
     lines.append(add(el('div','row'),el('div','item-title',line.name),el('div','muted',`Angefordert: ${qty(line.requested_qty)} · Genehmigt: ${qty(line.approved_qty)} · Ausgegeben: ${qty(line.fulfilled_qty)}${line.decision==='rejected'?' · abgelehnt':''}`)));
   }box.append(lines);
+  if(Number(response.order.needs_approval)===1){
+    const canApprove=['officer','admin'].includes(state.guild.role);
+    const wait=el('div','panel attention');wait.append(el('p','','Diese Bestellung liegt über dem Wochenlimit. Sie wird erst nach Freigabe durch einen Offizier oder Administrator ausgegeben.'));
+    if(adminMode&&canApprove){const ok=el('button','','Über Limit freigeben');ok.type='button';ok.onclick=async()=>{ok.disabled=true;try{await post(path('orders/'+id+'/approve'),{});notice('Bestellung freigegeben.');await loadOrders();}catch(err){notice(err.message,true);}finally{ok.disabled=false;}};wait.append(ok);}
+    box.append(wait);
+  }
   if(adminMode&&administrator()&&response.order.status==='submitted'){
     const form=el('form','panel');form.append(el('h3','','Genehmigen oder ablehnen'));
     for(const line of response.lines){const label=el('label','',line.name+' · maximal '+line.requested_qty);const input=el('input');input.type='number';input.min='0';input.max=String(line.requested_qty);input.value=String(line.requested_qty);input.dataset.lineId=line.id;label.append(input);form.append(label);}
@@ -920,7 +948,7 @@ async function loadProcurement(){
   restockOptions=new Map(restock.options.map(o=>[o.name,o]));const dl=$('restockOptions');dl.replaceChildren();
   for(const o of restock.options){const opt=el('option');opt.value=o.name;dl.append(opt);}
   const rules=[...restock.rules].sort((a,b)=>({shortage:0,unverified:1,ok:2}[a.status]-{shortage:0,unverified:1,ok:2}[b.status])||a.name.localeCompare(b.name));
-  const short=rules.filter(x=>x.status==='shortage');
+  const short=rules.filter(x=>x.status==='shortage');restockShort=short;
   const sum=$('restockSummary');sum.replaceChildren();
   for(const [v,l] of [[short.length,'Gegenstände fehlen'],[qty(short.reduce((a,x)=>a+Number(x.missing_qty||0),0)),'Stück nachkaufen'],[rules.length-short.length,'ausreichend oder unklar']])sum.append(add(el('div','stat'),el('strong','',String(v)),el('span','',l)));
   const r=$('restockList');r.replaceChildren();
@@ -948,6 +976,16 @@ $('restockForm').onsubmit=async e=>{
   try{await api(path('procurement/rules/'+stock),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({minimum,target})});await loadProcurement();notice('Mindestbestand gespeichert.');}
   catch(err){notice(err.message,true);}
 };
+// Shopping list strings for the auction house addons. Only rows that are short.
+let restockShort=[];
+function auctionatorList(rows){return 'Banklord Nachkauf^'+rows.map(r=>`"${String(r.name).replace(/[\^";]/g,'')}";;0;0;0;0;0;0;0;0;;#;;${Number(r.missing_qty)}`).join('^');}
+function tsmList(rows){return rows.map(r=>'i:'+Number(r.wow_item_id)).join(',');}
+async function copyText(text,label){
+  if(!text){notice('Gerade fehlt nichts.',true);return;}
+  try{await navigator.clipboard.writeText(text);notice(label+' kopiert.');}catch(e){prompt(label+' (Strg+C):',text);}
+}
+$('copyAuctionator').onclick=()=>copyText(restockShort.length?auctionatorList(restockShort):'','Auctionator-Liste');
+$('copyTsm').onclick=()=>copyText(tsmList(restockShort),'TSM-Liste');
 $('downloadProcurement').onclick=async()=>{
   try{
     const r=await fetch('/api/v1'+path('procurement/export.csv'),{credentials:'same-origin',cache:'no-store'});

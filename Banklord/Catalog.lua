@@ -27,6 +27,38 @@ function A:SearchLocalItems(query)
   if #found>15 then self:Message(A:Tr('Nur die ersten 15 Treffer. Suche bitte eingrenzen.')) end
   return found
 end
+-- Guild rules from the website for the current guild (view-only tabs, limits).
+function A:GuildRules()
+  local st=Banklord_ServerState
+  for _,r in ipairs(type(st)=='table' and type(st.rules)=='table' and st.rules or {}) do
+    if type(r)=='table' and (not A.SameGuild or A.SameGuild(r)) then return r end
+  end
+end
+-- Pieces per item key that lie in view-only tabs of the latest scan.
+local viewCache={}
+function A:ViewOnlyCounts(scan)
+  scan=scan or latest(self)
+  local rules=self:GuildRules()
+  local tabs={}
+  for _,t in ipairs(type(rules)=='table' and type(rules.viewOnlyTabs)=='table' and rules.viewOnlyTabs or {}) do tabs[t]=true end
+  if not scan or not next(tabs) then return {} end
+  local sig=tostring(scan.capturedAt)..'|'..table.concat(rules.viewOnlyTabs,',')
+  if viewCache.sig==sig then return viewCache.map end
+  local map={}
+  for tab,t in pairs(type(scan.tabs)=='table' and scan.tabs or {}) do
+    if tabs[tonumber(tab)] and type(t)=='table' then
+      for _,item in ipairs(type(t.items)=='table' and t.items or {}) do
+        if item.itemKey then map[item.itemKey]=(map[item.itemKey] or 0)+(item.count or 0) end
+      end
+    end
+  end
+  viewCache.sig,viewCache.map=sig,map
+  return map
+end
+function A:OrderableCount(key,count)
+  return math.max(0,(count or 0)-(self:ViewOnlyCounts()[key] or 0))
+end
+
 function A:AddCartDraftByKey(key,quantity)
   if type(key)~='string' or not key:match('^item:[%d:%-]+$') or
      type(quantity)~='number' or quantity<1 or quantity>1000000 or quantity%1~=0 then
@@ -39,6 +71,11 @@ function A:AddCartDraftByKey(key,quantity)
   if not match then return self:Message(A:Tr('Gegenstand nicht im lokalen Snapshot.')) end
   self.db.localCartDraft=self.db.localCartDraft or {}
   local current=self.db.localCartDraft[key] or {quantity=0}
+  local free=self:OrderableCount(key,match.count)
+  if free<(match.count or 0) then
+    if free<=0 then return self:Message(A:Tr('Nur ansehen: Dieser Gegenstand liegt in einem gesperrten Tab der Gildenbank.')) end
+    if current.quantity+quantity>free then return self:Message(A:Tr('Nur %d Stück bestellbar – der Rest liegt in einem Nur-ansehen-Tab.'):format(free)) end
+  end
   if current.quantity+quantity>1000000 then return self:Message(A:Tr('Entwurfsmenge zu hoch.')) end
   self.db.localCartDraft[key]={quantity=current.quantity+quantity,id=match.itemID,key=key,name=cleanName(match.itemLink)}
   self:Message(A:Tr('%d x %s lokal vorgemerkt. NICHT bestellt!'):format(quantity,cleanName(match.itemLink)))
@@ -88,4 +125,50 @@ function A:BuildCartTransferCode()
   local transfer='BL1|'..table.concat(parts,'|')
   if #transfer>4000 then return nil,A:Tr('Übertragungscode zu lang.') end
   return transfer
+end
+
+-- Guild bank count in item tooltips ("Gildenbank: 20"), from the latest scan.
+local countCache={}
+local function bankCount(itemId)
+  local scan=latest(A)
+  if not scan or not itemId then return nil end
+  if countCache.scan~=scan then
+    countCache.scan,countCache.map=scan,{}
+    for _,item in ipairs(scan.items or {}) do
+      if item.itemID then countCache.map[item.itemID]=(countCache.map[item.itemID] or 0)+(item.count or 0) end
+    end
+  end
+  return countCache.map[itemId]
+end
+A._bankCount=bankCount
+function A:AddTooltipStock(tooltip,itemId)
+  if not (self.db and tooltip and tooltip.AddLine) then return end
+  if type(self.db.settings)=='table' and self.db.settings.tooltipStock==false then return end
+  local n=bankCount(tonumber(itemId))
+  if not n or n<=0 then return end
+  tooltip:AddLine(A:Tr('Gildenbank: %d'):format(n),.97,.74,.27)
+end
+function A:InitTooltip()
+  if self.tooltipHooked then return end
+  self.tooltipHooked=true
+  if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item,function(tt,data)
+      if tt==GameTooltip or tt==ItemRefTooltip then A:AddTooltipStock(tt,data and data.id) end
+    end)
+    return
+  end
+  for _,tt in ipairs({GameTooltip,ItemRefTooltip}) do
+    if tt and tt.HookScript then
+      pcall(tt.HookScript,tt,'OnTooltipSetItem',function(self)
+        local _,link=self:GetItem()
+        A:AddTooltipStock(self,link and link:match('item:(%d+)'))
+      end)
+    end
+  end
+end
+function A:ToggleTooltipStock()
+  if not self.db then return end
+  self.db.settings=type(self.db.settings)=='table' and self.db.settings or {}
+  self.db.settings.tooltipStock=self.db.settings.tooltipStock==false
+  self:Message(self.db.settings.tooltipStock and A:Tr('Gildenbank-Bestand in Tooltips: an.') or A:Tr('Gildenbank-Bestand in Tooltips: aus.'))
 end

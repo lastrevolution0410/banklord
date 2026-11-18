@@ -49,7 +49,27 @@ type manageOrder struct {
 	CreatedAt int64        `json:"created_at"`
 	Requester string       `json:"requester"`
 	Recipient string       `json:"recipient"`
+	Approval  int          `json:"approval"`
 	Lines     []manageLine `json:"lines"`
+}
+
+// stateRules are the guild's order rules as the addon needs them.
+type stateRules struct {
+	Guild        guildRef `json:"-"`
+	ViewOnlyTabs []int    `json:"viewonly_tabs"`
+	ExpiryDays   int      `json:"expiry_days"`
+	WeeklyLimit  int64    `json:"weekly_limit"`
+	WeeklyUsed   int64    `json:"weekly_used"`
+}
+
+// restockRow is one entry of the managers' shopping list (target stock rules).
+type restockRow struct {
+	Guild   guildRef `json:"-"`
+	ItemID  int64    `json:"item_id"`
+	Name    string   `json:"name"`
+	Have    int64    `json:"have"`
+	Target  int64    `json:"target"`
+	Missing int64    `json:"missing"`
 }
 type manageResult struct {
 	Status string `json:"status,omitempty"`
@@ -68,6 +88,9 @@ type ingameState struct {
 	ManageResults map[string]manageResult `json:"manage_results"`
 	Feedback      []feedbackRow           `json:"feedback"`
 	FeedbackRes   map[string]feedbackRes  `json:"feedback_results"`
+	Rules         *stateRules             `json:"rules"`
+	Restock       []restockRow            `json:"restock"`
+	RulesList     []stateRules            `json:"-"`
 	Server        string                  `json:"-"`
 	GuildID       int64                   `json:"-"`
 	Connections   []stateConnection       `json:"-"`
@@ -242,8 +265,12 @@ func renderState(st ingameState) string {
 	if st.Manage != nil {
 		b.WriteString("  manage = {\n")
 		for _, o := range *st.Manage {
-			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s,%s lines = {\n",
-				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)), guildFields(o.Guild))
+			approval := o.Approval
+			if approval < 0 || approval > 2 {
+				approval = 1
+			}
+			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s, approval = %d,%s lines = {\n",
+				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)), approval, guildFields(o.Guild))
 			for i, l := range o.Lines {
 				if i >= 12 {
 					break
@@ -251,6 +278,31 @@ func renderState(st ingameState) string {
 				fmt.Fprintf(&b, "      { itemId = %d, name = %s, qty = %d },\n", l.ItemID, luaString(clip(l.Name, 80)), l.Qty)
 			}
 			b.WriteString("    } },\n")
+		}
+		b.WriteString("  },\n")
+	}
+	if len(st.RulesList) > 0 {
+		b.WriteString("  rules = {\n")
+		for _, r := range st.RulesList {
+			tabs := make([]string, 0, len(r.ViewOnlyTabs))
+			for _, t := range r.ViewOnlyTabs {
+				if t >= 1 && t <= 8 {
+					tabs = append(tabs, fmt.Sprint(t))
+				}
+			}
+			fmt.Fprintf(&b, "    {%s viewOnlyTabs = { %s }, expiryDays = %d, weeklyLimit = %d, weeklyUsed = %d },\n",
+				guildFields(r.Guild), strings.Join(tabs, ", "), r.ExpiryDays, r.WeeklyLimit, r.WeeklyUsed)
+		}
+		b.WriteString("  },\n")
+	}
+	if len(st.Restock) > 0 {
+		b.WriteString("  restock = {\n")
+		for i, r := range st.Restock {
+			if i >= 60 {
+				break
+			}
+			fmt.Fprintf(&b, "    { itemId = %d, name = %s, have = %d, target = %d, missing = %d,%s },\n",
+				r.ItemID, luaString(clip(r.Name, 80)), r.Have, r.Target, r.Missing, guildFields(r.Guild))
 		}
 		b.WriteString("  },\n")
 	}
@@ -350,6 +402,15 @@ func mergeStates(states []ingameState) ingameState {
 		}
 		for k, v := range st.ManageResults {
 			out.ManageResults[k] = v
+		}
+		if st.Rules != nil {
+			r := *st.Rules
+			r.Guild = st.Guild
+			out.RulesList = append(out.RulesList, r)
+		}
+		for _, r := range st.Restock {
+			r.Guild = st.Guild
+			out.Restock = append(out.Restock, r)
 		}
 		out.Feedback = append(out.Feedback, st.Feedback...)
 		for k, v := range st.FeedbackRes {

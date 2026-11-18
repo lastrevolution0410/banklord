@@ -70,6 +70,14 @@ Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reser
 
 Neuigkeiten siehst du auf der Website unter **Mitteilungen** und im Spiel nach dem nächsten `/reload`. Alle Zeiten werden in deiner Ortszeit angezeigt.
 
+- **Sofort-Hinweis:** Sobald ein Bankverwalter deine Post abschickt, meldet Banklord im Spiel „Deine Bestellung #… ist unterwegs“ – auch ohne `/reload`, wenn der Empfänger-Charakter online ist.
+- **Teillieferung:** Fehlt etwas in der Gildenbank, kann der Verwalter schon einen Teil schicken. Der Rest bleibt offen und kommt später.
+- **Stornieren:** Im Banklord-Fenster unter **Warenkorb → Meine Bestellungen** mit Rechtsklick auf die Bestellung, mit `/banklord stornieren <Nr>` oder auf der Website. Bereits Verschicktes bleibt bei dir.
+- **Wochenlimit:** Hat deine Gilde ein Wochenlimit festgelegt, siehst du es im Warenkorb. Darüber wird die Bestellung trotzdem angenommen, ein Offizier gibt sie frei.
+- **Alte Bestellungen:** Die Gilde kann offene Bestellungen nach einer festen Zahl von Tagen automatisch stornieren lassen.
+- **Nur ansehen:** Gegenstände aus gesperrten Gildenbank-Tabs siehst du, kannst sie aber nicht bestellen.
+- **Tooltip:** Fährst du über einen Gegenstand, zeigt Banklord „Gildenbank: 20“ (aus dem letzten Scan). Ein/aus: `/banklord tooltip`.
+
 ---
 
 ## Hilfe & Feedback
@@ -104,7 +112,10 @@ Alle Befehle beginnen mit `/banklord`:
 | `senden <Spieler>` | Warenkorb an einen Mitspieler übergeben, der ihn für dich hochlädt (falls du keinen Companion hast) |
 | `eingang`, `ausgang`, `erneut` | Übergebene Warenkörbe ansehen oder erneut senden |
 | `status` | Zustand von Addon und letztem Scan |
+| `stornieren <Nr>` | Eigene offene Bestellung stornieren |
 | `bestellungen` | Offene Bestellungen (nur Bankverwalter) |
+| `einkauf` | Einkaufsliste für Auctionator/TSM (nur Bankverwalter) |
+| `tooltip` | Gildenbank-Bestand in Tooltips ein/aus |
 | `feedback` | Hilfe & Feedback: Fehler melden, Idee vorschlagen, Sprache anfragen |
 | `minimap` | Minikarten-Knopf ein- oder ausblenden |
 | `lang de`, `lang en`, `lang auto` | Sprache umstellen |

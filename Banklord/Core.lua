@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.10.4"
+A.version = "0.11.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -145,6 +145,7 @@ function A:OnEvent(event, ...)
     if A.ReconcileOrderOutbox then A:ReconcileOrderOutbox() end
     if A.ReconcileFeedback then A:ReconcileFeedback() end
     if A.InitManage then A:InitManage() end
+    if A.InitTooltip then A:InitTooltip() end
     if A.InitMinimapButton then A:InitMinimapButton() end
     A:Message(A:Tr("v%s geladen. /banklord zeigt die Befehle."):format(A.version))
   elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" or
@@ -227,6 +228,12 @@ SlashCmdList.BANKLORD = function(text)
     local found
     for _, o in ipairs(A:IsBankManager() and A:OpenManageOrders() or {}) do if o.id == id then found = o end end
     if found then A:RejectOrder(found) else A:Message(A:Tr("Keine offene Bestellung #%d."):format(id)) end
+  elseif cmd:match("^stornieren%s+%d+$") or cmd:match("^cancel%s+%d+$") then
+    A:CancelOwnOrder(tonumber(cmd:match("(%d+)$")))
+  elseif cmd == "einkauf" or cmd == "shopping" then
+    if A:IsBankManager() then A:ShowShoppingList() else A:Message(A:Tr("Nur für Bankverwalter.")) end
+  elseif cmd == "tooltip" then
+    A:ToggleTooltipStock()
   elseif cmd == "orders" or cmd == "bestellungen" then
     if A:IsBankManager() then A:ShowManagePanel("list") else A:Message(A:Tr("Nur für Bankverwalter.")) end
   elseif cmd == "liste" or cmd:match("^suche%s*") then
@@ -262,6 +269,6 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, feedback, debug, minimap, lang de|en|auto"))
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, stornieren <Nr>, einkauf, tooltip, feedback, debug, minimap, lang de|en|auto"))
   end
 end

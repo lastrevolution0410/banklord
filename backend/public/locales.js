@@ -1,6 +1,27 @@
 /* English UI texts for Banklord. Keys are the German source texts. Placeholders {} keep their order. */
 window.BANKLORD_EN={
 exact:{
+"Bestellregeln":"Order rules",
+"Gelten für Website und Spiel. 0 bedeutet: keine Begrenzung.":"Apply to the website and the game. 0 means no limit.",
+"Wochenlimit Gildenmitglieder (Stück)":"Weekly limit for members (pieces)",
+"Wochenlimit Bankverwalter (Stück)":"Weekly limit for bank managers (pieces)",
+"Offene Bestellungen automatisch stornieren nach (Tagen)":"Cancel open orders automatically after (days)",
+"Nur-ansehen-Tabs der Gildenbank (z. B. 5,6)":"View-only guild bank tabs (e.g. 5,6)",
+"Regeln speichern":"Save rules",
+"Über dem Wochenlimit wird eine Bestellung trotzdem angenommen, wartet aber auf die Freigabe durch einen Offizier oder Administrator. Gegenstände in Nur-ansehen-Tabs sind sichtbar, aber nicht bestellbar (gilt ab dem nächsten Scan).":"Above the weekly limit an order is still accepted but waits for approval by an officer or admin. Items in view-only tabs are visible but cannot be ordered (from the next scan on).",
+"Für Auctionator kopieren":"Copy for Auctionator",
+"Für TSM kopieren":"Copy for TSM",
+"Auctionator: Einkaufen → Importieren, Text einfügen. TSM: Gruppe → Importieren, Text einfügen.":"Auctionator: Shopping → Import, paste the text. TSM: Group → Import, paste the text.",
+"Freigabe nötig":"Approval needed",
+"Diese Bestellung liegt über dem Wochenlimit. Sie wird erst nach Freigabe durch einen Offizier oder Administrator ausgegeben.":"This order is above the weekly limit. It is only issued after approval by an officer or admin.",
+"Über Limit freigeben":"Approve above limit",
+"Bestellung freigegeben.":"Order approved.",
+"Nur ansehen":"View only",
+"Bestellregeln gespeichert.":"Order rules saved.",
+"Bitte Zahlen prüfen (Tabs 1 bis 8).":"Please check the numbers (tabs 1 to 8).",
+"Gerade fehlt nichts.":"Nothing is missing right now.",
+"Auctionator-Liste kopiert.":"Auctionator list copied.",
+"TSM-Liste kopiert.":"TSM list copied.",
 "Hilfe & Feedback":"Help & feedback",
 "Etwas klemmt, du hast eine Idee oder möchtest Banklord in deiner Sprache? Deine Meldung geht direkt an das Banklord-Projekt.":"Something is stuck, you have an idea or want Banklord in your language? Your report goes straight to the Banklord project.",
 "Anleitung":"Guide",
@@ -501,6 +522,8 @@ exact:{
 "⬇ Windows-Setup herunterladen":"⬇ Download Windows setup"
 },
 patterns:[
+["Wochenlimit: {} von {} Stück bestellt. Darüber gibt ein Offizier frei.", "Weekly limit: {} of {} pieces ordered. Above that an officer approves."],
+["Davon nur ansehen (gesperrter Tab): {} Stück", "Of which view only (locked tab): {} pcs"],
 ["Letzte Inventur: {} · Serverbestand, keine Live-Bankabfrage", "Last scan: {} · server stock, not a live bank query"],
 ["Einträge auf Seite {}", "Entries on page {}"],
 ["{} Treffer auf dieser Seite", "{} results on this page"],

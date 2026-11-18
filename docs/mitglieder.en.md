@@ -70,6 +70,15 @@ The stock shown in game is the state of the last guild bank scan. Items marked �
 
 You see news on the website under **Notifications** and in game after the next `/reload`. All times are shown in your local time.
 
+
+- **Instant notice:** As soon as a bank manager sends your mail, Banklord says “Your order #… is on its way” in game – without `/reload`, if the recipient character is online.
+- **Partial delivery:** If something is missing in the guild bank, the manager can send part of it already. The rest stays open and follows later.
+- **Cancel:** In the Banklord window under **Cart → My orders** right-click the order, use `/banklord stornieren <no>` or the website. Items already sent stay with you.
+- **Weekly limit:** If your guild set a weekly limit, the cart shows it. Above it the order is still accepted and an officer approves it.
+- **Old orders:** The guild can have open orders cancelled automatically after a set number of days.
+- **View only:** Items from locked guild bank tabs are visible but cannot be ordered.
+- **Tooltip:** Hovering an item shows “Guild bank: 20” (from the last scan). On/off: `/banklord tooltip`.
+
 ---
 
 ## Help & Feedback
@@ -104,7 +113,10 @@ All commands start with `/banklord`. The commands are German words; the table li
 | `senden <player>` | Hand your cart to a guildmate who uploads it for you (if you have no Companion) |
 | `eingang`, `ausgang`, `erneut` | View handed-over carts or send them again |
 | `status` | State of the addon and the last scan |
+| `stornieren <no>` | Cancel your own open order |
 | `bestellungen` | Open orders (bank managers only) |
+| `einkauf` | Shopping list for Auctionator/TSM (bank managers only) |
+| `tooltip` | Guild bank count in tooltips on/off |
 | `feedback` (or `help`) | Help & Feedback: report a bug, suggest an idea, request a language |
 | `minimap` | Show or hide the minimap button |
 | `lang de`, `lang en`, `lang auto` | Change the language |

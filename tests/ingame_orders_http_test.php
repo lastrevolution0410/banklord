@@ -1,7 +1,7 @@
 <?php
 // End-to-end over HTTP against dev/docker-compose.yml (php -S on :8080, migrated DB incl. 010).
 declare(strict_types=1);
-foreach (['Config','Domain','Database','StockReconciliation','BridgeTokens'] as $c) require __DIR__."/../backend/src/$c.php";
+foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation','BridgeTokens'] as $c) require __DIR__."/../backend/src/$c.php";
 use Banklord\{Database,StockReconciliation,BridgeTokens};
 $db=Database::connect(); $fail=0; $base=getenv('BANKLORD_TEST_BASE')?:'http://127.0.0.1:8080';
 $ok=function(bool $c,string $m) use(&$fail){ if(!$c){$fail++; echo "FAIL: $m\n";} };

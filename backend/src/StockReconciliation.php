@@ -96,16 +96,20 @@ final class StockReconciliation
             $movement=$this->db->prepare("SELECT COUNT(*) FROM stock_ledger WHERE guild_id=? AND physical_delta<>0 AND event_type<>'scan_reconcile' AND created_at>=?");
             $movement->execute([$guild,$snap['observed_at']]);
             if ((int)$movement->fetchColumn()>0) throw new DomainError('MOVEMENTS_AFTER_SCAN');
-            $rows=$this->db->prepare('SELECT wow_item_id,variant_key,MAX(item_name) AS item_name,SUM(quantity) AS quantity FROM snapshot_source_lines WHERE snapshot_id=? GROUP BY wow_item_id,variant_key ORDER BY wow_item_id,variant_key');
+            // Items in view-only tabs stay visible but are not orderable.
+            $viewTabs=(new OrderRules($this->db))->get($guild)['viewonly_tabs'];
+            $viewSql=$viewTabs?'SUM(CASE WHEN tab_no IN ('.implode(',',array_map('intval',$viewTabs)).') THEN quantity ELSE 0 END)':'0';
+            $rows=$this->db->prepare('SELECT wow_item_id,variant_key,MAX(item_name) AS item_name,SUM(quantity) AS quantity,'.$viewSql.' AS viewonly FROM snapshot_source_lines WHERE snapshot_id=? GROUP BY wow_item_id,variant_key ORDER BY wow_item_id,variant_key');
             $rows->execute([$snapshotId]);$sums=$rows->fetchAll();
             if (count($sums)>5000) throw new DomainError('SNAPSHOT_LIMIT');
             $insertItem=$this->db->prepare("INSERT INTO items (wow_flavor,wow_item_id,variant_key,name) VALUES ('mop_classic',?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)");
-            $itemStocks=[];
+            $itemStocks=[];$viewonly=[];
             foreach ($sums as $entry) {
                 $qty=(int)$entry['quantity'];
                 if($qty<=0 || $qty>1000000)throw new DomainError('SNAPSHOT_QUANTITY');
                 $insertItem->execute([(int)$entry['wow_item_id'],$entry['variant_key'],$entry['item_name']]);
                 $itemStocks[(int)$this->db->lastInsertId()]=$qty;
+                $viewonly[(int)$this->db->lastInsertId()]=min($qty,(int)$entry['viewonly']);
             }
             // Lock all existing stock before updating to prevent overselling between reconciliation and approval.
             $existing=$this->db->prepare('SELECT id,item_id,physical_qty,reserved_qty,observed_at FROM guild_stock WHERE guild_id=? ORDER BY id FOR UPDATE');
@@ -132,15 +136,15 @@ final class StockReconciliation
                 $item=(int)$stock['item_id'];$wanted=$itemStocks[$item]??0;
                 if($wanted<(int)$stock['reserved_qty'])throw new DomainError('RESERVATION_EXCEEDS_SCAN');
                 $delta=$wanted-(int)$stock['physical_qty'];
-                $up=$this->db->prepare("UPDATE guild_stock SET physical_qty=?,confidence='verified',observed_at=?,stock_version=stock_version+1 WHERE id=? AND guild_id=?");
-                $up->execute([$wanted,$snap['observed_at'],$stock['id'],$guild]);
+                $up=$this->db->prepare("UPDATE guild_stock SET physical_qty=?,viewonly_qty=?,confidence='verified',observed_at=?,stock_version=stock_version+1 WHERE id=? AND guild_id=?");
+                $up->execute([$wanted,$viewonly[$item]??0,$snap['observed_at'],$stock['id'],$guild]);
                 if($delta!==0){$this->ledger($guild,(int)$stock['id'],$actor,$delta,$snapshotId);$changes++;}
                 $seen[$item]=true;
             }
             foreach($itemStocks as $item=>$qty){
                 if(isset($seen[$item])) continue;
-                $up=$this->db->prepare("INSERT INTO guild_stock (guild_id,item_id,physical_qty,confidence,observed_at) VALUES (?,?,?,'verified',?)");
-                $up->execute([$guild,$item,$qty,$snap['observed_at']]);
+                $up=$this->db->prepare("INSERT INTO guild_stock (guild_id,item_id,physical_qty,viewonly_qty,confidence,observed_at) VALUES (?,?,?,?,'verified',?)");
+                $up->execute([$guild,$item,$qty,$viewonly[$item]??0,$snap['observed_at']]);
                 $this->ledger($guild,(int)$this->db->lastInsertId(),$actor,$qty,$snapshotId);
                 $changes++;
             }

@@ -18,7 +18,7 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 
 ## Neue Bestellungen bemerken
 
-- **Live:** Bestellt ein Mitglied im Spiel, während du online bist, erscheint sofort ein Hinweis in der Bildschirmmitte mit Ton.
+- **Live:** Bestellt ein Mitglied im Spiel, während du online bist, kommt eine Chatmeldung mit Ton, und der Minikarten-Knopf blinkt mit der Zahl offener Bestellungen.
 - **Beim Einloggen:** Bestellungen, die seit deinem letzten Besuch eingegangen sind (auch von der Website), werden nach dem Einloggen angesagt.
 - **Liste:** `/banklord bestellungen` zeigt alle offenen Bestellungen.
 
@@ -46,6 +46,16 @@ Das Fenster lässt sich verschieben und merkt sich seine Position.
 Nur Briefe, die Banklord selbst vorbereitet hat, zählen als Ausgabe. Änderst du den Betreff, wird nichts gebucht.
 
 **Taschen voll?** Banklord stoppt, sagt welche Bestellung erst teilweise entnommen ist, und nimmt beim nächsten „Entnehmen“ nur noch den Rest.
+
+**Teillieferung:** Reicht der Bestand nicht, bietet Banklord „Teil entnehmen“ an. Am Briefkasten verschickst du mit „Teil senden“, was in den Taschen ist. Genau diese Menge wird gebucht, der Rest bleibt für jeden Verwalter offen.
+
+**Mitglied benachrichtigen:** Nach dem Versand bekommt der Empfänger sofort eine Meldung im Spiel, wenn er online ist.
+
+**Wochenlimit:** Bestellungen über dem Limit zeigen „wartet auf einen Offizier“. Offiziere und Administratoren sehen stattdessen „Freigeben“ (im Spiel oder auf der Website unter **Aufträge**). Die Regeln stellt ein Administrator auf der Website unter **Mitglieder → Bestellregeln** ein: Wochenlimits, automatisches Stornieren alter Bestellungen und Nur-ansehen-Tabs.
+
+**Einkaufsliste:** Unter **Aufträge → Einkaufsliste** (oder `/banklord einkauf`) steht, was unter den Mindestbestand gefallen ist – zum Kopieren für Auctionator und TSM. Mindest- und Zielbestand legst du auf der Website unter **Nachkauf** fest; dort gibt es dieselben Listen zum Kopieren.
+
+**Storniert ein Mitglied** seine Bestellung im Spiel, ist sie bei dir sofort gesperrt.
 
 **Ablehnen:** Im Banklord-Fenster unter **Aufträge** neben jeder Bestellung „Ablehnen“ (mit Rückfrage) oder `/banklord ablehnen <Nr>`. Andere Verwalter sehen die Bestellung sofort als abgelehnt; die Website und das Mitglied erfahren es nach deinem nächsten `/reload`.
 

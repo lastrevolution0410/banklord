@@ -71,15 +71,65 @@ local function sameGuild(entry)
 end
 A.SameGuild=sameGuild
 
+-- Pieces of an item in an order as the server state lists them.
+local function rawQty(o,item)
+  local n=0
+  for _,l in ipairs(o.lines or {}) do if l.itemId==item then n=n+(l.qty or 0) end end
+  return n
+end
+-- Partial deliveries (own or reported by other managers) that the server state
+-- does not show yet. base = open pieces when the delivery happened: once the
+-- state lists fewer, the server has booked it and nothing is subtracted twice.
+local function openCopy(o)
+  local d=store('manageDelivered')[o.id]
+  if type(d)~='table' or type(d.items)~='table' then return o end
+  local left={}
+  for item,n in pairs(d.items) do
+    if rawQty(o,item)>=((d.base or {})[item] or 0) then left[item]=n end
+  end
+  if not next(left) then return o end
+  local c={};for k,v in pairs(o) do c[k]=v end
+  c.lines={}
+  for _,l in ipairs(o.lines or {}) do
+    local cut=math.min(left[l.itemId] or 0,l.qty or 0)
+    if cut>0 then left[l.itemId]=left[l.itemId]-cut end
+    if (l.qty or 0)-cut>0 then c.lines[#c.lines+1]={itemId=l.itemId,name=l.name,qty=(l.qty or 0)-cut} end
+  end
+  return #c.lines>0 and c or nil
+end
+local function stateOrder(id)
+  for _,o in ipairs(state().manage or {}) do if type(o)=='table' and o.id==id and sameGuild(o) then return o end end
+end
+function A:RecordPartialDelivery(id,items)
+  local o=stateOrder(id)
+  local d=store('manageDelivered')
+  d[id]=type(d[id])=='table' and d[id] or {items={},base={}}
+  d[id].at=time()
+  for item,n in pairs(items) do
+    if not d[id].base[item] then d[id].base[item]=o and rawQty(o,item) or 0 end
+    d[id].items[item]=(d[id].items[item] or 0)+n
+  end
+end
+
 -- Open orders the manager still has to handle (sent ones are hidden at once).
 function A:OpenManageOrders()
   local out={}
   if not self.db then return out end
   local done=store('manageDone')
   for _,o in ipairs(state().manage or {}) do
-    if type(o)=='table' and not done[o.id] and not store('manageSent')[o.id] and sameGuild(o) then out[#out+1]=o end
+    if type(o)=='table' and not done[o.id] and not store('manageSent')[o.id] and sameGuild(o) then
+      local c=openCopy(o)
+      if c then out[#out+1]=c end
+    end
   end
   return out
+end
+
+-- Weekly limit: 0 = free, 1 = waits for an officer, 2 = waits and you may approve.
+function A:OrderApproval(o)
+  local a=tonumber(o and o.approval) or 0
+  if a>0 and store('manageApproved')[o.id] then return 0 end
+  return a
 end
 
 local function summary(o)
@@ -97,12 +147,14 @@ local function randomTag()
   local s='';for _=1,6 do local n=math.random(0,35);s=s..(n<10 and tostring(n) or string.char(87+n)) end;return s
 end
 
--- Queue a handover/rejection; the companion uploads it after /reload.
-function A:QueueManageAction(orderId,action)
+-- Queue a handover/rejection/approval/cancellation; the companion uploads it
+-- after /reload. lines = partial delivery {{itemId,qty}}; keepOpen leaves the
+-- order in the list (partial delivery, approval, own cancellation).
+function A:QueueManageAction(orderId,action,lines,keepOpen)
   local box=store('manageOutbox')
   local g,r=self:CurrentGuild()
-  box[#box+1]={key=('ma-%d-%s'):format(time(),randomTag()),order=orderId,action=action,guild=g,guildRealm=r}
-  store('manageDone')[orderId]=true
+  box[#box+1]={key=('ma-%d-%s'):format(time(),randomTag()),order=orderId,action=action,lines=lines,guild=g,guildRealm=r}
+  if not keepOpen then store('manageDone')[orderId]=true end
 end
 
 -- Called once after login: drop answered actions, report errors, alert new orders.
@@ -112,6 +164,7 @@ function A:ReconcileManage()
   local done=store('manageDone')
   for _,row in ipairs(box) do
     local r=results[row.key]
+    if r and row.action=='cancel' then store('orderCancelPending')[row.order]=nil end
     if not r then keep[#keep+1]=row
     elseif r.error and r.error~='unknown' then
       done[row.order]=nil
@@ -122,6 +175,7 @@ function A:ReconcileManage()
   local open={}
   for _,o in ipairs(state().manage or {}) do open[o.id]=true end
   for id in pairs(done) do if not open[id] then done[id]=nil end end
+  for id,v in pairs(store('orderShipped')) do if type(v)~='table' or time()-(v.at or 0)>30*86400 then store('orderShipped')[id]=nil end end
   if not self:IsBankManager() then return end
   local seen,new=store('manageSeen'),{}
   for _,o in ipairs(self:OpenManageOrders()) do if not seen[o.id] then new[#new+1]=o;seen[o.id]=true end end
@@ -156,8 +210,13 @@ function A:BroadcastNewOrder(character,code)
 end
 
 function A:ReceiveManageMessage(prefix,payload,channel,sender)
+  if prefix==PREFIX and channel=='WHISPER' and type(payload)=='string' then
+    local id,part=payload:match('^S|(%d+)|([01])$')
+    if id then self:ReceiveShipped(tonumber(id),part=='1',sender) end
+    return
+  end
   if prefix~=PREFIX or channel~='GUILD' or type(payload)~='string' or #payload>250 then return end
-  if payload:match('^[CDXQR]') then return self:ReceiveCoordination(payload,sender) end
+  if payload:match('^[CDXQRPZ]') then return self:ReceiveCoordination(payload,sender) end
   if not self:IsBankManager() then return end
   local who,lines,pieces=payload:match('^N|([^|]+)|(%d+)|(%d+)$')
   if not who then return end
@@ -200,6 +259,7 @@ end
 
 -- Why this order may not be handled here (nil = free or our own reservation).
 function A:OrderBlocked(id)
+  if store('manageCancelled')[id] then return A:Tr('vom Mitglied storniert') end
   if store('manageRejected')[id] then return A:Tr('abgelehnt') end
   if store('manageSent')[id] then return A:Tr('bereits versendet') end
   if store('manageMine')[id] then return nil end
@@ -249,6 +309,124 @@ function A:MarkOrderSent(id)
   if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
 end
 
+-- Part of an order was mailed: book exactly that, keep the rest open for any manager.
+function A:MarkOrderPartlySent(id,items)
+  local lines,parts={},{}
+  for item,n in pairs(items) do lines[#lines+1]={itemId=item,qty=n};parts[#parts+1]=item..':'..n end
+  table.sort(parts)
+  self:QueueManageAction(id,'deliver',lines,true)
+  self:RecordPartialDelivery(id,items)
+  store('manageProgress')[id]=nil;store('manageTaken')[id]=nil
+  self:ReleaseOrders({id})
+  guildSend(('P|%d|%s'):format(id,table.concat(parts,',')))
+  if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
+end
+
+-- The member learns right away that the mail is on its way (whisper to the recipient).
+function A:NotifyRecipient(o,partial)
+  local name,realm=tostring(o and o.recipient or ''):match('^([^-]+)-?(.*)$')
+  if not name or name=='' then return end
+  local own=(GetRealmName and GetRealmName() or ''):gsub('%s','')
+  local to=(realm=='' or realm:gsub('%s','')==own) and name or name..'-'..realm:gsub('%s','')
+  local f=(C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
+  if f then pcall(f,PREFIX,('S|%d|%d'):format(o.id,partial and 1 or 0),'WHISPER',to) end
+end
+function A:ReceiveShipped(id,partial,sender)
+  local function accept(retry)
+    local by=A:RosterMember(sender)
+    if not by then
+      if retry and C_Timer then C_Timer.After(3,function() accept(false) end) end
+      return
+    end
+    store('orderShipped')[id]={at=time(),part=partial,by=short(by)}
+    A:Alert((partial and A:Tr('Ein Teil deiner Bestellung #%d ist unterwegs (von %s). Schau in deinen Briefkasten – der Rest folgt.')
+      or A:Tr('Deine Bestellung #%d ist unterwegs (von %s). Schau in deinen Briefkasten.')):format(id,short(by)))
+    if A.RefreshUI then A:RefreshUI() end
+  end
+  accept(true)
+end
+
+function A:ApproveOrder(o)
+  if not o or self:OrderApproval(o)~=2 then return end
+  self:QueueManageAction(o.id,'approve',nil,true)
+  store('manageApproved')[o.id]=now()
+  self:Message(A:Tr('Bestellung #%d freigegeben. Die Website erfährt es beim nächsten /reload.'):format(o.id))
+  self:RefreshManagePanel()
+end
+
+-- Members cancel their own open orders in game.
+local CANCELLABLE={submitted=true,reserved=true,partial=true,partially_fulfilled=true}
+function A:CancelOwnOrder(id)
+  local found
+  for _,o in ipairs(state().orders or {}) do if type(o)=='table' and o.id==id and sameGuild(o) then found=o end end
+  if not found then return self:Message(A:Tr('Keine eigene Bestellung #%d gefunden.'):format(id or 0)) end
+  if not CANCELLABLE[found.status] or store('orderCancelPending')[id] then return self:Message(A:Tr('Bestellung #%d kann nicht mehr storniert werden.'):format(id)) end
+  if StaticPopupDialogs and StaticPopup_Show then
+    StaticPopupDialogs.BANKLORD_CANCEL={button1=YES or 'Ja',button2=NO or 'Nein',timeout=0,whileDead=true,hideOnEscape=true,preferredIndex=3,
+      text=A:Tr('Bestellung #%d stornieren?\n\nBereits verschickte Gegenstände bleiben bei dir.'):format(id):gsub('%%','%%%%'),
+      OnAccept=function() A:ConfirmCancel(id) end}
+    StaticPopup_Show('BANKLORD_CANCEL')
+  else self:ConfirmCancel(id) end
+end
+function A:ConfirmCancel(id)
+  self:QueueManageAction(id,'cancel',nil,true)
+  store('orderCancelPending')[id]=time()
+  guildSend('Z|'..id)
+  self:Message(A:Tr('Bestellung #%d wird storniert. Die Website erfährt es beim nächsten /reload.'):format(id))
+  if self.RefreshUI then self:RefreshUI() end
+end
+function A:IsCancellable(o) return type(o)=='table' and CANCELLABLE[o.status] and not store('orderCancelPending')[o.id] end
+
+-- Shopping list from the target stock rules (website: "Nachkauf").
+function A:ShoppingList()
+  local out={}
+  for _,r in ipairs(state().restock or {}) do
+    if type(r)=='table' and sameGuild(r) and (tonumber(r.missing) or 0)>0 then out[#out+1]=r end
+  end
+  return out
+end
+local function cleanName(s) return (tostring(s or '?'):gsub('[%^";|]','')) end
+function A:ShoppingExport(list)
+  local auct,tsm={},{}
+  for _,r in ipairs(list) do
+    auct[#auct+1]=('"%s";;0;0;0;0;0;0;0;0;;#;;%d'):format(cleanName(r.name),r.missing)
+    tsm[#tsm+1]='i:'..tostring(r.itemId)
+  end
+  return 'Banklord^'..table.concat(auct,'^'),table.concat(tsm,',')
+end
+local listFrame
+function A:ShowShoppingList()
+  local list=self:ShoppingList()
+  if #list==0 then return self:Message(A:Tr('Einkaufsliste: Nichts fehlt. Mindestbestände legst du auf der Website unter „Nachkauf“ fest.')) end
+  local lines={}
+  for _,r in ipairs(list) do lines[#lines+1]=A:Tr('%dx %s (vorhanden %d, Ziel %d)'):format(r.missing,cleanName(r.name),r.have or 0,r.target or 0) end
+  local auct,tsm=self:ShoppingExport(list)
+  local body=table.concat(lines,'\n')..'\n\n'..A:Tr('Auctionator (Einkaufen → Importieren):')..'\n'..auct..'\n\n'..A:Tr('TSM (Gruppe → Importieren):')..'\n'..tsm
+  if not listFrame then
+    listFrame=CreateFrame('Frame','BanklordShoppingList',UIParent,BackdropTemplateMixin and 'BackdropTemplate' or nil)
+    listFrame:SetSize(520,380);listFrame:SetPoint('CENTER');listFrame:SetFrameStrata('DIALOG')
+    if listFrame.SetBackdrop then
+      listFrame:SetBackdrop({bgFile='Interface\\DialogFrame\\UI-DialogBox-Background',edgeFile='Interface\\DialogFrame\\UI-DialogBox-Border',tile=true,tileSize=32,edgeSize=24,insets={left=6,right=6,top=6,bottom=6}})
+    end
+    listFrame:SetMovable(true);listFrame:EnableMouse(true);listFrame:RegisterForDrag('LeftButton')
+    listFrame:SetScript('OnDragStart',listFrame.StartMoving);listFrame:SetScript('OnDragStop',listFrame.StopMovingOrSizing)
+    listFrame.title=listFrame:CreateFontString(nil,'OVERLAY','GameFontNormal');listFrame.title:SetPoint('TOPLEFT',16,-16)
+    listFrame.hint=listFrame:CreateFontString(nil,'OVERLAY','GameFontDisableSmall');listFrame.hint:SetPoint('TOPLEFT',16,-34)
+    local scroll=CreateFrame('ScrollFrame',nil,listFrame,'UIPanelScrollFrameTemplate')
+    scroll:SetPoint('TOPLEFT',16,-54);scroll:SetPoint('BOTTOMRIGHT',-34,46)
+    listFrame.edit=CreateFrame('EditBox',nil,scroll)
+    listFrame.edit:SetMultiLine(true);listFrame.edit:SetFontObject(ChatFontNormal or 'GameFontHighlightSmall');listFrame.edit:SetWidth(460);listFrame.edit:SetAutoFocus(false)
+    listFrame.edit:SetScript('OnEscapePressed',function() listFrame:Hide() end)
+    scroll:SetScrollChild(listFrame.edit)
+    local close=CreateFrame('Button',nil,listFrame,'UIPanelButtonTemplate')
+    close:SetSize(110,24);close:SetPoint('BOTTOMRIGHT',-16,14);close:SetText(A:Tr('Schließen'));close:SetScript('OnClick',function() listFrame:Hide() end)
+  end
+  listFrame.title:SetText(A:Tr('Banklord – Einkaufsliste (%d Gegenstände)'):format(#list))
+  listFrame.hint:SetText(A:Tr('Text markieren und mit Strg+C kopieren. Ziele legst du auf der Website unter „Nachkauf“ fest.'))
+  listFrame.edit:SetText(body);listFrame.edit:SetFocus();listFrame.edit:HighlightText()
+  listFrame:Show()
+end
+
 local function lostOrder(id,by)
   local mine=store('manageMine')
   local had=mine[id] and mine[id].est
@@ -263,7 +441,7 @@ end
 function A:ReceiveCoordination(payload,sender)
   local from=short(sender)
   if from=='' or lname(from)==lname(meName()) then return end
-  local kind,rest=payload:match('^([CDXQR])|?(.*)$')
+  local kind,rest=payload:match('^([CDXQRPZ])|?(.*)$')
   if kind=='C' then
     local ts,est,ids=rest:match('^(%d+)|([01])|([%d,]+)$')
     ts=tonumber(ts);if not ts then return end
@@ -304,6 +482,24 @@ function A:ReceiveCoordination(payload,sender)
     -- Another manager rejected these orders: nobody may withdraw or send them.
     for _,id in ipairs(idList(rest)) do store('manageRejected')[id]=now() end
     self:RefreshManagePanel()
+  elseif kind=='P' then
+    -- Another manager mailed part of an order: the rest stays open.
+    local id,list=rest:match('^(%d+)|([%d:,]+)$')
+    id=tonumber(id)
+    if id then
+      local items={}
+      for item,n in list:gmatch('(%d+):(%d+)') do items[tonumber(item)]=tonumber(n) end
+      self:RecordPartialDelivery(id,items)
+      store('manageLocks')[id]=nil
+      self:RefreshManagePanel()
+    end
+  elseif kind=='Z' then
+    -- A member cancelled their own order (only the recipient may announce it).
+    for _,id in ipairs(idList(rest)) do
+      local o=stateOrder(id)
+      if o and lname(short(o.recipient))==lname(from) then store('manageCancelled')[id]=now() end
+    end
+    self:RefreshManagePanel()
   elseif kind=='X' then
     local locks=store('manageLocks')
     for _,id in ipairs(idList(rest)) do if locks[id] and lname(locks[id].by)==lname(from) then locks[id]=nil end end
@@ -334,6 +530,9 @@ function A:InitCoordination()
   local t=now()
   for id,v in pairs(store('manageSent')) do if t-v>SENT_TTL then store('manageSent')[id]=nil end end
   for id,v in pairs(store('manageRejected')) do if t-v>SENT_TTL then store('manageRejected')[id]=nil end end
+  for id,v in pairs(store('manageCancelled')) do if t-v>SENT_TTL then store('manageCancelled')[id]=nil end end
+  for id,v in pairs(store('manageApproved')) do if t-v>SENT_TTL then store('manageApproved')[id]=nil end end
+  for id,d in pairs(store('manageDelivered')) do if type(d)~='table' or time()-(d.at or 0)>7*86400 then store('manageDelivered')[id]=nil end end
   for id,l in pairs(store('manageLocks')) do if t-(l.seen or 0)>CLAIM_TTL then store('manageLocks')[id]=nil end end
   for _,m in pairs(store('manageMine')) do if t-m.ts>CLAIM_TTL then m.est=false end end
   if C_Timer then C_Timer.After(6,function() guildSend('Q');A:AnnounceCoordination() end) end
@@ -389,6 +588,13 @@ local function shortfall(o,stock,consume)
   if consume then for _,l in ipairs(o.lines or {}) do stock[l.itemId]=(stock[l.itemId] or 0)-math.max(0,(l.qty or 0)-(done[l.itemId] or 0)) end end
 end
 A._bankStock,A._shortfall=bankStock,shortfall
+-- True when the bank holds at least something of what the order still needs.
+local function partlyThere(o,stock)
+  local done=store('manageProgress')[o.id] or {}
+  for _,l in ipairs(o.lines or {}) do
+    if (l.qty or 0)>(done[l.itemId] or 0) and (stock[l.itemId] or 0)>0 then return true end
+  end
+end
 
 -- One place that decides what an order row says and which button it offers:
 -- returns status text, tone ('ok','warn','busy','info'), action ('withdraw',
@@ -397,15 +603,20 @@ A._bankStock,A._shortfall=bankStock,shortfall
 function A:OrderRowState(o,stock)
   local blocked=self:OrderBlocked(o.id)
   if blocked then return blocked,'busy' end
+  local approval=self:OrderApproval(o)
+  if approval==2 then return A:Tr('Über dem Wochenlimit – bitte freigeben'),'warn','approve',true end
+  if approval==1 then return A:Tr('Über dem Wochenlimit – wartet auf einen Offizier'),'busy' end
   local taken=store('manageTaken')[o.id]
   if self.mailOpen then
     if self:CanMailOrder(o) then return A:Tr('Bereit zum Versenden'),'ok','mail',true end
+    if taken and self:CanMailOrder(o,true) then return A:Tr('Teil in den Taschen – der Rest bleibt offen'),'warn','mailpart',true end
     if taken then return A:Tr('Gegenstände fehlen in den Taschen'),'warn','mail',false end
   end
   if taken then return A:Tr('Entnommen – jetzt zum Briefkasten'),'info' end
   if stock then
     if self.scanRun then return A:Tr('Bestand wird geprüft …'),'busy','withdraw',false end
     local short=shortfall(o,stock)
+    if short and partlyThere(o,stock) then return short,'warn','partial',true end
     if short then return short,'warn','withdraw',false end
     return A:Tr('Bereit zum Entnehmen'),'ok','withdraw',true
   end
@@ -413,16 +624,16 @@ function A:OrderRowState(o,stock)
 end
 function A:BankStockNow() if self:IsGuildBankOpen() then return bankStock() end end
 
-function A:WithdrawOrders(orders)
+function A:WithdrawOrders(orders,partial)
   if not self:IsGuildBankOpen() then return self:Message(A:Tr('Bitte zuerst die Gildenbank öffnen.')) end
   if self.withdraw or self.claiming then return self:Message(A:Tr('Entnahme läuft bereits.')) end
   self.claiming=true
-  self:ClaimOrders(orders,function(won) A.claiming=nil;A:StartWithdraw(won) end)
+  self:ClaimOrders(orders,function(won) A.claiming=nil;A:StartWithdraw(won,partial) end)
   if self.claiming and not C_Timer then self.claiming=nil end
   C_Timer.After(CLAIM_WINDOW+1,function() A.claiming=nil end)
 end
 
-function A:StartWithdraw(orders)
+function A:StartWithdraw(orders,partial)
   if not self:IsGuildBankOpen() then return self:Message(A:Tr('Entnahme abgebrochen: Gildenbank geschlossen.')) end
   local queue={}
   for _,o in ipairs(orders) do
@@ -435,7 +646,7 @@ function A:StartWithdraw(orders)
       queue[#queue+1]={item=l.itemId,name=l.name,qty=(l.qty or 0)-use,order=o.id}
     end
   end
-  self.withdraw={queue=queue,i=1,orders=orders,missing={}}
+  self.withdraw={queue=queue,i=1,orders=orders,missing={},partial=partial}
   self:WithdrawStep()
 end
 
@@ -446,17 +657,21 @@ function A:WithdrawStep()
   local job=w.queue[w.i]
   if not job then
     self.withdraw=nil
-    local taken,release=store('manageTaken'),{}
-    for _,o in ipairs(w.orders) do if not w.missing[o.id] then taken[o.id]=true else release[#release+1]=o.id end end
+    local taken,release,part=store('manageTaken'),{},false
+    for _,o in ipairs(w.orders) do
+      if not w.missing[o.id] then taken[o.id]=true
+      elseif w.partial and next(store('manageProgress')[o.id] or {}) then taken[o.id]=true;part=true
+      else release[#release+1]=o.id end
+    end
     if #release>0 then self:ReleaseOrders(release) end
-    self:Message(A:Tr('Entnahme fertig. Jetzt zum Briefkasten gehen.'))
+    self:Message(part and A:Tr('Teil entnommen. Am Briefkasten „Teil senden“ – der Rest bleibt offen.') or A:Tr('Entnahme fertig. Jetzt zum Briefkasten gehen.'))
     return self:RefreshManagePanel()
   end
   if job.qty<=0 or not store('manageMine')[job.order] then w.i=w.i+1;return self:WithdrawStep() end
   local tab,slot,count=findBankStack(job.item)
   if not tab then
     w.missing[job.order]=true
-    self:Message(A:Tr('Nicht genug %s in der Gildenbank (es fehlen %d).'):format(job.name or '?',job.qty))
+    if not w.partial then self:Message(A:Tr('Nicht genug %s in der Gildenbank (es fehlen %d).'):format(job.name or '?',job.qty)) end
     w.i=w.i+1;return self:WithdrawStep()
   end
   if GetCurrentGuildBankTab and GetCurrentGuildBankTab()~=tab and SetCurrentGuildBankTab then
@@ -537,8 +752,8 @@ local function mailRecipient(o)
 end
 
 -- Bag stacks that cover every line of the order, or nil plus the reason.
-local function attachmentPlan(o)
-  local plan,used={},{}
+local function attachmentPlan(o,partial)
+  local plan,used,sent={},{},{}
   for _,l in ipairs(o.lines or {}) do
     local left=l.qty
     eachBagSlot(function(bag,slot)
@@ -547,29 +762,34 @@ local function attachmentPlan(o)
         local n=math.min(count,left)
         used[bag..':'..slot]=true
         plan[#plan+1]={bag=bag,slot=slot,n=n,whole=(n==count)}
+        sent[l.itemId]=(sent[l.itemId] or 0)+n
         left=left-n
       end
       return left<=0
     end)
-    if left>0 then return nil,A:Tr('Es fehlen %d %s in den Taschen.'):format(left,l.name or '?') end
+    if left>0 and not partial then return nil,A:Tr('Es fehlen %d %s in den Taschen.'):format(left,l.name or '?') end
   end
+  if #plan==0 then return nil,A:Tr('Keine Gegenstände dieser Bestellung in den Taschen.') end
   if #plan>(ATTACHMENTS_MAX_SEND or 12) then return nil,A:Tr('Zu viele Stapel für einen Brief. Bitte Gegenstände stapeln.') end
-  return plan
+  return plan,nil,sent
 end
-function A:CanMailOrder(o) return attachmentPlan(o)~=nil end
+function A:CanMailOrder(o,partial) return attachmentPlan(o,partial)~=nil end
 
-function A:PrepareMail(o)
+function A:PrepareMail(o,partial)
   if not (SendMailNameEditBox and ClickSendMailItemButton) then return self:Message(A:Tr('Bitte zuerst einen Briefkasten öffnen.')) end
   local to=mailRecipient(o)
   if not to then return self:Message(A:Tr('Bestellung #%d hat keinen Empfänger-Charakter.'):format(o.id)) end
-  local plan,why=attachmentPlan(o)
+  local plan,why=attachmentPlan(o,partial)
   if not plan then return self:Message(why) end
-  self:ClaimOrders({o},function() A:FillMail(o,to) end)
+  self:ClaimOrders({o},function() A:FillMail(o,to,partial) end)
 end
 
-function A:FillMail(o,to)
-  local plan,why=attachmentPlan(o)
+function A:FillMail(o,to,partial)
+  local full=attachmentPlan(o)
+  if full then partial=false end
+  local plan,why,sent=attachmentPlan(o,partial)
   if not plan then return self:Message(why) end
+  self.mailPartial=partial and sent or nil
   if not store('manageMine')[o.id] or store('manageSent')[o.id] then return end
   if MailFrameTab2 and MailFrameTab2.Click then MailFrameTab2:Click() end
   if ClearSendMail then ClearSendMail() end
@@ -592,7 +812,7 @@ end
 
 function A:MailNext()
   for _,o in ipairs(self:OpenManageOrders()) do
-    if not self:OrderBlocked(o.id) and self:CanMailOrder(o) and mailRecipient(o) then self.mailAll=true;return self:PrepareMail(o) end
+    if not self:OrderBlocked(o.id) and self:OrderApproval(o)==0 and self:CanMailOrder(o) and mailRecipient(o) then self.mailAll=true;return self:PrepareMail(o) end
   end
   self.mailAll=false
   self:Message(A:Tr('Keine weitere Bestellung mit passenden Gegenständen in den Taschen.'))
@@ -603,7 +823,7 @@ if hooksecurefunc and SendMail then
   hooksecurefunc('SendMail',function(_,subject)
     local id=tonumber(tostring(subject or ''):match('^Banklord #(%d+)$'))
     A.mailSending=(id and id==A.mailPrepared) and id or nil
-    if A.mailSending then store('manageSent')[id]=now() end
+    if A.mailSending and not A.mailPartial then store('manageSent')[id]=now() end
   end)
 end
 
@@ -638,27 +858,31 @@ local function buildPanel()
     local r=CreateFrame('Frame',nil,panel);r:SetSize(316,24);r:SetPoint('TOPLEFT',12,-64-(i-1)*26)
     r.text=r:CreateFontString(nil,'OVERLAY','GameFontHighlightSmall')
     r.text:SetPoint('LEFT',0,0);r.text:SetWidth(226);r.text:SetJustifyH('LEFT')
-    r.go=button(r,86,'',function() A:ManageOne(r.order) end);r.go:SetPoint('RIGHT',0,0)
+    r.go=button(r,86,'',function() A:ManageOne(r.order,r.action) end);r.go:SetPoint('RIGHT',0,0)
     panel.rows[i]=r
   end
   panel.note=panel:CreateFontString(nil,'OVERLAY','GameFontDisableSmall')
   panel.note:SetPoint('BOTTOMLEFT',14,12);panel.note:SetWidth(312);panel.note:SetJustifyH('LEFT')
 end
 
-function A:ManageOne(o)
+function A:ManageOne(o,action)
   if not o then return end
+  local approval=self:OrderApproval(o)
+  if approval==2 then return self:ApproveOrder(o) end
+  if approval==1 then return self:Message(A:Tr('Bestellung #%d liegt über dem Wochenlimit und wartet auf die Freigabe durch einen Offizier.'):format(o.id)) end
   if self.manageMode=='bank' then
-    local short=shortfall(o,bankStock())
-    if short then return self:Message(A:Tr('Bestellung #%d: %s'):format(o.id,short)) end
-    self:WithdrawOrders({o})
-  else self.mailAll=false;self:PrepareMail(o) end
+    local stock=bankStock()
+    local short=shortfall(o,stock)
+    if short and not (action=='partial' and partlyThere(o,stock)) then return self:Message(A:Tr('Bestellung #%d: %s'):format(o.id,short)) end
+    self:WithdrawOrders({o},short and true or nil)
+  else self.mailAll=false;self:PrepareMail(o,action=='mailpart') end
 end
 function A:ManageAll()
   if self.manageMode=='bank' then
     local list,taken={},store('manageTaken')
     local stock,skipped=bankStock(),0
     for _,o in ipairs(self:OpenManageOrders()) do
-      if not taken[o.id] and not self:OrderBlocked(o.id) then
+      if not taken[o.id] and not self:OrderBlocked(o.id) and self:OrderApproval(o)==0 then
         if shortfall(o,stock,true) then skipped=skipped+1 else list[#list+1]=o end
       end
     end
@@ -667,6 +891,9 @@ function A:ManageAll()
     self:WithdrawOrders(list)
   else self:MailNext() end
 end
+
+local CAPTIONS={withdraw='Entnehmen',mail='Versenden',partial='Teil entnehmen',mailpart='Teil senden',approve='Freigeben'}
+function A:ActionCaption(action) return action and A:Tr(CAPTIONS[action]) or '' end
 
 function A:ShowManagePanel(mode,anchor)
   if not self.db or not self:IsBankManager() then return end
@@ -689,7 +916,7 @@ function A:RefreshManagePanel()
   if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
   if self.RefreshOrdersTab then self:RefreshOrdersTab() end
   if not panel or not panel:IsShown() then return end
-  local mode,orders,taken=self.manageMode,self:OpenManageOrders(),store('manageTaken')
+  local mode,orders=self.manageMode,self:OpenManageOrders()
   local stock=mode=='bank' and bankStock() or nil
   panel.title:SetText(mode=='bank' and A:Tr('Banklord – offene Bestellungen entnehmen')
     or mode=='mail' and A:Tr('Banklord – Bestellungen versenden') or A:Tr('Banklord – offene Bestellungen'))
@@ -700,24 +927,14 @@ function A:RefreshManagePanel()
     r.order=o
     if o then
       local who=o.recipient~='' and o.recipient or o.requester
-      r.text:SetText(('#%d %s: %s'):format(o.id,who,summary(o)))
-      r.go:SetShown(mode~='list')
-      local blocked=self:OrderBlocked(o.id)
-      if blocked then
-        r.text:SetText(('#%d %s (%s)'):format(o.id,who,blocked))
-        r.go:SetText(A:Tr('Gesperrt'));r.go:SetEnabled(false)
-      elseif mode=='bank' and taken[o.id] then
-        r.go:SetText(A:Tr('Entnommen'));r.go:SetEnabled(true)
-      elseif mode=='bank' and self.scanRun then
-        r.go:SetText(A:Tr('Prüfe …'));r.go:SetEnabled(false)
-      elseif mode=='bank' then
-        local short=shortfall(o,stock)
-        if short then r.text:SetText(('#%d %s (%s)'):format(o.id,who,short)) end
-        r.go:SetText(short and A:Tr('Fehlt') or A:Tr('Entnehmen'));r.go:SetEnabled(not short)
-      else
-        r.go:SetText(A:Tr('Versenden'))
-        r.go:SetEnabled(self:CanMailOrder(o))
-      end
+      local status,_,action,possible=self:OrderRowState(o,stock)
+      r.action=action
+      if action and possible and (action=='withdraw' or action=='mail') then
+        r.text:SetText(('#%d %s: %s'):format(o.id,who,summary(o)))
+      else r.text:SetText(('#%d %s (%s)'):format(o.id,who,status or summary(o))) end
+      r.go:SetShown(mode~='list' and action~=nil)
+      r.go:SetText(self:ActionCaption(action))
+      r.go:SetEnabled(possible==true)
       r:Show()
     else r:Hide() end
   end
@@ -748,19 +965,25 @@ events:SetScript('OnEvent',function(_,event)
   elseif event=='MAIL_SHOW' then A.mailOpen=true;A:ShowManagePanel('mail',MailFrame)
   elseif event=='MAIL_CLOSED' then A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
   elseif event=='MAIL_SEND_SUCCESS' then
-    local id=A.mailSending
-    A.mailSending,A.mailPrepared=nil,nil
+    local id,part=A.mailSending,A.mailPartial
+    A.mailSending,A.mailPrepared,A.mailPartial=nil,nil,nil
     if id then
-      A:MarkOrderSent(id)
-      A:QueueManageAction(id,'deliver')
-      store('manageTaken')[id]=nil
-      A:Message(A:Tr('Bestellung #%d versendet und als ausgegeben vorgemerkt.'):format(id))
+      A:NotifyRecipient(stateOrder(id),part~=nil)
+      if part then
+        A:MarkOrderPartlySent(id,part)
+        A:Message(A:Tr('Teil von Bestellung #%d versendet. Der Rest bleibt offen.'):format(id))
+      else
+        A:MarkOrderSent(id)
+        A:QueueManageAction(id,'deliver')
+        store('manageTaken')[id]=nil
+        A:Message(A:Tr('Bestellung #%d versendet und als ausgegeben vorgemerkt.'):format(id))
+      end
       A:RefreshManagePanel()
       if A.mailAll and C_Timer then C_Timer.After(1.5,function() A:MailNext() end) end
     end
   elseif event=='MAIL_FAILED' then
     if A.mailSending then store('manageSent')[A.mailSending]=nil end
-    A.mailSending=nil;A.mailAll=false
+    A.mailSending,A.mailPartial=nil,nil;A.mailAll=false
   elseif event=='BAG_UPDATE_DELAYED' then A:RefreshManagePanel() end
 end)
 

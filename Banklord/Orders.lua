@@ -52,6 +52,14 @@ function A:SubmitCartOrder()
     code=code,character=clean(name..(realm~='' and '-'..realm:gsub('%s','') or ''),80),note='',createdAt=time(),
     guild=guild,guildRealm=guildRealm})
   if self.BroadcastNewOrder then self:BroadcastNewOrder(name,code) end
+  local limit,used=self:WeeklyLimit()
+  if limit then
+    local pieces=0
+    for part in code:sub(5):gmatch('[^|]+') do pieces=pieces+(tonumber(part:match('^%d+,(%d+)')) or 0) end
+    if used+pieces>limit then
+      self:Message(A:Tr('Hinweis: Damit liegst du über deinem Wochenlimit (%d Stück). Ein Offizier muss die Bestellung freigeben.'):format(limit))
+    end
+  end
   self.db.localCartDraft={}
   self:Message(A:Tr('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.'))
   if self.RefreshUI then self:RefreshUI() end
@@ -98,11 +106,21 @@ function A:GetOrderOverview()
     rows[#rows+1]={title=A:Tr('Nicht angenommen'),status='|cffff7a6a'..(ERRORS[f.error] and A:Tr(ERRORS[f.error]) or f.error or A:Tr('Fehler'))..'|r',failure=true}
   end
   local st=Banklord_ServerState
+  local generated=type(st)=='table' and tonumber(st.generatedAt) or 0
+  local shipped=self.db and self.db.orderShipped or {}
+  local cancelling=self.db and self.db.orderCancelPending or {}
   for _,o in ipairs(type(st)=='table' and type(st.orders)=='table' and st.orders or {}) do
-    if type(o)=='table' then
+    if type(o)=='table' and (not A.SameGuild or A.SameGuild(o)) then
       local color=STATUS_COLOR[o.status] or 'ffffff'
+      local text=A.ORDER_STATUS[o.status] and A:Tr(A.ORDER_STATUS[o.status]) or tostring(o.status)
+      local ship=shipped[o.id]
+      if cancelling[o.id] and A.IsCancellable and o.status~='cancelled' and o.status~='fulfilled' then
+        color,text='ffaa44',A:Tr('Storno vorgemerkt (/reload)')
+      elseif type(ship)=='table' and (ship.at or 0)>generated and o.status~='fulfilled' then
+        color,text='5fe88a',ship.part and A:Tr('Teil unterwegs – Briefkasten prüfen') or A:Tr('Unterwegs – Briefkasten prüfen')
+      end
       rows[#rows+1]={title='#'..tostring(o.id)..' · '..(o.createdAt and date(A:Tr('%d.%m. %H:%M'),o.createdAt) or ''),
-        status='|cff'..color..(A.ORDER_STATUS[o.status] and A:Tr(A.ORDER_STATUS[o.status]) or tostring(o.status))..'|r',order=o}
+        status='|cff'..color..text..'|r',order=o}
     end
   end
   local stamp=type(st)=='table' and tonumber(st.generatedAt)
@@ -127,8 +145,24 @@ function A:ShowOrderTooltip(owner,row)
       local name=id and type(GetItemInfo)=='function' and GetItemInfo(tonumber(id)) or A:Tr('Item %s'):format(tostring(id))
       GameTooltip:AddDoubleLine(name,A:Tr('%s Stück'):format(qty or '?'),.98,.97,.92,.87,.84,.78)
     end
+    if A.IsCancellable and A:IsCancellable(row.order) then
+      GameTooltip:AddLine(A:Tr('Rechtsklick: Bestellung stornieren.'),.87,.84,.78,true)
+    end
   elseif row.failure then
     GameTooltip:AddLine(A:Tr('Rechtsklick in der Liste entfernt die Meldungen.'),.87,.84,.78,true)
   end
   GameTooltip:Show()
+end
+
+-- Weekly piece limit of this player's role (guild rule), or nil when unlimited.
+-- used also counts orders still waiting for upload.
+function A:WeeklyLimit()
+  local r=self.GuildRules and self:GuildRules()
+  local limit=r and tonumber(r.weeklyLimit) or 0
+  if limit<=0 then return nil end
+  local used=tonumber(r.weeklyUsed) or 0
+  for _,e in ipairs(self.db and self.db.orderOutbox or {}) do
+    for part in tostring(e.code or ''):sub(5):gmatch('[^|]+') do used=used+(tonumber(part:match('^%d+,(%d+)')) or 0) end
+  end
+  return limit,used
 end

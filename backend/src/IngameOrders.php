@@ -112,8 +112,19 @@ final class IngameOrders {
         foreach ($rows as $row) {
             $key=$row['key']??null;$order=$row['order']??null;$action=$row['action']??null;
             if (!is_string($key) || !preg_match('/^ma-[0-9]{6,12}-[a-z0-9]{6}$/D',$key) || !is_int($order) || $order<1
-              || !in_array($action,['deliver','reject'],true)) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
-            $out[]=['key'=>$key,'order'=>$order,'action'=>$action,'guild'=>self::tag($row)];
+              || !in_array($action,['deliver','reject','cancel','approve'],true)) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
+            // Partial delivery: only the listed items and amounts were mailed.
+            $only=null;
+            if (isset($row['lines'])) {
+                if ($action!=='deliver' || !is_array($row['lines']) || !$row['lines'] || count($row['lines'])>12) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
+                $only=[];
+                foreach ($row['lines'] as $l) {
+                    $item=is_array($l)?($l['itemId']??null):null;$qty=is_array($l)?($l['qty']??null):null;
+                    if (!is_int($item) || $item<1 || !is_int($qty) || $qty<1 || $qty>1000000) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
+                    $only[$item]=($only[$item]??0)+$qty;
+                }
+            }
+            $out[]=['key'=>$key,'order'=>$order,'action'=>$action,'lines'=>$only,'guild'=>self::tag($row)];
         }
         return $out;
     }
@@ -126,7 +137,13 @@ final class IngameOrders {
         $orders=new Orders($this->db);$results=[];
         foreach ($rows as $r) {
             try {
-                $status=$r['action']==='deliver'?$orders->deliver($guild,$user,$r['order'],$r['key']):$orders->reject($guild,$user,$r['order']);
+                $status=match ($r['action']) {
+                    'deliver'=>$orders->deliver($guild,$user,$r['order'],$r['key'],$r['lines']),
+                    'reject'=>$orders->reject($guild,$user,$r['order']),
+                    // Members cancel their own orders; Orders::cancel checks ownership or manager role.
+                    'cancel'=>$orders->cancel($guild,$user,$r['order']),
+                    'approve'=>$orders->approve($guild,$user,$r['order']),
+                };
                 $results[$r['key']]=['status'=>$status];
             } catch (DomainError $e) { $results[$r['key']]=['error'=>$e->getMessage()]; }
         }
@@ -136,9 +153,10 @@ final class IngameOrders {
     /** Open orders of the guild for bank managers (null for other roles). */
     public function manageView(int $guild, int $user): ?array {
         $r=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
-        $r->execute([$guild,$user]);
-        if (!in_array($r->fetchColumn(),['officer','bank_manager','admin'],true)) return null;
-        $s=$this->db->prepare("SELECT o.id,o.status,UNIX_TIMESTAMP(o.created_at) AS created,u.display_name AS requester,
+        $r->execute([$guild,$user]);$role=$r->fetchColumn();
+        if (!in_array($role,['officer','bank_manager','admin'],true)) return null;
+        $canApprove=in_array($role,['officer','admin'],true);
+        $s=$this->db->prepare("SELECT o.id,o.status,o.needs_approval,UNIX_TIMESTAMP(o.created_at) AS created,u.display_name AS requester,
             COALESCE(o.recipient,(SELECT CONCAT(c.name,'-',c.realm) FROM characters c WHERE c.guild_id=o.guild_id AND c.user_id=o.user_id AND c.verification_status<>'revoked' ORDER BY c.verification_status='verified' DESC,c.id LIMIT 1),'') AS recipient
             FROM orders o JOIN users u ON u.id=o.user_id
             WHERE o.guild_id=? AND o.status IN ('submitted','reserved','partial','partially_fulfilled') ORDER BY o.id LIMIT 40");
@@ -154,14 +172,35 @@ final class IngameOrders {
                 $open=$want-(int)$line['fulfilled_qty'];
                 if ($open>0) $lines[]=['item_id'=>(int)$line['wow_item_id'],'name'=>mb_substr((string)$line['name'],0,80),'qty'=>$open];
             }
+            // approval: 0 none, 1 waits for an officer, 2 waits and you may release it.
             if ($lines) $out[]=['id'=>(int)$o['id'],'status'=>(string)$o['status'],'created_at'=>(int)$o['created'],
+                'approval'=>(int)$o['needs_approval']===1?($canApprove?2:1):0,
                 'requester'=>mb_substr((string)$o['requester'],0,60),'recipient'=>mb_substr((string)$o['recipient'],0,80),'lines'=>$lines];
         }
         return $out;
     }
 
     /** Compact own-order view written into the addon by the companion. */
+    /** Restock shortfalls (target stock rules) for the in-game shopping list. */
+    public function restockView(int $guild): array {
+        $q=$this->db->prepare("SELECT i.wow_item_id,i.name,r.minimum_qty,r.target_qty,s.physical_qty,s.reserved_qty
+            FROM guild_restock_rules r JOIN guild_stock s ON s.id=r.stock_id AND s.guild_id=r.guild_id JOIN items i ON i.id=s.item_id
+            WHERE r.guild_id=? ORDER BY i.name LIMIT 200");
+        $q->execute([$guild]);$out=[];
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $have=max(0,(int)$r['physical_qty']-(int)$r['reserved_qty']);
+            if ($have>=(int)$r['minimum_qty']) continue;
+            $missing=(int)$r['target_qty']-$have;
+            if ($missing>0) $out[]=['item_id'=>(int)$r['wow_item_id'],'name'=>mb_substr((string)$r['name'],0,80),'have'=>$have,'target'=>(int)$r['target_qty'],'missing'=>$missing];
+            if (count($out)>=60) break;
+        }
+        return $out;
+    }
+
     public function state(int $guild, int $user, array $outboxResults=[], array $manageResults=[]): array {
+        $rulesObj=new OrderRules($this->db);
+        $rulesObj->expire($guild);
+        $rules=$rulesObj->get($guild);
         $s=$this->db->prepare('SELECT id,client_key,status,UNIX_TIMESTAMP(created_at) AS created FROM orders
             WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT '.self::STATE_ORDERS);
         $s->execute([$guild,$user]);$orders=$s->fetchAll(PDO::FETCH_ASSOC);
@@ -182,8 +221,12 @@ final class IngameOrders {
         foreach ($outboxResults as $key=>$r) if ($key!=='_file') $outbox[$key]=$r;
         $g=$this->db->prepare('SELECT name,realm FROM guilds WHERE id=?');$g->execute([$guild]);$gr=$g->fetch(PDO::FETCH_ASSOC)?:['name'=>'','realm'=>''];
         $state=['generated_at'=>time(),'guild'=>['name'=>(string)$gr['name'],'realm'=>(string)$gr['realm']],'orders'=>$out,'outbox'=>(object)$outbox,'manage_results'=>(object)$manageResults];
+        $roleQ=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
+        $roleQ->execute([$guild,$user]);$limit=OrderRules::limitFor($rules,(string)$roleQ->fetchColumn());
+        $state['rules']=['viewonly_tabs'=>$rules['viewonly_tabs'],'expiry_days'=>$rules['expiry_days'],
+            'weekly_limit'=>$limit,'weekly_used'=>$limit>0?$rulesObj->weeklyUsed($guild,$user):0];
         $manage=$this->manageView($guild,$user);
-        if ($manage!==null) $state['manage']=$manage;
+        if ($manage!==null) {$state['manage']=$manage;$state['restock']=$this->restockView($guild);}
         return $state;
     }
 }

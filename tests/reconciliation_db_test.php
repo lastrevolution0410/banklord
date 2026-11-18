@@ -1,7 +1,7 @@
 <?php
 // Needs a migrated MariaDB (dev/docker-compose.yml). Creates its own guild, leaves data behind.
 declare(strict_types=1);
-foreach (['Config','Domain','Database','StockReconciliation'] as $c) require __DIR__."/../backend/src/$c.php";
+foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation'] as $c) require __DIR__."/../backend/src/$c.php";
 use Banklord\{Database,StockReconciliation,DomainError};
 $db=Database::connect(); $r=new StockReconciliation($db); $fail=0;
 $ok=function(bool $c,string $m) use(&$fail){ if(!$c){$fail++; echo "FAIL: $m\n";} };

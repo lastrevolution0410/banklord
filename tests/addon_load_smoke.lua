@@ -342,6 +342,95 @@ do
 end
 print('PASS: help & feedback in game (queue, validation, status)')
 
+-- Order rules: approval, partial delivery, shipping notice, member cancel, view-only, tooltip, shopping list.
+do
+  local sent={}
+  local oldCI=C_ChatInfo;C_ChatInfo={SendAddonMessage=function(p,m,ch,t) sent[#sent+1]={p,m,ch,t} end}
+  local oldIG,oldGI=IsInGuild,GetGuildInfo;IsInGuild=function() return true end;GetGuildInfo=nil
+  local oldAfter=C_Timer.After;C_Timer.After=function(_,f) f() end
+  local said,oldAdd={},DEFAULT_CHAT_FRAME.AddMessage;DEFAULT_CHAT_FRAME.AddMessage=function(_,m) said[#said+1]=m end
+  local function lastChat() return said[#said] or '' end
+  StaticPopupDialogs=nil
+  for _,k in ipairs({'manageOutbox','manageDone','manageMine','manageLocks','manageSent','manageTaken','manageProgress','manageRejected','manageDelivered','manageApproved','manageCancelled','orderShipped','orderCancelPending'}) do A.db[k]={} end
+  -- Approval: officers see "approve", bank managers wait.
+  Banklord_ServerState={generatedAt=time()-60,manage={
+    {id=31,status='submitted',approval=2,requester='Aria',recipient='Borin-Everlook',lines={{itemId=2589,name='Leinenstoff',qty=4}}},
+    {id=32,status='submitted',approval=1,requester='Aria',recipient='Borin-Everlook',lines={{itemId=2589,name='Leinenstoff',qty=4}}}},
+    manageResults={},orders={{id=40,status='submitted',createdAt=time(),lines={}}},
+    rules={{viewOnlyTabs={2},weeklyLimit=20,weeklyUsed=18}},restock={{itemId=2589,name='Leinenstoff',have=3,target=50,missing=47}}}
+  local _,_,act,possible=A:OrderRowState(Banklord_ServerState.manage[1],{[2589]=10})
+  assert(act=='approve' and possible,'officer gets approve action')
+  local st2,_,act2=A:OrderRowState(Banklord_ServerState.manage[2],{[2589]=10})
+  assert(act2==nil and st2:find('Offizier',1,true),'manager waits for an officer: '..tostring(st2))
+  A:ManageOne(Banklord_ServerState.manage[1])
+  assert(A.db.manageOutbox[1].action=='approve' and A.db.manageOutbox[1].order==31 and not A.db.manageDone[31],'approval queued, order stays open')
+  local _,_,act3=A:OrderRowState(Banklord_ServerState.manage[1],{[2589]=10})
+  assert(act3=='withdraw','approved order can be withdrawn')
+  -- Partial delivery: 4 wanted, bank holds 2 -> "take part".
+  local o=Banklord_ServerState.manage[1]
+  local _,_,pact,pok=A:OrderRowState(o,{[2589]=2})
+  assert(pact=='partial' and pok,'partial withdraw offered')
+  A.db.manageMine[31]={ts=time(),est=true}
+  A:RecordPartialDelivery(31,{[2589]=3})
+  local open;for _,x in ipairs(A:OpenManageOrders()) do if x.id==31 then open=x end end
+  assert(open and open.lines[1].qty==1,'partly sent order shows only the rest')
+  Banklord_ServerState.manage[1].lines[1].qty=1
+  open=nil;for _,x in ipairs(A:OpenManageOrders()) do if x.id==31 then open=x end end
+  assert(open and open.lines[1].qty==1,'server already booked it: nothing subtracted twice')
+  sent={}
+  A:MarkOrderPartlySent(31,{[2589]=1})
+  local box=A.db.manageOutbox[#A.db.manageOutbox]
+  assert(box.action=='deliver' and box.lines[1].itemId==2589 and box.lines[1].qty==1 and not A.db.manageDone[31],'partial delivery queued with lines')
+  local psent=false;for _,m in ipairs(sent) do if m[2]=='P|31|2589:1' then psent=true end end
+  assert(psent,'other managers learn about the partial delivery')
+  A:ReceiveManageMessage('BLNEW1','P|32|2589:4','GUILD','Zora-Everlook')
+  open=nil;for _,x in ipairs(A:OpenManageOrders()) do if x.id==32 then open=x end end
+  assert(open==nil,'fully delivered by another manager: gone from the list')
+  -- Shipping notice: whisper to the recipient, member sees "on its way".
+  sent={}
+  A:NotifyRecipient({id=40,recipient='Borin-Everlook'},false)
+  assert(sent[1] and sent[1][2]=='S|40|0' and sent[1][3]=='WHISPER','recipient is whispered: '..tostring(sent[1] and sent[1][2]))
+  GetNumGuildMembers=function() return 1 end;GetGuildRosterInfo=function() return 'Kaelis-Everlook' end
+  A:ReceiveManageMessage('BLNEW1','S|40|0','WHISPER','Kaelis-Everlook')
+  assert(lastChat():find('#40',1,true) and lastChat():find('unterwegs',1,true),'member alerted: '..lastChat())
+  local rows=A:GetOrderOverview()
+  local shown=false;for _,r in ipairs(rows) do if r.order and r.order.id==40 and r.status:find('Unterwegs',1,true) then shown=true end end
+  assert(shown,'order shows as on its way')
+  A:ReceiveManageMessage('BLNEW1','S|41|0','WHISPER','Fremder-Everlook')
+  assert(not A.db.orderShipped[41],'notice from outside the guild ignored')
+  -- Member cancels own order; managers block it only when the recipient announces it.
+  sent={}
+  A:CancelOwnOrder(40)
+  local c=A.db.manageOutbox[#A.db.manageOutbox]
+  assert(c.action=='cancel' and c.order==40 and A.db.orderCancelPending[40],'cancel queued')
+  assert(sent[#sent][2]=='Z|40','managers told about the cancellation')
+  A:ReceiveManageMessage('BLNEW1','Z|31','GUILD','Fremder')
+  assert(not A.db.manageCancelled[31],'only the recipient may cancel')
+  A:ReceiveManageMessage('BLNEW1','Z|31','GUILD','Borin')
+  assert(A:OrderBlocked(31)=='vom Mitglied storniert','cancelled order blocked for managers')
+  A:CancelOwnOrder(99);assert(lastChat():find('#99',1,true),'unknown order refused')
+  -- Weekly limit, view-only tabs, tooltip, shopping list.
+  local limit,used=A:WeeklyLimit();assert(limit==20 and used==18,'weekly limit from the rules')
+  A.db.fullScans={{capturedAt=time(),items={{itemID=2589,itemKey='item:2589:0',count=7,itemLink='|cff|Hitem:2589:0|h[Leinenstoff]|h|r'},{itemID=6948,itemKey='item:6948:0',count=1,itemLink='|cff|Hitem:6948:0|h[Ruhestein]|h|r'}},
+    tabs={[1]={items={{itemKey='item:2589:0',count=5}}},[2]={items={{itemKey='item:2589:0',count=2},{itemKey='item:6948:0',count=1}}}}}}
+  assert(A:OrderableCount('item:2589:0',7)==5 and A:OrderableCount('item:6948:0',1)==0,'view-only share not orderable')
+  A.db.localCartDraft={}
+  A:AddCartDraftByKey('item:6948:0',1);assert(next(A.db.localCartDraft)==nil and lastChat():find('Nur ansehen',1,true),'view-only item refused')
+  A:AddCartDraftByKey('item:2589:0',6);assert(next(A.db.localCartDraft)==nil,'more than the orderable share refused')
+  A:AddCartDraftByKey('item:2589:0',5);assert(A.db.localCartDraft['item:2589:0'].quantity==5,'orderable share accepted')
+  local lines={};local tt={AddLine=function(_,t) lines[#lines+1]=t end}
+  A:AddTooltipStock(tt,2589);assert(lines[1]=='Gildenbank: 7','tooltip shows the bank count')
+  A:ToggleTooltipStock();A:AddTooltipStock(tt,2589);assert(#lines==1,'tooltip line can be turned off');A:ToggleTooltipStock()
+  local list=A:ShoppingList();local auct,tsm=A:ShoppingExport(list)
+  assert(#list==1 and auct=='Banklord^"Leinenstoff";;0;0;0;0;0;0;0;0;;#;;47' and tsm=='i:2589','shopping list exports')
+  local oks,errs=pcall(A.ShowShoppingList,A);assert(oks,errs)
+  local okr,errr=pcall(A.ShowTab,A,'cart');assert(okr,errr)
+  C_ChatInfo=oldCI;IsInGuild,GetGuildInfo=oldIG,oldGI;C_Timer.After=oldAfter;DEFAULT_CHAT_FRAME.AddMessage=oldAdd
+  GetNumGuildMembers,GetGuildRosterInfo=nil,nil
+  A.db.localCartDraft={};A.db.fullScans=nil;Banklord_ServerState={};for _,k in ipairs({'manageOutbox','manageDone','orderShipped','orderCancelPending'}) do A.db[k]={} end
+end
+print('PASS: order rules in game (approval, partial delivery, shipping notice, cancel, view-only, tooltip, shopping list)')
+
 -- Localization: client language decides, BanklordDB.settings.locale overrides.
 local EN=assert(A._localeEN,'EN table not exposed')
 -- 1) Every literal A:Tr('...') in the addon has an English entry.

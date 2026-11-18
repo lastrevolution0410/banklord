@@ -77,3 +77,15 @@ func TestMergeStatesTagsGuilds(t *testing.T) {
 		t.Fatalf("merge wrong:\n%s", out)
 	}
 }
+
+func TestRenderRulesAndRestock(t *testing.T) {
+	g := guildRef{Name: "Gilde", Realm: "Everlook"}
+	st := mergeStates([]ingameState{{Guild: g, Rules: &stateRules{ViewOnlyTabs: []int{2, 9}, ExpiryDays: 14, WeeklyLimit: 20, WeeklyUsed: 5},
+		Restock: []restockRow{{ItemID: 2589, Name: `Erz"|`, Have: 3, Target: 50, Missing: 47}}}})
+	out := renderState(st)
+	for _, want := range []string{`viewOnlyTabs = { 2 }`, `weeklyLimit = 20, weeklyUsed = 5`, `missing = 47, guild = "Gilde"`, `name = "Erz\"||"`} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in\n%s", want, out)
+		}
+	}
+}

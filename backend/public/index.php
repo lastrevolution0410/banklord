@@ -18,12 +18,14 @@ use Banklord\Community;
 use Banklord\Preferences;
 use Banklord\Procurement;
 use Banklord\PeerRelay;
+use Banklord\OrderRules;
 
 require dirname(__DIR__) . '/src/Config.php';
 \Banklord\Config::load();
 require dirname(__DIR__) . '/src/Domain.php';
 require dirname(__DIR__) . '/src/Database.php';
 require dirname(__DIR__) . '/src/Orders.php';
+require dirname(__DIR__) . '/src/OrderRules.php';
 require dirname(__DIR__) . '/src/SavedVariablesParser.php';
 require dirname(__DIR__) . '/src/ScanImport.php';
 require dirname(__DIR__) . '/src/ScanStaging.php';
@@ -761,7 +763,7 @@ try {
     }
     if ($method==='GET' && preg_match('~^items/([1-9][0-9]{0,17})$~D',$tail,$im)) {
         $stock=id($im[1]);
-        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty,CASE WHEN s.confidence='verified' AND s.observed_at>=UTC_TIMESTAMP()-INTERVAL 30 MINUTE THEN s.physical_qty-s.reserved_qty ELSE NULL END AS available_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND s.id=?");
+        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty,CASE WHEN s.confidence='verified' AND s.observed_at>=UTC_TIMESTAMP()-INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND s.id=?");
         $s->execute([$guild,$stock]);$row=$s->fetch();if(!$row)reply(404,['error'=>'STOCK_NOT_FOUND']);
         reply(200,['item'=>$row]);
     }
@@ -776,7 +778,7 @@ try {
         if (!in_array($showEmpty,['0','1'],true)) reply(400,['error'=>'INVALID_STOCK_FILTER']);
         $locale=(string)($_GET['locale']??'deDE');
         if (!in_array($locale,\Banklord\ItemMetadata::LOCALES,true)) reply(400,['error'=>'UNSUPPORTED_LOCALE']);
-        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty, CASE WHEN s.confidence='verified' AND s.observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE THEN (s.physical_qty-s.reserved_qty) ELSE NULL END AS available_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND (i.name LIKE ? OR CAST(i.wow_item_id AS CHAR) = ?) AND (?='1' OR s.physical_qty>0 OR s.reserved_qty>0) ORDER BY i.name,s.id LIMIT 101 OFFSET ?");
+        $s=$db->prepare("SELECT s.id AS stock_id,i.wow_item_id,i.variant_key,i.name,s.physical_qty,s.reserved_qty, CASE WHEN s.confidence='verified' AND s.observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE THEN GREATEST(s.physical_qty-s.reserved_qty-s.viewonly_qty,0) ELSE NULL END AS available_qty,s.viewonly_qty,s.confidence,s.observed_at FROM guild_stock s JOIN items i ON i.id=s.item_id WHERE s.guild_id=? AND (i.name LIKE ? OR CAST(i.wow_item_id AS CHAR) = ?) AND (?='1' OR s.physical_qty>0 OR s.reserved_qty>0) ORDER BY i.name,s.id LIMIT 101 OFFSET ?");
         $s->bindValue(1,$guild,PDO::PARAM_INT);$s->bindValue(2,'%'.$q.'%');$s->bindValue(3,$query);$s->bindValue(4,$showEmpty,PDO::PARAM_STR);$s->bindValue(5,$offset,PDO::PARAM_INT);
         $s->execute();$rows=$s->fetchAll();$hasNext=count($rows)>100;if($hasNext)array_pop($rows);
         catalogIcons($db,$guild,$rows,$locale);
@@ -793,17 +795,28 @@ try {
         $s=$db->prepare('SELECT status FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);
         reply(200,['id'=>$order,'status'=>$s->fetchColumn()]);
     }
+    if ($tail==='order-rules') {
+        $rules=new OrderRules($db);
+        if ($method==='PUT') reply(200,['rules'=>$rules->save($guild,$user,body())]);
+        if ($method!=='GET') reply(405,['error'=>'METHOD_NOT_ALLOWED']);
+        $r=$rules->get($guild);$limit=OrderRules::limitFor($r,$role);
+        reply(200,['rules'=>$r,'my_limit'=>$limit,'my_used'=>$limit>0?$rules->weeklyUsed($guild,$user):0]);
+    }
+    if ($method==='POST' && preg_match('~^orders/([1-9][0-9]{0,17})/approve$~D',$tail,$o)) {
+        $state=(new Orders($db))->approve($guild,$user,id($o[1]));reply(200,['status'=>$state]);
+    }
     if ($method==='GET' && $tail==='orders') {
+        (new OrderRules($db))->expire($guild);
         if (in_array($role,['officer','bank_manager','admin'],true)) {
-            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? ORDER BY o.id DESC LIMIT 200');$s->execute([$guild]);
+            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? ORDER BY o.id DESC LIMIT 200');$s->execute([$guild]);
         } else {
-            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? AND o.user_id=? ORDER BY o.id DESC LIMIT 100');$s->execute([$guild,$user]);
+            $s=$db->prepare('SELECT o.id,o.user_id,u.display_name,o.status,o.needs_approval,o.created_at,o.note,(SELECT GROUP_CONCAT(CONCAT(ol.requested_qty,\'× \',i.name) ORDER BY ol.id SEPARATOR \' · \') FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=o.id) AS summary FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? AND o.user_id=? ORDER BY o.id DESC LIMIT 100');$s->execute([$guild,$user]);
         }
         reply(200,['orders'=>$s->fetchAll()]);
     }
     if ($method==='GET' && preg_match('~^orders/([1-9][0-9]{0,17})$~D',$tail,$o)) {
         $order=id($o[1]);
-        $s=$db->prepare('SELECT id,user_id,status,note,created_at FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);$head=$s->fetch();
+        $s=$db->prepare('SELECT id,user_id,status,needs_approval,note,created_at FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$order]);$head=$s->fetch();
         if (!$head || ($head['user_id']!=$user && !in_array($role,['officer','bank_manager','admin'],true))) reply(404,['error'=>'NOT_FOUND']);
         $s=$db->prepare('SELECT l.id,l.stock_id,l.requested_qty,l.approved_qty,l.fulfilled_qty,l.decision,i.name,i.wow_item_id FROM order_lines l JOIN guild_stock gs ON gs.id=l.stock_id AND gs.guild_id=? JOIN items i ON i.id=gs.item_id WHERE l.order_id=? ORDER BY l.id');$s->execute([$guild,$order]);
         reply(200,['order'=>$head,'lines'=>$s->fetchAll()]);
@@ -828,8 +841,8 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL'];
-    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE'];
+    $bad=['DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
+    $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED'];
     if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
     if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);
     if (str_starts_with($e->getMessage(),'FEEDBACK_') || $e->getMessage()==='INVALID_EMAIL') reply(422,['error'=>$e->getMessage()]);
