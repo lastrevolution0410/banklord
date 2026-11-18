@@ -121,6 +121,8 @@ final class Installer {
         if ($in['guild'] === '' || mb_strlen($in['guild']) > 120 || $in['realm'] === '' || mb_strlen($in['realm']) > 100) throw new \RuntimeException('Gildenname und Realm angeben.');
         if (!in_array($in['region'], ['EU', 'US', 'KR', 'TW'], true)) throw new \RuntimeException('Region wählen.');
         require_once __DIR__.'/GameFlavor.php';
+        // Scripted setups from before 1.5.0 send no game version: keep the old default.
+        if (($in['flavor'] ?? '') === '') $in['flavor'] = GameFlavor::DEFAULT;
         if (!GameFlavor::valid($in['flavor'])) throw new \RuntimeException('Spielversion wählen.');
         if (!filter_var($in['email'], FILTER_VALIDATE_EMAIL) || $in['name'] === '' || mb_strlen($in['name']) > 100) throw new \RuntimeException('E-Mail und Anzeigename des Admins angeben.');
         if (strlen($in['password']) < self::MIN_PASSWORD) throw new \RuntimeException('Das Admin-Passwort braucht mindestens '.self::MIN_PASSWORD.' Zeichen.');

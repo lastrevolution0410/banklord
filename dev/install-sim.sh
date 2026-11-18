@@ -17,7 +17,7 @@ PAGE=$(curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install)
 echo "$PAGE" | grep -q 'Banklord einrichten' && echo "PASS: setup page shown"
 CSRF=$(echo "$PAGE" | sed -n 's/.*name="csrf" value="\([a-f0-9]*\)".*/\1/p')
 post() { curl -s -c $J -b $J -H "Accept-Language: de-DE" $B/install --data-urlencode "csrf=$CSRF" -d db_host=db -d db_name=blinst -d db_user=banklord -d db_pass=banklorddevpass \
-  -d guild=Testgilde -d realm=Everlook -d region=EU -d email=admin@example.org -d name=Admin "$@"; }
+  -d guild=Testgilde -d realm=Everlook -d region=EU -d flavor=retail -d email=admin@example.org -d name=Admin "$@"; }
 post -d password=short -d password2=short | grep -q 'mindestens 14' && echo "PASS: weak password rejected"
 post -d password=a-long-test-password -d password2=a-long-test-password | grep -q 'Fertig' && echo "PASS: setup completed"
 docker exec bl-instsim grep -q "'DB_NAME' => 'blinst'" /srv/private/config.local.php && echo "PASS: configuration written"

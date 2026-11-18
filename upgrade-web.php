@@ -6,12 +6,12 @@ declare(strict_types=1);
  * requires an unmodified release archive and backs up SQL + files outside webroot.
  * This is NOT a remotely self-updating endpoint.
  */
-const BANKLORD_VERSION='1.5.0';
-const BANKLORD_PAYLOAD_SHA256 = '046d96d7c2d69728227dd8d7360c8fd63160012a9be930deb64bf46b512d2352';
+const BANKLORD_VERSION='1.5.1';
+const BANKLORD_PAYLOAD_SHA256 = '51b297aae5352642d8fe8e132ec3e15bc3f7a96fa886aeb3612ca2b1ff6fff40';
 const BANKLORD_FILE_DIGESTS = [
     'backend/bin/bootstrap.php' => 'fecb24898873e1e77cd01f2a2827416c6f45db47dc32f03f17f0f07be5fe661d',
     'backend/public/app.css' => 'b5b89a13b4a86268910f36daa57071f8a7fd1d8550d3355f830c4c8f9cf07bdc',
-    'backend/public/app.html' => 'cba043f2721b22267ff1555bfd3747184f545a37e0b61996e04cb3e97634cfc6',
+    'backend/public/app.html' => 'aa63facb428d386f95299bbcbd29a2100247e5912ec738742629c5919a37a855',
     'backend/public/app.js' => 'b1dc355b108f6053b6533bccc00e09f25f3a851067d42e55370e0e7af2094cae',
     'backend/public/import.css' => '102ab8535ade1eb3e2f2dff92c1a2b5288e011527b00094d08a5aafc2b35e83c',
     'backend/public/import.html' => 'f98c790170cd69d00295ea1050da6b3e3d67958dfd0b63e81059081f822c3c76',
@@ -46,7 +46,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/GameFlavor.php' => 'e0db150979873e71fc6f0f67085007f70df1c7d104194586209d45f25151b289',
     'backend/src/IconMap.php' => '5ede1c33b8f14f41ad757633e07b4538c0d43f45d41b8755feb0bc1dcd2b97c3',
     'backend/src/IngameOrders.php' => '947f628a83efc830ab3e1ebd0e05718024529e20b00babff5efc16a3973d9a87',
-    'backend/src/Installer.php' => '56489682cd77e4443633b6eba94af11bab8d3cbb58147f8adb26af0216c18148',
+    'backend/src/Installer.php' => 'e2dff693b85d4d56fa22307ff78be0c0665153bd884430d500902d2458074337',
     'backend/src/ItemAppearance.php' => '7d8f231f7bad301aae7d527569da2a3c55056478279a44e13453d57f2c5d2169',
     'backend/src/ItemMetadata.php' => 'b636475f3ebf4b4d278bfeb9dfbba58f63e37534b477c3c7523ccf617372a252',
     'backend/src/OrderRules.php' => '9528281240b1f79bf71f7e1207832e48d42560ce7feb01c08b2f51b48b29122f',
@@ -60,7 +60,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/ScanStaging.php' => 'a0cde139466e12a55e6618622fdff5522b030cdf78dd2cdde94d77764920ed03',
     'backend/src/StockReconciliation.php' => '050e344bf63e1e04c2bdaaee86e40b7536ee6209da0c0605e8b3f6c4536d96d3',
     'backend/src/UpstreamUpdater.php' => '7af1aa325687c972101781b7b1b83cd8545563bdec0a7c084266a6d6e37dae80',
-    'backend/src/Version.php' => 'd94729e608fec543d9456b2612b23b2b423f4e94c241779b5b78f85877b248d4',
+    'backend/src/Version.php' => 'a14f77fac82cc1881ec03126586cd511634a2b5a795119797fe66922924a740c',
     'backend/src/WebUpdater.php' => '60c07a88cffc83b1670a249d012a07f67db7841025c8a124d2811087d3e8632d',
     'backend/src/icon-filedata.tsv.gz' => '668d50315200dccb7e5728da372d90d136118ecb33474513792e81d5ab9c1832',
 ];
