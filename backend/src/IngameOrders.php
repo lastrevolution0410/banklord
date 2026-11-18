@@ -55,7 +55,12 @@ final class IngameOrders {
             if ($missing) {$results[$entry['client_key']]=['error'=>'UNKNOWN_ITEM'];continue;}
             $note='Ingame'.($entry['character']!==''?' ('.$entry['character'].')':'').($entry['note']!==''?': '.$entry['note']:'');
             try {
-                $results[$entry['client_key']]=['order_id'=>$orders->create($guild,$user,$entry['client_key'],$lines,mb_substr($note,0,500))];
+                $id=$orders->create($guild,$user,$entry['client_key'],$lines,mb_substr($note,0,500));
+                $results[$entry['client_key']]=['order_id'=>$id];
+                if ($entry['character']!=='') {
+                    $this->db->prepare('UPDATE orders SET recipient=? WHERE id=? AND recipient IS NULL')->execute([$entry['character'],$id]);
+                    $this->rememberCharacter($guild,$user,$entry['character']);
+                }
             } catch (DomainError $e) {
                 $results[$entry['client_key']]=['error'=>$e->getMessage()];
             }
@@ -63,8 +68,71 @@ final class IngameOrders {
         return $results;
     }
 
+    /** Links an in-game character ("Name-Realm") to the uploading account once. */
+    public function rememberCharacter(int $guild, int $user, string $character): void {
+        [$name,$realm]=array_pad(explode('-',$character,2),2,'');
+        if (!Community::characterAllowed($name) || mb_strlen($realm)<2 || mb_strlen($realm)>100) return;
+        $this->db->prepare("INSERT IGNORE INTO characters (guild_id,user_id,name,realm) VALUES (?,?,?,?)")->execute([$guild,$user,$name,$realm]);
+    }
+
+    /** @return list<array{key:string,order:int,action:string}> */
+    public static function extractManage(string $savedVars): array {
+        $data=(new SavedVariablesParser($savedVars))->parse();
+        $rows=$data['manageOutbox']??[];
+        if (!is_array($rows) || count($rows)>60) throw new \InvalidArgumentException('MANAGE_OUTBOX_INVALID');
+        $out=[];
+        foreach ($rows as $row) {
+            $key=$row['key']??null;$order=$row['order']??null;$action=$row['action']??null;
+            if (!is_string($key) || !preg_match('/^ma-[0-9]{6,12}-[a-z0-9]{6}$/D',$key) || !is_int($order) || $order<1
+              || !in_array($action,['deliver','reject'],true)) throw new \InvalidArgumentException('MANAGE_ROW_INVALID');
+            $out[]=['key'=>$key,'order'=>$order,'action'=>$action];
+        }
+        return $out;
+    }
+
+    /** Bank manager actions queued in game (mail sent, order rejected). */
+    public function processManage(int $guild, int $user, string $savedVars): array {
+        try { $rows=self::extractManage($savedVars); }
+        catch (\InvalidArgumentException $e) { return []; }
+        $orders=new Orders($this->db);$results=[];
+        foreach ($rows as $r) {
+            try {
+                $status=$r['action']==='deliver'?$orders->deliver($guild,$user,$r['order'],$r['key']):$orders->reject($guild,$user,$r['order']);
+                $results[$r['key']]=['status'=>$status];
+            } catch (DomainError $e) { $results[$r['key']]=['error'=>$e->getMessage()]; }
+        }
+        return $results;
+    }
+
+    /** Open orders of the guild for bank managers (null for other roles). */
+    public function manageView(int $guild, int $user): ?array {
+        $r=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
+        $r->execute([$guild,$user]);
+        if (!in_array($r->fetchColumn(),['officer','bank_manager','admin'],true)) return null;
+        $s=$this->db->prepare("SELECT o.id,o.status,UNIX_TIMESTAMP(o.created_at) AS created,u.display_name AS requester,
+            COALESCE(o.recipient,(SELECT CONCAT(c.name,'-',c.realm) FROM characters c WHERE c.guild_id=o.guild_id AND c.user_id=o.user_id AND c.verification_status<>'revoked' ORDER BY c.verification_status='verified' DESC,c.id LIMIT 1),'') AS recipient
+            FROM orders o JOIN users u ON u.id=o.user_id
+            WHERE o.guild_id=? AND o.status IN ('submitted','reserved','partial','partially_fulfilled') ORDER BY o.id LIMIT 40");
+        $s->execute([$guild]);
+        $l=$this->db->prepare("SELECT i.wow_item_id,i.name,ol.requested_qty,ol.approved_qty,ol.fulfilled_qty,ol.decision
+            FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=? ORDER BY ol.id LIMIT 12");
+        $out=[];
+        foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $o) {
+            $l->execute([(int)$o['id']]);$lines=[];
+            foreach ($l->fetchAll(PDO::FETCH_ASSOC) as $line) {
+                if ($line['decision']==='rejected') continue;
+                $want=$line['decision']==='approved'?(int)$line['approved_qty']:(int)$line['requested_qty'];
+                $open=$want-(int)$line['fulfilled_qty'];
+                if ($open>0) $lines[]=['item_id'=>(int)$line['wow_item_id'],'name'=>mb_substr((string)$line['name'],0,80),'qty'=>$open];
+            }
+            if ($lines) $out[]=['id'=>(int)$o['id'],'status'=>(string)$o['status'],'created_at'=>(int)$o['created'],
+                'requester'=>mb_substr((string)$o['requester'],0,60),'recipient'=>mb_substr((string)$o['recipient'],0,80),'lines'=>$lines];
+        }
+        return $out;
+    }
+
     /** Compact own-order view written into the addon by the companion. */
-    public function state(int $guild, int $user, array $outboxResults=[]): array {
+    public function state(int $guild, int $user, array $outboxResults=[], array $manageResults=[]): array {
         $s=$this->db->prepare('SELECT id,client_key,status,UNIX_TIMESTAMP(created_at) AS created FROM orders
             WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT '.self::STATE_ORDERS);
         $s->execute([$guild,$user]);$orders=$s->fetchAll(PDO::FETCH_ASSOC);
@@ -83,6 +151,9 @@ final class IngameOrders {
         }
         $outbox=[];
         foreach ($outboxResults as $key=>$r) if ($key!=='_file') $outbox[$key]=$r;
-        return ['generated_at'=>time(),'orders'=>$out,'outbox'=>(object)$outbox];
+        $state=['generated_at'=>time(),'orders'=>$out,'outbox'=>(object)$outbox,'manage_results'=>(object)$manageResults];
+        $manage=$this->manageView($guild,$user);
+        if ($manage!==null) $state['manage']=$manage;
+        return $state;
     }
 }

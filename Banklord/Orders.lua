@@ -48,6 +48,7 @@ function A:SubmitCartOrder()
   table.insert(self.db.orderOutbox,{
     clientKey=('ig-%d-%s'):format(time(),randomTag()),
     code=code,character=clean(name..(realm~='' and '-'..realm or ''),80),note='',createdAt=time()})
+  if self.BroadcastNewOrder then self:BroadcastNewOrder(name,code) end
   self.db.localCartDraft={}
   self:Message(A:Tr('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.'))
   if self.RefreshUI then self:RefreshUI() end

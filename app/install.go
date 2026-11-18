@@ -1,7 +1,6 @@
 package main
 
 import (
-	"regexp"
 	"archive/zip"
 	"bytes"
 	"errors"
@@ -9,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )

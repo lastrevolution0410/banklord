@@ -24,6 +24,7 @@ type Install struct {
 var clients = map[string]string{
 	"_retail_": "Retail", "_classic_": "Classic Progression / MoP", "_classic_era_": "Classic Era / Hardcore", "_anniversary_": "Classic Anniversary", "_ptr_": "Public Test Realm", "_xptr_": "Experimental PTR", "_beta_": "Beta",
 }
+
 // macOS clients are app bundles such as "World of Warcraft Classic.app".
 var wowAppRE = regexp.MustCompile(`(?i)^world of warcraft.*\.app$`)
 var wowExeRE = regexp.MustCompile(`(?i)^wow(?:classic(?:t|b|-64)?|t|b|-64|-[0-9]+)?\.exe$`)

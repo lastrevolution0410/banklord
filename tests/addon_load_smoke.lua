@@ -126,6 +126,63 @@ local ok7,err7=pcall(A.RefreshUI,A);assert(ok7,err7)
 local ok8,err8=pcall(A.ShowOrderTooltip,A,UIParent,rows[2]);assert(ok8,err8)
 print('PASS: in-game order outbox, server state reconciliation and overview')
 
+-- Bank manager: alert, withdraw from the guild bank, prepare and send mail.
+do
+  local calls={}
+  local oldAfter=C_Timer.After;C_Timer.After=function(_,fn) fn() end
+  local said,oldAdd={},DEFAULT_CHAT_FRAME.AddMessage
+  DEFAULT_CHAT_FRAME.AddMessage=function(_,m) said[#said+1]=m end
+  local function lastChat() return said[#said] or '' end
+  local oldOpen=A.IsGuildBankOpen
+  local bags={[0]={}}
+  C_Container={GetContainerNumSlots=function(b) return b==0 and 4 or 0 end,
+    GetContainerItemInfo=function(b,s) local i=bags[b] and bags[b][s];return i and {itemID=i[1],stackCount=i[2],isLocked=false} end,
+    PickupContainerItem=function(b,s) calls[#calls+1]='pick'..b..s end,
+    SplitContainerItem=function(b,s,n) calls[#calls+1]='split'..b..s..'x'..n end}
+  local bank={[1]={[3]={2589,20}}}
+  GetNumGuildBankTabs=function() return 1 end
+  GetGuildBankTabInfo=function() return 'Tab',nil,true end
+  GetGuildBankItemLink=function(t,s) local i=bank[t][s];return i and ('|Hitem:'..i[1]..':0|h') end
+  GetGuildBankItemInfo=function(t,s) local i=bank[t][s];return nil,i and i[2],false end
+  GetCurrentGuildBankTab=function() return 1 end
+  SplitGuildBankItem=function(t,s,n) calls[#calls+1]='bsplit'..n;bank[t][s][2]=bank[t][s][2]-n;bags[0][1]={2589,n} end
+  AutoStoreGuildBankItem=function() calls[#calls+1]='bstore' end
+  A.IsGuildBankOpen=function() return true end
+  Banklord_ServerState.manage={{id=7,status='submitted',createdAt=time(),requester='Aria',recipient='Borin-Everlook',
+    lines={{itemId=2589,name='Leinenstoff',qty=5}}}}
+  Banklord_ServerState.manageResults={}
+  A.db.manageSeen=nil
+  A:ReconcileManage()
+  assert(A:IsBankManager() and #A:OpenManageOrders()==1,'manager sees the open order')
+  assert(lastChat():find('#7',1,true),'new order alerted: '..lastChat())
+  A:ShowManagePanel('bank')
+  assert(A.manageMode=='bank','panel mode '..tostring(A.manageMode))
+  A:ManageAll()
+  assert(calls[1]=='bsplit5' and calls[2]=='pick01','splits 5 from the bank stack into an empty bag slot: '..table.concat(calls,','))
+  assert(A.db.manageTaken[7],'order marked as taken')
+  calls={}
+  local name,subject,attached='', '',{}
+  SendMailNameEditBox={SetText=function(_,v) name=v end};SendMailSubjectEditBox={SetText=function(_,v) subject=v end}
+  ClickSendMailItemButton=function(i) attached[#attached+1]=i end
+  A._manageEvents.scripts.OnEvent(nil,'MAIL_SHOW')
+  A:ManageAll()
+  assert(name=='Borin' and subject=='Banklord #7' and #attached==1 and calls[1]=='pick01','mail prepared for same-realm recipient: '..name..' '..subject)
+  A.mailSending=7
+  A._manageEvents.scripts.OnEvent(nil,'MAIL_SEND_SUCCESS')
+  assert(#A.db.manageOutbox==1 and A.db.manageOutbox[1].order==7 and A.db.manageOutbox[1].action=='deliver','handover queued')
+  assert(#A:OpenManageOrders()==0,'sent order hidden')
+  Banklord_ServerState.manageResults={[A.db.manageOutbox[1].key]={status='fulfilled',error='unknown'}}
+  Banklord_ServerState.manage={}
+  A:ReconcileManage()
+  assert(#A.db.manageOutbox==0,'answered action leaves the outbox')
+  A:ReceiveManageMessage('BLNEW1','N|Kaelis-Everlook|2|7','GUILD','Kaelis')
+  assert(lastChat():find('Kaelis',1,true),'live alert shown')
+  local okc,errc=pcall(SlashCmdList.BANKLORD,'bestellungen');assert(okc,errc)
+  C_Timer.After=oldAfter;A.IsGuildBankOpen=oldOpen;C_Container=nil;DEFAULT_CHAT_FRAME.AddMessage=oldAdd
+  Banklord_ServerState.manage=nil
+end
+print('PASS: bank manager alert, guild bank withdrawal and mail handover')
+
 -- Localization: client language decides, BanklordDB.settings.locale overrides.
 local EN=assert(A._localeEN,'EN table not exposed')
 -- 1) Every literal A:Tr('...') in the addon has an English entry.

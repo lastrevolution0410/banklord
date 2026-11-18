@@ -287,10 +287,12 @@ try {
         $g=$db->prepare('SELECT name,realm FROM guilds WHERE id=?');$g->execute([$guildId]);$record=$g->fetch();
         if (!$record) reply(404,['error'=>'GUILD_NOT_FOUND']);
         $ingame=new IngameOrders($db);
+        // Manager handovers first: they release reservations before a new scan lowers the stock.
+        $managed=$ingame->processManage($guildId,$actor,$file);
         if ($auth['scope']==='member.orders') {
             // Personal token: orders only. Scans and peer drafts in the file are ignored.
             $results=$ingame->processOutbox($guildId,$actor,$file);
-            reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results)]);
+            reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
         }
         $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']);
         $auto=$auth['scope']==='scan.auto';
@@ -313,7 +315,7 @@ try {
         }
         $results=$ingame->processOutbox($guildId,$actor,$file);
         reply($staged['created']?201:200,['import'=>$staged,'auto_reconcile'=>$autoResult,'new_peer_drafts'=>$peers,
-            'ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results)]);
+            'ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
     }
     if (in_array($method,['POST','PUT','PATCH','DELETE'],true)) csrf();
 

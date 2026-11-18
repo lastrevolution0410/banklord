@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.6.0"
+const companionVersion = "0.7.0"
 
 type controller struct {
 	mu           sync.Mutex
@@ -33,6 +33,7 @@ type controller struct {
 	nextState    time.Time
 	nextBeat     time.Time
 	lastOutbox   map[string]outboxResult
+	lastManage   map[string]manageResult
 	status       string
 	lastUploaded string
 	messages     []string
@@ -100,6 +101,7 @@ func (c *controller) run(ctx context.Context) {
 		if result.State != nil {
 			c.mu.Lock()
 			c.lastOutbox = result.State.Outbox
+			c.lastManage = result.State.ManageResults
 			c.mu.Unlock()
 			c.applyState(p, *result.State)
 		}
@@ -119,6 +121,7 @@ func (c *controller) run(ctx context.Context) {
 		}
 	}
 }
+
 // refreshState polls the own order status every five minutes so that
 // approvals and issues show up in game after the next /reload.
 func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
@@ -127,7 +130,7 @@ func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
 		c.mu.Unlock()
 		return
 	}
-	c.nextState = time.Now().Add(5 * time.Minute)
+	c.nextState = time.Now().Add(2 * time.Minute)
 	c.mu.Unlock()
 	st, err := fetchState(ctx, p, tok)
 	if err != nil {
@@ -140,6 +143,14 @@ func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
 	for k, v := range c.lastOutbox {
 		if _, ok := st.Outbox[k]; !ok {
 			st.Outbox[k] = v
+		}
+	}
+	if st.ManageResults == nil {
+		st.ManageResults = map[string]manageResult{}
+	}
+	for k, v := range c.lastManage {
+		if _, ok := st.ManageResults[k]; !ok {
+			st.ManageResults[k] = v
 		}
 	}
 	c.mu.Unlock()
@@ -193,6 +204,7 @@ func secureKey() (string, error) {
 	}
 	return hex.EncodeToString(buf), nil
 }
+
 // Main runs the companion: local browser UI, uploads and in-game status.
 func Main() {
 	if existing, err := existingSession(); err == nil {

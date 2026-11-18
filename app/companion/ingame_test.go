@@ -52,3 +52,16 @@ func TestWriteServerStateFindsAddonFolder(t *testing.T) {
 		t.Fatal("wrong structure accepted")
 	}
 }
+
+func TestRenderManageView(t *testing.T) {
+	m := []manageOrder{{ID: 7, Status: "submitted", Requester: "Aria", Recipient: `Bob"-Realm|r`, Lines: []manageLine{{ItemID: 2589, Name: "Leinenstoff", Qty: 5}}}}
+	out := renderState(ingameState{Manage: &m, ManageResults: map[string]manageResult{"ma-123456-abcdef": {Status: "fulfilled"}, "bad key": {}}})
+	for _, want := range []string{`recipient = "Bob\"-Realm||r"`, `qty = 5`, `["ma-123456-abcdef"] = { status = "fulfilled"`} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "bad key") || strings.Contains(renderState(ingameState{}), "manage = {") {
+		t.Fatal("invalid key or manager view for members rendered")
+	}
+}

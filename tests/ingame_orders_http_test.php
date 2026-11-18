@@ -48,6 +48,26 @@ $ctx=stream_context_create(['http'=>['method'=>'POST','ignore_errors'=>true,'hea
 $hb=json_decode((string)file_get_contents("$base/api/v1/bridge/guilds/$g/heartbeat",false,$ctx),true);
 $row=$db->query("SELECT device,addon_version,updater_version FROM device_heartbeats WHERE guild_id=$g")->fetch();
 $ok(($hb['ok']??false)===true && $row && $row['device']==='DEMO-PC' && $row['addon_version']==='0.6.1' && $row['updater_version']==='0.9.5','heartbeat stored');
+// Bank manager in game: sees open orders with recipient, delivers and rejects by mail outbox.
+[$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
+$ok(!array_key_exists('manage',$r['ingame_state']??[]),'members get no manager view');
+$c=$db->prepare("SELECT COUNT(*) FROM characters WHERE guild_id=? AND user_id=? AND name='Testchar' AND realm='Everlook'");$c->execute([$g,$member]);
+$ok((int)$c->fetchColumn()===1,'in-game character linked to the account');
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,$sv([["ig-$now-second",'BL1|2589,2,item:2589:0:0:0:0:0:0:0:0',$now]]));
+$oid2=$r['ingame_orders']["ig-$now-second"]['order_id']??0;
+$mtok=(new BridgeTokens($db))->issueMemberOrders($g,$manager,'Bank-PC')['token'];
+[$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$mtok);
+$m=$r['ingame_state']['manage']??[];
+$ok(count($m)===2 && $m[0]['id']===$oid && $m[0]['recipient']==='Testchar-Everlook' && $m[0]['lines'][0]['qty']===5,'manager sees open orders '.json_encode($m));
+$mv="BanklordDB = {[\"manageOutbox\"]={{[\"key\"]=\"ma-$now-aaaaaa\",[\"order\"]=$oid,[\"action\"]=\"deliver\"},{[\"key\"]=\"ma-$now-bbbbbb\",[\"order\"]=$oid2,[\"action\"]=\"reject\"}}}";
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$mtok,$mv);
+$res=$r['ingame_state']['manage_results']??[];
+$ok(($res["ma-$now-aaaaaa"]['status']??'')==='fulfilled' && ($res["ma-$now-bbbbbb"]['status']??'')==='rejected','deliver + reject '.json_encode($res));
+$ok(($r['ingame_state']['manage']??null)===[],'no open orders left');
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$mtok,$mv);
+$ok(($r['ingame_state']['manage_results']["ma-$now-aaaaaa"]['status']??'')==='fulfilled','deliver is idempotent');
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,"BanklordDB = {[\"manageOutbox\"]={{[\"key\"]=\"ma-$now-cccccc\",[\"order\"]=$oid2,[\"action\"]=\"deliver\"}}}");
+$ok(isset($r['ingame_state']['manage_results']["ma-$now-cccccc"]['error']),'members cannot deliver');
 $db->prepare("UPDATE guild_memberships SET status='disabled' WHERE guild_id=? AND user_id=?")->execute([$g,$member]);
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
 $ok($st===401,'disabled member token rejected');

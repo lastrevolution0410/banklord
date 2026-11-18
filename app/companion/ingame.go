@@ -36,10 +36,38 @@ type outboxResult struct {
 	OrderID int64  `json:"order_id,omitempty"`
 	Error   string `json:"error,omitempty"`
 }
+type manageLine struct {
+	ItemID int64  `json:"item_id"`
+	Name   string `json:"name"`
+	Qty    int64  `json:"qty"`
+}
+type manageOrder struct {
+	ID        int64        `json:"id"`
+	Status    string       `json:"status"`
+	CreatedAt int64        `json:"created_at"`
+	Requester string       `json:"requester"`
+	Recipient string       `json:"recipient"`
+	Lines     []manageLine `json:"lines"`
+}
+type manageResult struct {
+	Status string `json:"status,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
 type ingameState struct {
-	GeneratedAt int64                   `json:"generated_at"`
-	Orders      []ingameOrder           `json:"orders"`
-	Outbox      map[string]outboxResult `json:"outbox"`
+	GeneratedAt   int64                   `json:"generated_at"`
+	Orders        []ingameOrder           `json:"orders"`
+	Outbox        map[string]outboxResult `json:"outbox"`
+	Manage        *[]manageOrder          `json:"manage"`
+	ManageResults map[string]manageResult `json:"manage_results"`
+}
+
+var manageKeyPattern = regexp.MustCompile(`^ma-[0-9]{6,12}-[a-z0-9]{6}$`)
+
+func clip(s string, n int) string {
+	if r := []rune(s); len(r) > n {
+		return string(r[:n])
+	}
+	return s
 }
 
 var (
@@ -59,7 +87,7 @@ func decodeState(raw any) (ingameState, error) {
 	if err := json.Unmarshal(b, &st); err != nil {
 		return st, errors.New("Bestellstatus unlesbar")
 	}
-	if len(st.Orders) > 50 {
+	if len(st.Orders) > 50 || (st.Manage != nil && len(*st.Manage) > 60) {
 		return st, errors.New("Bestellstatus zu groß")
 	}
 	return st, nil
@@ -154,7 +182,35 @@ func renderState(st ingameState) string {
 			fmt.Fprintf(&b, "    [%s] = { error = %s },\n", luaString(k), luaString(word(r.Error)))
 		}
 	}
-	b.WriteString("  },\n}\n")
+	b.WriteString("  },\n  manageResults = {\n")
+	keys = keys[:0]
+	for k := range st.ManageResults {
+		if manageKeyPattern.MatchString(k) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		r := st.ManageResults[k]
+		fmt.Fprintf(&b, "    [%s] = { status = %s, error = %s },\n", luaString(k), luaString(word(r.Status)), luaString(word(r.Error)))
+	}
+	b.WriteString("  },\n")
+	if st.Manage != nil {
+		b.WriteString("  manage = {\n")
+		for _, o := range *st.Manage {
+			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s, lines = {\n",
+				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)))
+			for i, l := range o.Lines {
+				if i >= 12 {
+					break
+				}
+				fmt.Fprintf(&b, "      { itemId = %d, name = %s, qty = %d },\n", l.ItemID, luaString(clip(l.Name, 80)), l.Qty)
+			}
+			b.WriteString("    } },\n")
+		}
+		b.WriteString("  },\n")
+	}
+	b.WriteString("}\n")
 	return b.String()
 }
 

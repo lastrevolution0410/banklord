@@ -134,8 +134,8 @@ local EN={
   -- Core / slash commands
   ['v%s geladen. /banklord zeigt die Befehle.']='v%s loaded. /banklord lists the commands.',
   ['Kein Scan aktiv.']='No scan running.',
-  ['Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, debug, minimap, lang de|en|auto']=
-    'Commands: /banklord open, scan, scanfach (current tab), liste (list), suche <name> (search), merken <item ID> <qty> (add to cart), korb (cart), code, leeren (empty cart), senden <player> (send), eingang (inbox), ausgang (outbox), erneut (retry), status, debug, minimap, lang de|en|auto (language)',
+  ['Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, debug, minimap, lang de|en|auto']=
+    'Commands: /banklord open, scan, scanfach (current tab), liste (list), suche <name> (search), merken <item ID> <qty> (add to cart), korb (cart), code, leeren (empty cart), senden <player> (send), eingang (inbox), ausgang (outbox), erneut (retry), status, bestellungen (orders, bank managers), debug, minimap, lang de|en|auto (language)',
   ['nicht verfügbar']='not available',
   ['API-Fehler']='API error',
   ['unbekannt']='unknown',
@@ -285,6 +285,37 @@ local EN={
   ['Keine gespeicherten Ingame-Sendeaufträge.']='No saved in-game send jobs.',
   ['Peer-ACK bedeutet nicht Serverannahme. Bei fehlender Verbindung: direkt im Web bestellen.']=
     'A peer ACK does not mean server acceptance. If there is no connection, order directly on the web.',
+  -- Bank manager tools
+  ['Bestellung #%d konnte nicht gebucht werden: %s']='Order #%d could not be booked: %s',
+  ['… und %d weitere neue Bestellungen.']='… and %d more new orders.',
+  ['Neue Bestellung #%d von %s: %s']='New order #%d from %s: %s',
+  ['%s hat bestellt: %d Positionen, %d Stück. Sichtbar nach /reload.']='%s placed an order: %d lines, %d pcs. Visible after /reload.',
+  ['Bitte zuerst die Gildenbank öffnen.']='Please open the guild bank first.',
+  ['Entnahme läuft bereits.']='Already taking items out.',
+  ['Entnahme abgebrochen: Gildenbank geschlossen.']='Stopped: the guild bank was closed.',
+  ['Entnahme fertig. Jetzt zum Briefkasten gehen.']='Done. Now go to a mailbox.',
+  ['Nicht genug %s in der Gildenbank (es fehlen %d).']='Not enough %s in the guild bank (%d missing).',
+  ['Taschen voll. Entnahme gestoppt.']='Bags full. Stopped.',
+  ['Es fehlen %d %s in den Taschen.']='%d %s missing in your bags.',
+  ['Zu viele Stapel für einen Brief. Bitte Gegenstände stapeln.']='Too many stacks for one mail. Please stack the items.',
+  ['Bitte zuerst einen Briefkasten öffnen.']='Please open a mailbox first.',
+  ['Bestellung #%d hat keinen Empfänger-Charakter.']='Order #%d has no recipient character.',
+  ['Brief für #%d an %s ist bereit. Bitte auf „Senden“ klicken.']='Mail for #%d to %s is ready. Click “Send”.',
+  ['Keine weitere Bestellung mit passenden Gegenständen in den Taschen.']='No more orders with matching items in your bags.',
+  ['Schließen']='Close',
+  ['Banklord – offene Bestellungen entnehmen']='Banklord – take out open orders',
+  ['Banklord – Bestellungen versenden']='Banklord – send orders',
+  ['Banklord – offene Bestellungen']='Banklord – open orders',
+  ['Alle entnehmen']='Take out all',
+  ['Alle versenden']='Send all',
+  ['Entnommen']='Taken',
+  ['Entnehmen']='Take out',
+  ['Versenden']='Send',
+  ['%d weitere Bestellungen nach dem Versand.']='%d more orders after sending.',
+  ['Keine offenen Bestellungen.']='No open orders.',
+  ['Ziehen zum Verschieben. Neue Bestellungen erscheinen nach /reload.']='Drag to move. New orders appear after /reload.',
+  ['Bestellung #%d versendet und als ausgegeben vorgemerkt.']='Order #%d sent and marked as handed out.',
+  ['Nur für Bankverwalter.']='Bank managers only.',
 }
 A._localeEN=EN -- exposed for the locale smoke test
 

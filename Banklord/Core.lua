@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.7.1"
+A.version = "0.8.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -143,6 +143,7 @@ function A:OnEvent(event, ...)
     if A.ApplyUILocale then A:ApplyUILocale() end
     if A.InitPeer then A:InitPeer() end
     if A.ReconcileOrderOutbox then A:ReconcileOrderOutbox() end
+    if A.InitManage then A:InitManage() end
     if A.InitMinimapButton then A:InitMinimapButton() end
     A:Message(A:Tr("v%s geladen. /banklord zeigt die Befehle."):format(A.version))
   elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" or
@@ -154,19 +155,23 @@ function A:OnEvent(event, ...)
     if not A.bankOpen and A.AbortScan then A:AbortScan("Bankinteraktion beendet") end
     if A.bankOpen then A:QueueAutomaticBankScan() else A:EndAutomaticBankSession() end
     if A.RefreshUI then A:RefreshUI() end
+    if A.OnBankStateChanged then A:OnBankStateChanged() end
   elseif event == "GUILDBANKFRAME_OPENED" then
     A.lastBankEvent = event
     A.bankOpen = true
     A:QueueAutomaticBankScan()
     if A.RefreshUI then A:RefreshUI() end
+    if A.OnBankStateChanged then A:OnBankStateChanged() end
   elseif event == "GUILDBANKFRAME_CLOSED" then
     A.lastBankEvent = event
     A.bankOpen = false
     A:EndAutomaticBankSession()
     if A.AbortScan then A:AbortScan("Bankfenster geschlossen") end
     if A.RefreshUI then A:RefreshUI() end
+    if A.OnBankStateChanged then A:OnBankStateChanged() end
   elseif event == "CHAT_MSG_ADDON" then
     if A.ReceivePeerMessage then A:ReceivePeerMessage(...) end
+    if A.ReceiveManageMessage then A:ReceiveManageMessage(...) end
   elseif event == "GUILDBANKBAGSLOTS_CHANGED" then
     if A.ScanEvent then A:ScanEvent() end
   end
@@ -214,6 +219,8 @@ SlashCmdList.BANKLORD = function(text)
     A:Status()
   elseif cmd == "debug" then
     A:Debug()
+  elseif cmd == "orders" or cmd == "bestellungen" then
+    if A:IsBankManager() then A:ShowManagePanel("list") else A:Message(A:Tr("Nur für Bankverwalter.")) end
   elseif cmd == "liste" or cmd:match("^suche%s*") then
     local query = cmd:match("^suche%s*(.*)$") or ""
     A:SearchLocalItems(query)
@@ -245,6 +252,6 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, debug, minimap, lang de|en|auto"))
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, debug, minimap, lang de|en|auto"))
   end
 end

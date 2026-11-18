@@ -172,6 +172,56 @@ final class Orders
             $this->db->commit();return 'cancelled';
         } catch (\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
+    /**
+     * In-game handover by mail: the bank manager took the items from the bank
+     * and sent them. Pending lines count as approved in full; reservations are
+     * released because the next bank scan already lowers the physical stock.
+     */
+    public function deliver(int $guild,int $actor,int $orderId,string $key): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9_-]{12,80}$/D',$key)) throw new DomainError('BAD_OPERATION_KEY');
+        $this->db->beginTransaction();
+        try {
+            $this->activeRole($guild,$actor,'order.fulfill');
+            $order=$this->lockOrder($guild,$orderId);
+            if ($order['status']==='fulfilled') {$this->db->commit();return 'fulfilled';}
+            if (!in_array($order['status'],['submitted','reserved','partial','partially_fulfilled'],true)) throw new DomainError('ORDER_NOT_FULFILLABLE');
+            $s=$this->db->prepare('SELECT * FROM order_lines WHERE order_id=? ORDER BY stock_id,id FOR UPDATE');
+            $s->execute([$orderId]);
+            $rel=$this->db->prepare('UPDATE guild_stock SET reserved_qty=GREATEST(reserved_qty-?,0),stock_version=stock_version+1 WHERE id=? AND guild_id=?');
+            $up=$this->db->prepare("UPDATE order_lines SET approved_qty=?,fulfilled_qty=?,decision='approved' WHERE id=?");
+            foreach ($s->fetchAll() as $line) {
+                if ($line['decision']==='rejected') continue;
+                $target=$line['decision']==='approved'?(int)$line['approved_qty']:(int)$line['requested_qty'];
+                $reserved=$line['decision']==='approved'?(int)$line['approved_qty']-(int)$line['fulfilled_qty']:0;
+                if ($target<=(int)$line['fulfilled_qty']) continue;
+                if ($reserved>0) $rel->execute([$reserved,(int)$line['stock_id'],$guild]);
+                $up->execute([$target,$target,(int)$line['id']]);
+                $this->ledger($guild,(int)$line['stock_id'],(int)$line['id'],'fulfill',0,-$reserved,$actor,$key.'-'.$line['id']);
+            }
+            $state=$this->updateState($orderId);
+            $this->audit($guild,$actor,'order.deliver','order',$orderId,['via'=>'ingame-mail']);
+            $this->notifyOwner($guild,$orderId,'order.fulfilled');
+            $this->db->commit();return $state;
+        } catch(\Throwable $e) {if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
+
+    /** Manager rejects an order: undecided orders are declined, others cancelled. */
+    public function reject(int $guild,int $actor,int $orderId): string
+    {
+        $s=$this->db->prepare('SELECT status FROM orders WHERE guild_id=? AND id=?');$s->execute([$guild,$orderId]);
+        $status=$s->fetchColumn();
+        if ($status===false) throw new DomainError('ORDER_NOT_FOUND');
+        if (in_array($status,['rejected','cancelled'],true)) return (string)$status;
+        if ($status!=='submitted') {
+            $this->activeRole($guild,$actor,'order.approve');
+            return $this->cancel($guild,$actor,$orderId);
+        }
+        $l=$this->db->prepare('SELECT id FROM order_lines WHERE order_id=?');$l->execute([$orderId]);
+        $decisions=[];foreach ($l->fetchAll() as $r) $decisions[(int)$r['id']]=0;
+        return $this->decide($guild,$actor,$orderId,$decisions);
+    }
+
     private function notifyOwner(int $guild,int $order,string $kind): void
     {
         $s=$this->db->prepare('INSERT INTO notifications (guild_id,user_id,kind,order_id) SELECT guild_id,user_id,?,id FROM orders WHERE guild_id=? AND id=?');
