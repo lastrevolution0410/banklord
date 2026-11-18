@@ -2,8 +2,8 @@
 // Bank ledger (no double entries across uploads), bank gold and value, Discord
 // queue, creating further guilds, urgent orders. Needs a migrated MariaDB.
 declare(strict_types=1);
-foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation','SavedVariablesParser','PeerRelay','Community','IngameOrders','BankLedger','Guilds'] as $c) require_once __DIR__."/../backend/src/$c.php";
-use Banklord\{Database,Orders,StockReconciliation,BankLedger,Guilds,Discord,DomainError};
+foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation','SavedVariablesParser','PeerRelay','Community','IngameOrders','BankLedger','Operator','Guilds'] as $c) require_once __DIR__."/../backend/src/$c.php";
+use Banklord\{Database,Orders,StockReconciliation,BankLedger,Guilds,Operator,Discord,DomainError};
 $db=Database::connect();$fail=0;
 $ok=function(bool $c,string $m) use(&$fail){ if(!$c){$fail++; echo "FAIL: $m\n";} };
 $err=function(callable $f){ try{$f();return 'OK';}catch(DomainError $e){return $e->getMessage();} };
@@ -54,9 +54,27 @@ $ok((int)$db->query("SELECT COUNT(*) FROM discord_outbox WHERE guild_id=$g AND m
 $d->save($g,$admin,['events'=>['order']]);
 $ok((int)$db->query("SELECT COUNT(*) FROM guild_discord WHERE guild_id=$g AND events='order'")->fetchColumn()===1,'events changed without resending the webhook');
 
-// Further guilds: guild admins create them and become their admin.
-$guilds=new Guilds($db);
-$ok($err(fn()=>$guilds->create($member,['name'=>'Neu','realm'=>'Everlook','wow_flavor'=>'retail']))==='FORBIDDEN','members cannot create guilds');
+// Own guilds: every account may set one up (operator limit), creator becomes admin.
+$guilds=new Guilds($db);$op=new Operator($db);
+$db->exec("INSERT INTO site_settings (name,value) VALUES ('guilds_per_account','1') ON DUPLICATE KEY UPDATE value='1'");
+$db->prepare("DELETE FROM audit_events WHERE actor_user_id=? AND action='guild.created'")->execute([$member]);
+$mine=$guilds->create($member,['name'=>"Mitglieder-Gilde $g",'realm'=>'Everlook','region'=>'EU','wow_flavor'=>'mop_classic']);
+$ok((string)$db->query("SELECT role FROM guild_memberships WHERE guild_id={$mine['id']} AND user_id=$member")->fetchColumn()==='admin','a member sets up his own guild and is its admin');
+$ok($err(fn()=>$guilds->create($member,['name'=>"Zweite $g",'realm'=>'Everlook','wow_flavor'=>'mop_classic']))==='GUILD_LIMIT','limit per account from the operator setting');
+$db->exec("UPDATE site_settings SET value='0' WHERE name='guilds_per_account'");
+$ok($op->setting('guilds_per_account')===0,'limit 0 = only the operator creates guilds');
+$ok($err(fn()=>$op->save($member,['guilds_per_account'=>5]))==='FORBIDDEN','only the operator changes the limit');
+$db->prepare('UPDATE users SET is_operator=1 WHERE id=?')->execute([$admin]);
+$ok($op->save($admin,['guilds_per_account'=>4])['guilds_per_account']['value']===4,'operator sets the limit');
+$ok($err(fn()=>$op->save($admin,['guilds_per_account'=>99]))==='INVALID_SETTING','limit range checked');
+$all=array_column($op->guilds($admin),'id');$ok(in_array($mine['id'],$all,true),'operator sees every guild');
+$ok($err(fn()=>$op->guilds($member))==='FORBIDDEN','members do not see all guilds');
+$opened=$op->open($admin,$mine['id']);
+$ok($opened['role']==='admin' && (int)$db->query("SELECT COUNT(*) FROM audit_events WHERE guild_id={$mine['id']} AND action='operator.opened'")->fetchColumn()===1,'operator opens a guild as admin, written to its log');
+$op->open($admin,$mine['id']);
+$ok((int)$db->query("SELECT COUNT(*) FROM audit_events WHERE guild_id={$mine['id']} AND action='operator.opened'")->fetchColumn()===1,'opening twice logs once');
+$db->prepare('UPDATE users SET is_operator=0 WHERE id=?')->execute([$admin]);
+$db->exec("UPDATE site_settings SET value='3' WHERE name='guilds_per_account'");
 $new=$guilds->create($admin,['name'=>"Retail-Gilde $g",'realm'=>'Blackhand','region'=>'EU','wow_flavor'=>'retail']);
 $ok($new['wow_flavor']==='retail' && (string)$db->query("SELECT role FROM guild_memberships WHERE guild_id={$new['id']} AND user_id=$admin")->fetchColumn()==='admin','creator becomes admin');
 $ok($err(fn()=>$guilds->create($admin,['name'=>"Retail-Gilde $g",'realm'=>'Blackhand','wow_flavor'=>'retail']))==='GUILD_EXISTS','no duplicate guilds');

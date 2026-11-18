@@ -42,7 +42,7 @@ function setTab(tab){
   if(tab==='updates'&&state.guild?.role!=='admin')return;
   if(tab==='ledger'&&!administrator())return;
   if(tab==='ledger')loadLedger().catch(e=>notice(e.message,true));
-  if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
+  if(tab==='updates'){loadOperator().catch(e=>notice(e.message,true));loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
   state.tab=tab;
   for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','ledger','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -59,13 +59,43 @@ function setTab(tab){
   if(tab==='procurement')loadProcurement().catch(e=>notice(e.message,true));
 }
 function updateCartBadge(){$('cartCount').textContent=String(cartTotal());}
+async function fillGuildSelector(){
+  const sel=$('guildSelector');sel.replaceChildren();
+  const mine=state.operator?el('optgroup'):sel;if(state.operator){mine.label='Meine Gilden';sel.append(mine);}
+  for(const g of state.guilds){const o=el('option','',`${g.name} · ${g.realm} · ${game(g.wow_flavor)[0]}`);o.value=g.id;mine.append(o);}
+  if(!state.operator)return;
+  try{const r=await api('/operator/guilds');state.allGuilds=r.guilds;state.opSettings=r.settings;
+    const own=new Set(state.guilds.map(g=>Number(g.id)));const rest=r.guilds.filter(g=>!own.has(g.id));
+    if(rest.length){const grp=el('optgroup');grp.label='Alle Gilden (Betreiber)';for(const g of rest){const o=el('option','',`${g.name} · ${g.realm} · ${game(g.wow_flavor)[0]}`);o.value='op:'+g.id;grp.append(o);}sel.append(grp);}
+  }catch(e){}
+}
+async function onGuildSelect(){
+  const v=$('guildSelector').value;
+  if(!String(v).startsWith('op:')){switchGuild();return;}
+  const id=Number(String(v).slice(3));const g=(state.allGuilds||[]).find(x=>x.id===id);
+  if(!confirm(`Gilde „${g?g.name:id}“ als Betreiber öffnen? Du wirst dort als Administrator eingetragen (steht in ihrem Protokoll).`)){$('guildSelector').value=String(state.guild?.id||'');return;}
+  try{await post(`/operator/guilds/${id}/open`,{});const data=await api('/guilds');state.guilds=data.guilds;await fillGuildSelector();$('guildSelector').value=String(id);switchGuild();}
+  catch(e){notice(e.message,true);$('guildSelector').value=String(state.guild?.id||'');}
+}
+async function loadOperator(){
+  $('operatorPanel').classList.toggle('hidden',!state.operator);
+  for(const id of ['createReleaseToken','releaseTokenResult','releaseTokenList','releaseList'])$(id).classList.toggle('hidden',!state.operator);
+  if(!state.operator)return;
+  const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;
+  const list=$('operatorGuilds');list.replaceChildren(el('p','muted',`${r.guilds.length} Gilden auf dieser Website`));
+  for(const g of r.guilds){const row=el('div','row');
+    row.append(add(el('div'),el('strong','',`${g.name} · ${g.realm} (${g.region})`),el('div','muted',`${game(g.wow_flavor)[0]} · ${g.members} Mitglieder · Admins: ${g.admins||'–'} · letzte Bestellung: ${g.last_order?new Date(g.last_order*1000).toLocaleDateString():'–'}`)));
+    if(g.my_role==='admin'){const b=el('button','secondary button-sm','Wechseln');b.onclick=()=>{$('guildSelector').value=String(g.id);switchGuild();};row.append(b);}
+    else{const b=el('button','button-sm','Öffnen');b.onclick=()=>{$('guildSelector').value='op:'+g.id;onGuildSelect();};row.append(b);}
+    list.append(row);}
+}
 function switchGuild(){state.bankSummary=null;
   const id=Number($('guildSelector').value);state.guild=state.guilds.find(g=>Number(g.id)===id)||state.guilds[0];
   if(!state.guild)return;
   state.cart.clear();state.pendingOrder=null;state.details.clear();state.appearances.clear();state.appearanceRequests.clear();state.selectedStockId=null;state.inventoryFilter='all';state.categoryKey='all';state.expandedCategories.clear();state.catalogPage=0;appearanceLoading.queue=[];appearanceLoading.queued.clear();iconLookupByItemId.clear();updateCartBadge();
   $('guildTitle').textContent=state.guild.name;
   document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
-  $('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2);$('bellBtn').classList.remove('hidden');
+  $('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2&&!state.operator);$('guildSelector').value=String(state.guild.id);renderNewGuildLimit();$('bellBtn').classList.remove('hidden');
   $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('ledgerTab').classList.toggle('hidden',!administrator());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
   state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadBankSummary();loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
 }
@@ -84,8 +114,8 @@ async function initialize(){
       catch(err){notice('Registrierung fehlgeschlagen: '+err.message,true);}};
     return;}
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
-  const data=await api('/guilds');state.guilds=data.guilds;
-  $('guildSelector').replaceChildren();for(const g of data.guilds){const o=el('option','',`${g.name} · ${g.realm} · ${game(g.wow_flavor)[0]}`);o.value=g.id;$('guildSelector').append(o);}
+  const data=await api('/guilds');state.guilds=data.guilds;state.operator=!!data.operator;state.createLimit=data.create_limit;state.created=data.created||0;
+  await fillGuildSelector();
   if(!data.guilds.length){notice('Für dein Konto ist noch keine freigeschaltete Gilde hinterlegt.',true);return;}
   switchGuild();loadNotifications().catch(()=>{});
 }
@@ -782,8 +812,7 @@ async function loadDemoSetting(){
   box.append(el('p','',st.enabled?'Status: eingeschaltet':'Status: ausgeschaltet'),b);
 }
 async function loadReleases(){
-  loadDemoSetting();
-  loadUpstream();
+  if(state.operator){loadDemoSetting();loadUpstream();}
   const r=await api(path('release-tokens'));const list=$('releaseTokenList');list.replaceChildren();
   for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?when(t.last_used_at):'noch nie'}`));
     const b=el('button','danger button-sm','Sperren');b.onclick=async()=>{if(!confirm('Veröffentlichungs-Schlüssel sperren?'))return;await api(path('release-tokens/'+t.id),{method:'DELETE'});await loadReleases();};row.append(b);list.append(row);}
@@ -818,7 +847,8 @@ $('refreshActivity').onclick=()=>loadActivity().catch(e=>notice(e.message,true))
 document.querySelectorAll('#adminFilter .chip').forEach(c=>c.onclick=()=>{state.adminFilter=c.dataset.filter;document.querySelectorAll('#adminFilter .chip').forEach(x=>x.classList.toggle('active',x===c));renderOrders();});
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{const r=await post('/login',{email:$('email').value,password:$('password').value});state.csrf=r.csrf;$('password').value='';await initialize();notice('Erfolgreich angemeldet.');}catch(err){notice('Anmeldung fehlgeschlagen: '+err.message,true);}});
 $('logoutBtn').addEventListener('click',async()=>{try{await post('/logout',{});state.cart.clear();state.details.clear();state.guild=null;await initialize();notice('Abgemeldet.');}catch(e){notice(e.message,true);}});
-$('guildSelector').addEventListener('change',switchGuild);
+$('guildSelector').addEventListener('change',onGuildSelect);
+$('operatorSettings').onsubmit=async e=>{e.preventDefault();try{await api('/operator/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({guilds_per_account:Number($('opGuildLimit').value)})});notice('Gespeichert.');}catch(err){notice(err.message==='INVALID_SETTING'?'Bitte eine Zahl von 0 bis 50.':err.message,true);}};
 let searchTimer;$('searchInput').addEventListener('input',()=>{state.itemPage=1;state.categoryKey='all';state.inventoryFilter='all';clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadItems().catch(e=>notice(e.message,true)),280);});
 $('checkoutForm').addEventListener('submit',submitOrder);
 $('prevItems').onclick=()=>{if(state.itemPage>1){state.itemPage--;loadItems().catch(e=>notice(e.message,true));}};
@@ -899,6 +929,7 @@ const ACTIVITY={
   'order.limit_approved':['order','✔️',e=>`${e.actor||'Ein Offizier'} hat Bestellung #${e.entity_id}${e.owner?' von '+e.owner:''} über dem Wochenlimit freigegeben`],
   'member.claim.redeemed':['people','🤝',e=>`${e.actor||'Jemand'} ist per Bestätigung im Spiel beigetreten`],
   'member.invite.joined':['people','🤝',e=>`${e.actor||'Jemand'} ist per Einladung beigetreten`],
+  'operator.opened':['people','🛠️',e=>`${e.actor||'Der Betreiber'} hat die Gilde als Betreiber geöffnet`],
   'guild.order_rules':['people','📋',e=>`${e.actor||'Ein Admin'} hat die Bestellregeln geändert`],
   'order.cancel':['order','✖️',e=>`${e.actor||'Jemand'} hat Bestellung #${e.entity_id}${e.owner&&e.owner!==e.actor?' von '+e.owner:''} storniert`],
   'scan.staged':['scan','🔍',e=>`Neuer Bankscan #${e.entity_id} hochgeladen${e.actor?' von '+e.actor:''}`],
@@ -1245,6 +1276,13 @@ $('testDiscord').onclick=async()=>{try{await post(path('discord/test'),{});notic
 for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;$('newGuildFlavor').append(o);}
 $('newGuildForm').onsubmit=async e=>{e.preventDefault();
   try{const r=await post('/guilds',{name:$('newGuildName').value.trim(),realm:$('newGuildRealm').value.trim(),region:$('newGuildRegion').value,wow_flavor:$('newGuildFlavor').value});
-    state.guilds.push(r.guild);const o=el('option','',`${r.guild.name} · ${r.guild.realm} · ${game(r.guild.wow_flavor)[0]}`);o.value=r.guild.id;$('guildSelector').append(o);
-    $('guildSelector').value=String(r.guild.id);$('newGuildForm').reset();switchGuild();notice('Gilde „'+r.guild.name+'“ angelegt. Du bist dort Administrator.');}
-  catch(err){notice(err.message==='GUILD_EXISTS'?'Diese Gilde gibt es hier schon.':err.message==='INVALID_GUILD'?'Bitte Gildenname und Realm prüfen.':err.message,true);}};
+    state.guilds.push(r.guild);state.created=(state.created||0)+1;await fillGuildSelector();
+    $('guildSelector').value=String(r.guild.id);$('newGuildForm').reset();switchGuild();setTab('account');$('newGuildNext').classList.remove('hidden');$('newGuildNext').scrollIntoView({block:'center'});
+    notice('Gilde „'+r.guild.name+'“ angelegt. Du bist dort Administrator.');}
+  catch(err){notice(err.message==='GUILD_EXISTS'?'Diese Gilde gibt es hier schon. Bitte einen Admin dieser Gilde um eine Einladung.':err.message==='INVALID_GUILD'?'Bitte Gildenname und Realm prüfen.':err.message==='GUILD_LIMIT'?'Du hast schon so viele Gilden angelegt, wie erlaubt sind. Wende dich an den Betreiber der Website.':err.message,true);}};
+function renderNewGuildLimit(){
+  const lim=state.createLimit;const left=lim==null?null:Math.max(0,lim-(state.created||0));
+  $('newGuildLimit').textContent=lim==null?'':left>0?`Du kannst noch ${left} Gilde(n) anlegen.`:'Du kannst keine weitere Gilde anlegen. Wende dich an den Betreiber der Website.';
+  $('newGuildForm').classList.toggle('hidden',left===0);
+  if(state.guild&&!$('newGuildName').value)$('newGuildFlavor').value=state.guild.wow_flavor;
+}

@@ -18,6 +18,7 @@ use Banklord\UpstreamUpdater;
 use Banklord\Demo;
 use Banklord\StockReconciliation;
 use Banklord\Community;
+use Banklord\Operator;
 use Banklord\Preferences;
 use Banklord\Procurement;
 use Banklord\PeerRelay;
@@ -46,6 +47,7 @@ require dirname(__DIR__) . '/src/Installer.php';
 require dirname(__DIR__) . '/src/Demo.php';
 require dirname(__DIR__) . '/src/StockReconciliation.php';
 require dirname(__DIR__) . '/src/Community.php';
+require dirname(__DIR__) . '/src/Operator.php';
 require dirname(__DIR__) . '/src/Preferences.php';
 require dirname(__DIR__) . '/src/Procurement.php';
 require dirname(__DIR__) . '/src/PeerRelay.php';
@@ -450,17 +452,24 @@ try {
         $_SESSION=[];session_destroy();reply(401,['error'=>'SESSION_EXPIRED']);
     }
     $_SESSION['last_seen']=time();
+    $operator=new Operator($db);$isOperator=$operator->is($user);
+    // Site operator: every guild, site-wide limits.
+    if ($method==='GET' && $path==='/operator/guilds') reply(200,['guilds'=>$operator->guilds($user),'settings'=>$operator->settings()]);
+    if ($method==='PUT' && $path==='/operator/settings') reply(200,['settings'=>$operator->save($user,body())]);
+    if ($method==='POST' && preg_match('~^/operator/guilds/([1-9][0-9]{0,17})/open$~D',$path,$om)) reply(200,['guild'=>$operator->open($user,id($om[1]))]);
     if ($method==='POST' && $path==='/invitations/redeem') reply(200,['guild'=>(new Community($db))->join((string)(body()['invitation']??''),$user)]);
     if ($method==='POST' && $path==='/guilds') reply(201,['guild'=>(new Guilds($db))->create($user,body())]);
     if ($method==='GET' && $path==='/guilds') {
-        $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,g.wow_flavor,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);reply(200,['guilds'=>$s->fetchAll()]);
+        $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,g.wow_flavor,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);
+        $limit=$operator->setting('guilds_per_account');
+        reply(200,['guilds'=>$s->fetchAll(),'operator'=>$isOperator,'create_limit'=>$isOperator?null:$limit,'created'=>(new Guilds($db))->createdBy($user)]);
     }
     if (!preg_match('~^/guilds/([1-9][0-9]{0,17})/(.+)$~D',$path,$m)) reply(404,['error'=>'NOT_FOUND']);
     $guild=id($m[1]);$tail=$m[2];$role=hasMember($db,$guild,$user);
     // Help & feedback: every member reports; the inbox exists only where reports arrive.
     if ($tail==='feedback' || str_starts_with($tail,'feedback/')) {
         $fb=new Feedback($db);
-        $inbox=$role==='admin' && Feedback::centralUrl()===null;
+        $inbox=$isOperator && Feedback::centralUrl()===null;
         if ($method==='GET' && $tail==='feedback') reply(200,['enabled'=>Feedback::enabled(),'inbox'=>$inbox,'mine'=>$fb->mine($guild,$user,siteOrigin())]);
         if ($method==='POST' && $tail==='feedback') {
             $b=body();
@@ -695,14 +704,14 @@ try {
     }
     // Public demo switch (site administrators).
     if ($tail==='demo-setting') {
-        if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
+        if (!$isOperator) reply(403,['error'=>'FORBIDDEN']);
         $demo=new Demo($db,dirname(__DIR__));
         if ($method==='POST') {$b=body();$demo->setEnabled(($b['enabled']??false)===true);}
         reply(200,['enabled'=>$demo->enabled(),'guild'=>$demo->guildId()]);
     }
     // Updates from the official release channel (self-hosted websites).
     if ($tail==='upstream-update') {
-        if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
+        if (!$isOperator) reply(403,['error'=>'FORBIDDEN']);
         $up=new UpstreamUpdater($db,dirname(__DIR__));
         if ($method==='GET') reply(200,$up->status());
         if ($method==='POST') reply(200,$up->run()+$up->status());
@@ -710,6 +719,8 @@ try {
     // Release publish tokens: site administrators only (admin role in this guild).
     if ($tail==='release-tokens' || preg_match('~^release-tokens/([1-9][0-9]{0,17})$~D',$tail,$rt)) {
         if ($role!=='admin') reply(403,['error'=>'FORBIDDEN']);
+        // Release keys and publications belong to the site operator; guild admins see their guild's PCs.
+        if ($method!=='GET' && !$isOperator) reply(403,['error'=>'FORBIDDEN']);
         if ($method==='POST' && $tail==='release-tokens') {
             $b=body();reply(201,['credential'=>(new ReleasePublisher($db,dirname(__DIR__)))->issueToken($user,(string)($b['label']??''))]);
         }
@@ -720,7 +731,7 @@ try {
             $d->execute([$guild]);
             $current=['published'=>false];
             try {$current=(new ReleasePublisher($db,dirname(__DIR__)))->currentStatus();} catch (DomainError $e) {}
-            reply(200,['tokens'=>$s->fetchAll(),'publications'=>$p->fetchAll(),'devices'=>$d->fetchAll(),'current'=>$current]);
+            reply(200,['tokens'=>$isOperator?$s->fetchAll():[],'publications'=>$isOperator?$p->fetchAll():[],'devices'=>$d->fetchAll(),'current'=>$current,'operator'=>$isOperator]);
         }
         if ($method==='DELETE' && isset($rt[1])) {
             $s=$db->prepare('UPDATE release_publish_tokens SET revoked_at=UTC_TIMESTAMP() WHERE id=? AND revoked_at IS NULL');$s->execute([(int)$rt[1]]);

@@ -141,7 +141,7 @@ final class Installer {
         }
         $db->prepare("INSERT INTO guilds (name,realm,region,wow_flavor) VALUES (?,?,?,?)")->execute([$in['guild'], $in['realm'], $in['region'], $in['flavor']]);
         $guild = (int)$db->lastInsertId();
-        $db->prepare('INSERT INTO users (email,display_name,password_hash) VALUES (?,?,?)')
+        $db->prepare('INSERT INTO users (email,display_name,password_hash,is_operator) VALUES (?,?,?,1)')
             ->execute([strtolower($in['email']), $in['name'], password_hash($in['password'], PASSWORD_DEFAULT)]);
         $user = (int)$db->lastInsertId();
         $db->prepare("INSERT INTO guild_memberships (guild_id,user_id,role) VALUES (?,?,'admin')")->execute([$guild, $user]);

@@ -45,9 +45,12 @@ $ok((int)$c->fetchColumn()===1,'re-upload does not duplicate');
 $fb=$r['ingame_state']['feedback']??[];
 $ok(count($fb)===3 && ($fb[0]['key']??'')===$key,'addon sees own reports');
 
-// Inbox: only admins of the site that receives reports; members never.
+// Inbox: only the operator of the site that receives reports; guild admins and members never.
 [$st]=$m('GET',"/guilds/$g/feedback/inbox");
 $ok($st===403,'members have no inbox');
+[$st]=$a('GET',"/guilds/$g/feedback/inbox");
+$ok($st===403,'a guild admin alone has no inbox (only the site operator)');
+$db->prepare('UPDATE users SET is_operator=1 WHERE id=?')->execute([$admin]);
 [$st,$r]=$a('GET',"/guilds/$g/feedback/inbox?kind=bug");
 $item=null;foreach($r['items']??[] as $i) if($i['id']===$number) $item=$i;
 $ok($st===200 && $item && $item['details']['steps']==='1. bestellen' && $item['meta']['source']==='web' && !isset($item['meta']['email']),'admin sees report without personal data');
