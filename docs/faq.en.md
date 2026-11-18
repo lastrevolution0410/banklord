@@ -45,7 +45,7 @@ An addon can only read the guild bank's contents while someone has it open. The 
 
 ### Does Banklord work with WoW Forever?
 
-Yes, since 1.9. The setup finds the `_forever_` folder and installs the addon there too. On the website choose the game version **WoW Forever** when setting up the guild (or under **System**). Forever has no realms – that is no problem for Banklord, guilds are then recognised by name. Forever is still new: if you notice anything, please report it via **Help & feedback**.
+Yes, since 1.9. The setup finds the `_forever_` folder and installs the addon there too. On the website choose the game version **WoW Forever** when setting up the guild (or under **Settings**). Forever has no realms – that is no problem for Banklord, guilds are then recognised by name. Forever is still new: if you notice anything, please report it via **Help & feedback**.
 
 ### Several characters and guilds
 

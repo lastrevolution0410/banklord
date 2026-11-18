@@ -40,11 +40,13 @@ function setTab(tab){
   if(tab==='sync'&&!manager())return;
   if(tab==='procurement'&&!manager())return;
   if(tab==='updates'&&state.guild?.role!=='admin')return;
+  if(tab==='operator'&&!state.operator)return;
+  if(tab==='operator'){loadOperator().catch(e=>notice(e.message,true));showOperatorPane('guilds');}
   if(tab==='ledger'&&!administrator())return;
   if(tab==='ledger')loadLedger().catch(e=>notice(e.message,true));
-  if(tab==='updates'){loadOperator().catch(e=>notice(e.message,true));loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
+  if(tab==='updates'){loadReleases().catch(e=>notice(e.message,true));loadGameVersion().catch(e=>notice(e.message,true));loadDiscord().catch(e=>notice(e.message,true));}
   state.tab=tab;
-  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','ledger','updates'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
+  for(const name of ['inventory','cart','orders','notifications','admin','sync','favorites','account','help','members','activity','procurement','ledger','updates','operator'])$('view'+name[0].toUpperCase()+name.slice(1)).classList.toggle('hidden',tab!==name);
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   if(tab==='cart')renderCart();
   if(tab==='orders'||tab==='admin'||tab==='inventory')loadOrders().catch(e=>notice(e.message,true));
@@ -77,17 +79,33 @@ async function onGuildSelect(){
   try{await post(`/operator/guilds/${id}/open`,{});const data=await api('/guilds');state.guilds=data.guilds;await fillGuildSelector();$('guildSelector').value=String(id);switchGuild();}
   catch(e){notice(e.message,true);$('guildSelector').value=String(state.guild?.id||'');}
 }
+const OP_PAGE=20;
 async function loadOperator(){
-  $('operatorPanel').classList.toggle('hidden',!state.operator);
-  for(const id of ['createReleaseToken','releaseTokenResult','releaseTokenList','releaseList'])$(id).classList.toggle('hidden',!state.operator);
   if(!state.operator)return;
   const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;
-  const list=$('operatorGuilds');list.replaceChildren(el('p','muted',`${r.guilds.length} Gilden auf dieser Website`));
-  for(const g of r.guilds){const row=el('div','row');
-    row.append(add(el('div'),el('strong','',`${g.name} · ${g.realm} (${g.region})`),el('div','muted',`${game(g.wow_flavor)[0]} · ${g.members} Mitglieder · Admins: ${g.admins||'–'} · letzte Bestellung: ${g.last_order?new Date(g.last_order*1000).toLocaleDateString():'–'}`)));
-    if(g.my_role==='admin'){const b=el('button','secondary button-sm','Wechseln');b.onclick=()=>{$('guildSelector').value=String(g.id);switchGuild();};row.append(b);}
-    else{const b=el('button','button-sm','Öffnen');b.onclick=()=>{$('guildSelector').value='op:'+g.id;onGuildSelect();};row.append(b);}
-    list.append(row);}
+  const fl=$('opFlavor');if(fl.options.length<2)for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;fl.append(o);}
+  state.opPage=0;renderOperatorGuilds();
+}
+function renderOperatorGuilds(){
+  const q=$('opSearch').value.trim().toLowerCase();const fl=$('opFlavor').value;
+  const list=(state.allGuilds||[]).filter(g=>(!fl||g.wow_flavor===fl)&&(!q||`${g.name} ${g.realm} ${g.admins}`.toLowerCase().includes(q)));
+  const pages=Math.max(1,Math.ceil(list.length/OP_PAGE));state.opPage=Math.min(state.opPage||0,pages-1);
+  $('opCount').textContent=`${list.length} von ${(state.allGuilds||[]).length} Gilden`;
+  const t=el('table');const head=el('tr');for(const h of ['Gilde','Spielversion','Mitglieder','Admins','Letzte Bestellung',''])head.append(el('th','',h));t.append(add(el('thead'),head));
+  const body=el('tbody');
+  for(const g of list.slice(state.opPage*OP_PAGE,(state.opPage+1)*OP_PAGE)){const tr=el('tr');
+    const mine=g.my_role==='admin';const b=el('button',mine?'secondary button-sm':'button-sm',mine?'Wechseln':'Öffnen');
+    b.onclick=()=>{if(mine){$('guildSelector').value=String(g.id);switchGuild();}else{$('guildSelector').value='op:'+g.id;onGuildSelect();}};
+    tr.append(add(el('td'),el('strong','',g.name),el('div','muted',`${g.realm} · ${g.region}`)),el('td','',game(g.wow_flavor)[0]),el('td','',String(g.members)),el('td','',g.admins||'–'),
+      el('td','',g.last_order?new Date(g.last_order*1000).toLocaleDateString():'–'),add(el('td'),b));body.append(tr);}
+  t.append(body);$('operatorGuilds').replaceChildren(list.length?t:el('p','empty-state','Keine Gilde passt zur Suche.'));
+  $('opPage').textContent=`Seite ${state.opPage+1} von ${pages}`;$('opPrev').disabled=state.opPage===0;$('opNext').disabled=state.opPage>=pages-1;
+}
+function showOperatorPane(name){
+  document.querySelectorAll('#operatorNav .chip').forEach(c=>c.classList.toggle('active',c.dataset.op===name));
+  for(const [k,id] of [['guilds','opPaneGuilds'],['settings','opPaneSettings'],['updates','opPaneUpdates']])$(id).classList.toggle('hidden',k!==name);
+  if(name==='settings')loadDemoSetting();
+  if(name==='updates'){loadUpstream();loadReleases().catch(e=>notice(e.message,true));}
 }
 function switchGuild(){state.bankSummary=null;
   const id=Number($('guildSelector').value);state.guild=state.guilds.find(g=>Number(g.id)===id)||state.guilds[0];
@@ -96,7 +114,7 @@ function switchGuild(){state.bankSummary=null;
   $('guildTitle').textContent=state.guild.name;
   document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
   $('guildSub').textContent=`${state.guild.realm} · ${game()[0]} · ${roleText(state.guild.role)}`;$('userBadge').textContent='';$('guildSelector').classList.toggle('hidden',state.guilds.length<2&&!state.operator);$('guildSelector').value=String(state.guild.id);renderNewGuildLimit();$('bellBtn').classList.remove('hidden');
-  $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('ledgerTab').classList.toggle('hidden',!administrator());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');
+  $('adminNavGroup').classList.toggle('hidden',!administrator());$('adminTab').classList.toggle('hidden',!administrator());$('syncTab').classList.toggle('hidden',!manager());$('membersTab').classList.toggle('hidden',state.guild.role!=='admin');$('activityTab').classList.toggle('hidden',!administrator());$('procurementTab').classList.toggle('hidden',!manager());$('ledgerTab').classList.toggle('hidden',!administrator());$('updatesTab').classList.toggle('hidden',state.guild.role!=='admin');$('operatorNavGroup').classList.toggle('hidden',!state.operator);
   state.itemPage=1;setTab('inventory');loadPersonal().catch(()=>{});loadBankSummary();loadItems().catch(e=>notice('Bestand: '+e.message,true));loadNotifications().catch(()=>{});
 }
 async function initialize(){
@@ -803,7 +821,7 @@ async function loadUpstream(){
   box.append(b);
 }
 async function loadDemoSetting(){
-  let box=$('demoSettingBox');if(!box){box=el('div','panel');box.id='demoSettingBox';$('releasePanel').before(box);}
+  const box=$('demoSettingBox');
   box.replaceChildren(el('h3','','Öffentliche Demo'));
   let st;try{st=await api(path('demo-setting'));}catch(e){box.append(el('p','muted','Nicht verfügbar.'));return;}
   box.append(el('p','muted','Besucher ohne Konto können sich Banklord mit einer eigenen Beispiel-Gilde ansehen. Deine echten Gildendaten sind dort nicht sichtbar, und Änderungen sind gesperrt.'));
@@ -812,7 +830,6 @@ async function loadDemoSetting(){
   box.append(el('p','',st.enabled?'Status: eingeschaltet':'Status: ausgeschaltet'),b);
 }
 async function loadReleases(){
-  if(state.operator){loadDemoSetting();loadUpstream();}
   const r=await api(path('release-tokens'));const list=$('releaseTokenList');list.replaceChildren();
   for(const t of r.tokens.filter(x=>!x.revoked_at)){const row=el('div','row');row.append(el('strong','',t.label),el('div','muted',`zuletzt benutzt ${t.last_used_at?when(t.last_used_at):'noch nie'}`));
     const b=el('button','danger button-sm','Sperren');b.onclick=async()=>{if(!confirm('Veröffentlichungs-Schlüssel sperren?'))return;await api(path('release-tokens/'+t.id),{method:'DELETE'});await loadReleases();};row.append(b);list.append(row);}
@@ -848,6 +865,9 @@ document.querySelectorAll('#adminFilter .chip').forEach(c=>c.onclick=()=>{state.
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{const r=await post('/login',{email:$('email').value,password:$('password').value});state.csrf=r.csrf;$('password').value='';await initialize();notice('Erfolgreich angemeldet.');}catch(err){notice('Anmeldung fehlgeschlagen: '+err.message,true);}});
 $('logoutBtn').addEventListener('click',async()=>{try{await post('/logout',{});state.cart.clear();state.details.clear();state.guild=null;await initialize();notice('Abgemeldet.');}catch(e){notice(e.message,true);}});
 $('guildSelector').addEventListener('change',onGuildSelect);
+document.querySelectorAll('#operatorNav .chip').forEach(c=>c.onclick=()=>showOperatorPane(c.dataset.op));
+$('opSearch').oninput=()=>{state.opPage=0;renderOperatorGuilds();};$('opFlavor').onchange=()=>{state.opPage=0;renderOperatorGuilds();};
+$('opPrev').onclick=()=>{state.opPage--;renderOperatorGuilds();};$('opNext').onclick=()=>{state.opPage++;renderOperatorGuilds();};
 $('operatorSettings').onsubmit=async e=>{e.preventDefault();try{await api('/operator/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({guilds_per_account:Number($('opGuildLimit').value)})});notice('Gespeichert.');}catch(err){notice(err.message==='INVALID_SETTING'?'Bitte eine Zahl von 0 bis 50.':err.message,true);}};
 let searchTimer;$('searchInput').addEventListener('input',()=>{state.itemPage=1;state.categoryKey='all';state.inventoryFilter='all';clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadItems().catch(e=>notice(e.message,true)),280);});
 $('checkoutForm').addEventListener('submit',submitOrder);
@@ -1204,7 +1224,7 @@ async function loadGameVersion(){
   const r=await api(path('game-version'));const sel=$('gameVersionSelect');sel.replaceChildren();
   for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;o.selected=key===r.wow_flavor;sel.append(o);}
   sel.disabled=r.locked;$('saveGameVersion').disabled=r.locked;
-  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion unten eine weitere Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
+  $('gameVersionNote').textContent=r.locked?'Festgelegt, weil die Gilde schon Bestand hat. Für eine andere Spielversion unter „Konto → Eigene Gilde anlegen“ eine weitere Gilde anlegen.':'Noch änderbar, solange die Gilde keinen Bestand hat.';
 }
 $('saveGameVersion').onclick=async()=>{
   try{const r=await api(path('game-version'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({wow_flavor:$('gameVersionSelect').value})});

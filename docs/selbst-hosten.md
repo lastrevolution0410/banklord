@@ -32,9 +32,9 @@ Die Einrichtungsseite existiert nur, bis Banklord konfiguriert ist. Die Einstell
 Die Website aktualisiert sich selbst aus dem offiziellen, signierten Release-Kanal:
 
 - Prüfung höchstens alle 6 Stunden, Signaturprüfung, danach **Backup von Datenbank und Dateien**, dann Installation inklusive Datenbank-Änderungen.
-- Status und „Jetzt prüfen“ unter **System**.
+- Status und „Jetzt prüfen“ unter **Betreiber → Updates & Releases**.
 - In `config.local.php`:
-  - `'UPDATE_AUTO' => 'off'` – nicht automatisch installieren (Knopf unter System geht weiter).
+  - `'UPDATE_AUTO' => 'off'` – nicht automatisch installieren (Knopf unter Betreiber → Updates & Releases geht weiter).
   - `'UPDATE_SOURCE' => 'off'` – nie den offiziellen Kanal kontaktieren.
 
 Addon und Desktop-App holen ihre Updates selbst; dafür musst du nichts tun.

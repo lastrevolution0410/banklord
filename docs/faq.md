@@ -45,7 +45,7 @@ Den Inhalt der Gildenbank kann ein Addon nur lesen, wenn jemand sie geöffnet ha
 
 ### Funktioniert Banklord mit WoW Forever?
 
-Ja, seit 1.9. Das Setup findet den Ordner `_forever_` und installiert das Addon dort mit. Auf der Website wählst du beim Einrichten der Gilde (oder unter **System**) die Spielversion **WoW Forever**. Forever hat keine Realms – das ist für Banklord kein Problem, Gilden werden dann am Namen erkannt. Forever ist noch neu: Fällt dir etwas auf, melde es bitte über **Hilfe & Feedback**.
+Ja, seit 1.9. Das Setup findet den Ordner `_forever_` und installiert das Addon dort mit. Auf der Website wählst du beim Einrichten der Gilde (oder unter **Einstellungen**) die Spielversion **WoW Forever**. Forever hat keine Realms – das ist für Banklord kein Problem, Gilden werden dann am Namen erkannt. Forever ist noch neu: Fällt dir etwas auf, melde es bitte über **Hilfe & Feedback**.
 
 ### Mehrere Charaktere und Gilden
 

@@ -630,3 +630,11 @@ details.panel>summary{cursor:pointer;font-weight:700;color:#f1d48f}
 .coins{white-space:nowrap}.coin{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin:0 .35em 0 .15em;vertical-align:-.05em;box-shadow:inset -1px -1px 0 #0006,inset 1px 1px 0 #fff5}
 .coin-g{background:radial-gradient(circle at 35% 35%,#ffe680,#d4a017 60%,#8a6508)}.coin-s{background:radial-gradient(circle at 35% 35%,#ffffff,#b8c0c8 60%,#6d757d)}.coin-c{background:radial-gradient(circle at 35% 35%,#ffc89a,#c26a2b 60%,#7a3a12)}
 .coins .coin:last-child{margin-right:0}
+
+.op-filter input{flex:1;min-width:200px}
+.op-table{overflow-x:auto}
+.op-table table{width:100%;border-collapse:collapse}
+.op-table th{text-align:left;color:#d8b46a;font-weight:650;padding:8px;border-bottom:1px solid #5a4529;white-space:nowrap}
+.op-table td{padding:8px;border-bottom:1px solid #2e241a;vertical-align:middle}
+.op-table td:last-child{text-align:right}
+.op-pager{justify-content:center;align-items:center;margin-top:12px}

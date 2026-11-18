@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.7: **Clearer layout:** the former “System” tab is split. Guild admins find game version, Discord and the guild's PCs under **Settings**. The operator has a tab of their own, **Operator**, with three sections: **Guilds** (table with search, game version filter and pages), **Settings** (limit for new guilds, demo) and **Updates & releases**.
 - 1.9.6: **Set up your own guild – for everyone:** guild leaders and bank managers set up their guild themselves under **Account → “Set up your own guild”** and then see the next steps. The operator decides how many guilds an account may set up.
 - 1.9.6: **Operator area:** the website's operator sees all guilds in the guild picker and under **System**, can open any of them (written to the guild's activity log) and sets the limit. Feedback inbox, website updates, demo switch and release keys are now operator-only – guild admins manage only their own guild.
 - 1.9.5: **One account for several guilds:** if you are already signed in, redeem another guild's invitation under **Account → “Join another guild”** – no second account needed. Registering with an e-mail that already has an account now tells you exactly that.

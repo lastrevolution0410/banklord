@@ -32,9 +32,9 @@ The setup page only exists until Banklord is configured. Settings are stored in 
 The website updates itself from the official, signed release channel:
 
 - Check at most every 6 hours, signature verification, then a **backup of database and files**, then installation including database changes.
-- Status and “Check now” under **System**.
+- Status and “Check now” under **Operator → Updates & releases**.
 - In `config.local.php`:
-  - `'UPDATE_AUTO' => 'off'` – do not install automatically (the button under System still works).
+  - `'UPDATE_AUTO' => 'off'` – do not install automatically (the button under Operator → Updates & releases still works).
   - `'UPDATE_SOURCE' => 'off'` – never contact the official channel.
 
 Addon and desktop app fetch their updates themselves; you do not need to do anything.

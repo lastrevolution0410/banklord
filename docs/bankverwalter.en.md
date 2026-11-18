@@ -150,14 +150,14 @@ Under **Members** you invite new members and assign roles.
 | **Restock** | What is missing or running low |
 | **Members** | Assign roles, create invitations, block access (admins) |
 | **Log** | Who did what and when |
-| **System** | Version, updates, connected devices (admins) |
+| **Settings** | Game version, Discord, the guild's PCs (admins) |
 
 ## Cash book, bank value and Discord
 
 - **Cash book** (website → Management → Cash book): every time you open the guild bank, Banklord reads the bank log – gold and items, who deposited or withdrew what. WoW only shows the last 25 entries per tab; Banklord keeps everything. The Companion uploads it after the next `/reload`. Filter by gold, items or player, download as CSV for spreadsheets. **In game**, **Orders → Activity log** (or `/bl kasse`) shows the gold with coins like in the game and the latest entries – sorted into **Overview** (deposited, withdrawn and balance per player), **Gold** and **Items**.
 - **Order history and activity log in game:** the same window has two more tabs for bank managers and officers. **Order history** (`/bl verlauf`) lists the guild's last 40 orders with member, recipient, status and items – including delivered, rejected and cancelled ones. **Activity log** (`/bl protokoll`) shows the same as the website's “Activity”: who ordered, reviewed, mailed or cancelled what and when, new bank scans, joins and rule changes. Both arrive via the Companion when loading; newer entries are on the website.
 - **Gold and bank value:** the guild bank's gold is recorded when you open it. With **TSM** or **Auctionator** installed, Banklord records each item's market price. The website then shows the estimated value of the whole bank and per item.
-- **Discord** (website → System, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
+- **Discord** (website → Settings, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
 - **Urgent orders** are marked **“Urgent”** under Orders; in game they have a red **!** before the number and are listed first.
 
 ![Cash book on the website with gold, bank value and contributions per player](assets/website-kassenbuch.webp)
