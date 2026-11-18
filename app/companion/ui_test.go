@@ -20,6 +20,9 @@ func TestLocalUIHostOriginAndSecret(t *testing.T) {
 	if get.Code != http.StatusOK {
 		t.Fatalf("GET failed %d", get.Code)
 	}
+	if !strings.Contains(get.Body.String(), "<small>"+companionVersion+"</small>") {
+		t.Fatal("page shows a stale companion version")
+	}
 	if strings.Contains(get.Body.String(), testToken()) {
 		t.Fatal("Bridge token leaked into HTML")
 	}
