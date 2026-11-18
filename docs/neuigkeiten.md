@@ -23,6 +23,9 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.2: **Bestellung kommt sicher ins Spiel:** WoW liest die Daten des Companions nur beim Laden. Nach „Jetzt übertragen“ bietet Banklord darum nach etwa 25 Sekunden ein zweites „Jetzt laden“ an – dann ist die Bestellung im Spiel. Die Zahl an der Minikarte bleibt bis dahin stehen.
+- 1.9.2: **„Meine Bestellungen“ aufgeräumt:** standardmäßig nur offene Bestellungen; ein Haken bei „Erledigte zeigen“ blendet ausgegebene, abgelehnte und stornierte ein. Der Rechtsklick-Hinweis überdeckt die Dringend-Option nicht mehr.
+- 1.9.2: Eine gerade abgeschickte Bestellung zeigt „Unterwegs zur Website – Stand kommt beim nächsten Laden“.
 - 1.9.1: **Kassenbuch im Spiel neu:** übersichtliches Fenster mit Übersicht pro Spieler, Gold und Gegenständen in Spalten, Einzahlungen grün, Entnahmen rot, nicht mehr beschreibbar (auch die Einkaufsliste lässt sich nur noch kopieren, nicht mehr ändern). **Gold wie im Spiel** mit Münz-Symbolen und Tausenderpunkt (1.661 ● 57 ● 61 ●) – im Spiel und auf der Website.
 - 1.9.1: Pfeile, die im Spiel als leere Kästchen erschienen, sind ersetzt.
 - 1.9.1: Im Spiel steht unter **„Meine Bestellungen“** sichtbar „Rechtsklick auf eine Bestellung: stornieren“, sobald etwas stornierbar ist.

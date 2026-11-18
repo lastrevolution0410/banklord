@@ -684,7 +684,7 @@ end)
 panelSurface(cart,726,-78,262,344)
 text(cart,'GameFontNormal',740,-91,238,'Meine Bestellungen',COLORS.gold)
 local orderRows={}
-for i=1,7 do
+for i=1,6 do
   local r=CreateFrame('Button',nil,cart)
   r:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-114-(i-1)*31)
   r:SetSize(244,29)
@@ -702,13 +702,19 @@ for i=1,7 do
 end
 local orderEmpty=text(cart,'GameFontHighlightSmall',741,-120,229,
   'Noch keine Bestellungen.\n\nWarenkorb füllen und unten auf „Bestellung absenden“ klicken. Der Companion überträgt sie nach /reload oder Logout.',COLORS.muted)
-local orderStamp=text(cart,'GameFontDisableSmall',741,-363,229,'',COLORS.muted)
+local orderStamp=text(cart,'GameFontDisableSmall',741,-366,229,'',COLORS.muted)
 -- Visible hint (not only in the tooltip) that own open orders can be cancelled.
-orderStamp.hint=text(cart,'GameFontHighlightSmall',741,-343,229,'',COLORS.gold)
+orderStamp.hint=text(cart,'GameFontHighlightSmall',741,-302,229,'',COLORS.gold)
+-- Finished orders (delivered, rejected, cancelled) stay hidden unless ticked.
+orderStamp.all=CreateFrame('CheckButton','BanklordShowAllOrders',cart,'UICheckButtonTemplate')
+orderStamp.all:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-316);orderStamp.all:SetSize(22,22)
+orderStamp.allText=cart:CreateFontString(nil,'OVERLAY','GameFontHighlightSmall')
+orderStamp.allText:SetPoint('LEFT',orderStamp.all,'RIGHT',4,0)
+orderStamp.all:SetScript('OnClick',function(self) if A.db then A.db.showAllOrders=self:GetChecked() and true or nil end;A:RefreshUI() end)
 local submitButton=push(cart,'Bestellung absenden',740,-385,234,30,function()A:SubmitCartOrder()end)
 -- Urgent orders are marked for the bank managers (in game, on the website and in Discord).
 local urgentOption=CreateFrame('CheckButton','BanklordUrgentCheckbox',cart,'UICheckButtonTemplate')
-urgentOption:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-332);urgentOption:SetSize(24,24)
+urgentOption:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-339);urgentOption:SetSize(22,22)
 local urgentText=cart:CreateFontString(nil,'OVERLAY','GameFontHighlightSmall')
 urgentText:SetPoint('LEFT',urgentOption,'RIGHT',4,0);urgentText:SetText(A:Tr('Dringend (z. B. für den Raid)'))
 track(urgentText,'Dringend (z. B. für den Raid)')
@@ -1088,12 +1094,17 @@ function A:RefreshUI()
     end
     cartPage:SetText(positions==0 and A:Tr('Warenkorb ist leer.') or
       A:Tr('Positionen %d–%d von %d'):format(cartOffset+1,math.min(#cartRows,cartOffset+8),#cartRows))
-    local orders,stamp=A:GetOrderOverview()
+    local orders,stamp,hidden=A:GetOrderOverview()
     for i,r in ipairs(orderRows) do
       local row=orders[i];r.row=row
       if row then r.title:SetText(row.title);r.status:SetText(row.status);r:Show() else r:Hide() end
     end
-    if #orders==0 then orderEmpty:Show() else orderEmpty:Hide() end
+    if #orders==0 then
+      orderEmpty:SetText((hidden or 0)>0 and A:Tr('Keine offenen Bestellungen.') or A:Tr('Noch keine Bestellungen.\n\nWarenkorb füllen und unten auf „Bestellung absenden“ klicken. Der Companion überträgt sie nach /reload oder Logout.'))
+      orderEmpty:Show()
+    else orderEmpty:Hide() end
+    orderStamp.all:SetChecked(A.db and A.db.showAllOrders and true or false)
+    orderStamp.allText:SetText(A.db and A.db.showAllOrders and A:Tr('Erledigte zeigen') or A:Tr('Erledigte zeigen (%d ausgeblendet)'):format(hidden or 0))
     local canCancel=false
     for i=1,#orderRows do local o=orders[i] and orders[i].order; if o and A:IsCancellable(o) then canCancel=true end end
     orderStamp.hint:SetText(canCancel and A:Tr('Rechtsklick auf eine Bestellung: stornieren') or '')
@@ -1127,7 +1138,7 @@ function A:RefreshUI()
         r:Show()
       else r:Hide() end
     end
-    local live=self.liveNewOrders or 0
+    local live=self:LiveNewOrders()
     ob.empty:SetText(#orders==0 and (A:Tr('Keine offenen Bestellungen.')..
       (live>0 and '\n\n'..A:Tr('%d neue Bestellung(en) im Spiel – sichtbar nach /reload.'):format(live) or '')) or '')
     fitText(ob.all.caption,self.mailOpen and A:Tr('Alle versenden') or A:Tr('Alle entnehmen'),181)

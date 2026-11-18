@@ -70,7 +70,7 @@ end
 function A:UpdateMinimapBadge(flash)
   local count=0
   if self.IsBankManager and self:IsBankManager() and self.OpenManageOrders then
-    count=#self:OpenManageOrders()+(self.liveNewOrders or 0)
+    count=#self:OpenManageOrders()+(self.LiveNewOrders and self:LiveNewOrders() or 0)
   end
   if count>0 then
     badgeText:SetText(count>99 and '99+' or tostring(count))

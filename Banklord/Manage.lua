@@ -214,6 +214,43 @@ function A:Alert(text)
 end
 
 -- Live alert to bank managers who are online when a member orders in game.
+-- New orders announced live in the guild. They are kept over /reload until the
+-- loaded server state is newer than the announcement (then the order is in it):
+-- WoW reads the Companion's file only while loading, so after the reload that
+-- uploads an order its state arrives with the next load.
+function A:LiveNewOrders()
+  if not self.db then return 0 end
+  local gen=tonumber(state().generatedAt) or 0
+  local keep={}
+  for _,e in ipairs(store('liveNotices')) do
+    local at=type(e)=='table' and tonumber(e.at)
+    if at and at>=gen and at>time()-3*3600 then keep[#keep+1]=e end
+  end
+  self.db.liveNotices=keep
+  return #keep
+end
+
+-- Some seconds after loading the Companion has uploaded what this load saved:
+-- offer once to load the new state, so nobody has to know about a second /reload.
+function A:OfferPickup()
+  if self.pickupOffered or not (C_Timer and C_Timer.After) then return end
+  self.pickupOffered=true
+  C_Timer.After(25,function()
+    if A.bankOpen or A.mailOpen then return end
+    local live=A:IsBankManager() and A:LiveNewOrders() or 0
+    local mine=0
+    for _,e in ipairs(A.db and A.db.orderOutbox or {}) do
+      local at=tonumber(e.createdAt) or 0
+      if at<(A.loadedAt or 0) and at>time()-600 then mine=mine+1 end
+    end
+    if live>0 then
+      A:OfferReload(A:Tr('%d neue Bestellung(en) sind auf dem Weg ins Spiel. Jetzt laden, damit du sie entnehmen kannst?'):format(live))
+    elseif mine>0 then
+      A:OfferReload(A:Tr('Deine Bestellung ist unterwegs zur Website. Jetzt den neuen Stand laden?'))
+    end
+  end)
+end
+
 function A:BroadcastNewOrder(character,code)
   local lines,pieces=0,0
   for part in tostring(code):sub(5):gmatch('[^|]+') do
@@ -236,7 +273,9 @@ function A:ReceiveManageMessage(prefix,payload,channel,sender)
   if not self:IsBankManager() then return end
   local who,lines,pieces=payload:match('^N|([^|]+)|(%d+)|(%d+)$')
   if not who then return end
-  self.liveNewOrders=(self.liveNewOrders or 0)+1
+  local list=store('liveNotices')
+  list[#list+1]={at=time(),who=tostring(who):sub(1,80)}
+  while #list>30 do table.remove(list,1) end
   if self.UpdateMinimapBadge then self:UpdateMinimapBadge(true) end
   self:Alert(A:Tr('%s hat bestellt: %d Positionen, %d Stück. Sichtbar nach /reload.'):format(who,tonumber(lines),tonumber(pieces)))
 end
@@ -965,7 +1004,7 @@ function A:RefreshManagePanel()
     else r:Hide() end
   end
   local more=#orders-MAX_ROWS
-  local live=self.liveNewOrders or 0
+  local live=self:LiveNewOrders()
   if live>0 and more<=0 then
     panel.note:SetText(A:Tr('%d neue Bestellung(en) im Spiel – sichtbar nach /reload.'):format(live));return
   end
@@ -987,7 +1026,7 @@ A._manageEvents=events
 for _,e in ipairs({'PLAYER_ENTERING_WORLD','PLAYER_GUILD_UPDATE','MAIL_SHOW','MAIL_CLOSED','MAIL_SEND_SUCCESS','MAIL_FAILED','BAG_UPDATE_DELAYED'}) do pcall(events.RegisterEvent,events,e) end
 events:SetScript('OnEvent',function(_,event)
   if not A.db then return end
-  if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter();A:StartJoinRequests()
+  if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter();A:StartJoinRequests();A:OfferPickup()
   elseif event=='MAIL_SHOW' then A.mailOpen=true;A:ShowManagePanel('mail',MailFrame)
   elseif event=='MAIL_CLOSED' then
     A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')

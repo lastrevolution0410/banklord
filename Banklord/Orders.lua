@@ -16,6 +16,8 @@ A.ORDER_STATUS={
 }
 local STATUS_COLOR={submitted='ffd28c',partial='ffd28c',reserved='5fe88a',partially_fulfilled='5fe88a',
   fulfilled='bdb6a6',rejected='ff7a6a',cancelled='bdb6a6'}
+-- Finished orders are hidden in "My orders" unless the player ticks "show all".
+A.ORDER_CLOSED={fulfilled=true,rejected=true,cancelled=true,expired=true}
 local ERRORS={
   UNKNOWN_ITEM='Gegenstand auf dem Server unbekannt – Inventur abwarten',
   FORBIDDEN='Keine Berechtigung in dieser Gilde',
@@ -103,8 +105,11 @@ end
 function A:GetOrderOverview()
   local rows={}
   for _,e in ipairs(self.db and self.db.orderOutbox or {}) do
+    -- Saved before this load: the Companion has (or is just) uploading it.
+    local sent=(tonumber(e.createdAt) or 0)<(self.loadedAt or 0)
     rows[#rows+1]={title=A:Tr('Neu · %s'):format(e.createdAt and date(A:Tr('%d.%m. %H:%M'),e.createdAt) or ''),
-      status='|cffffaa44'..A:Tr('Wartet auf Übertragung (/reload)')..'|r',code=e.code}
+      status=sent and '|cff66ccff'..A:Tr('Unterwegs zur Website – Stand kommt beim nächsten Laden')..'|r'
+        or '|cffffaa44'..A:Tr('Wartet auf Übertragung (/reload)')..'|r',code=e.code}
   end
   for _,f in ipairs(self.db and self.db.orderFailures or {}) do
     rows[#rows+1]={title=A:Tr('Nicht angenommen'),status='|cffff7a6a'..(ERRORS[f.error] and A:Tr(ERRORS[f.error]) or f.error or A:Tr('Fehler'))..'|r',failure=true}
@@ -113,8 +118,11 @@ function A:GetOrderOverview()
   local generated=type(st)=='table' and tonumber(st.generatedAt) or 0
   local shipped=self.db and self.db.orderShipped or {}
   local cancelling=self.db and self.db.orderCancelPending or {}
+  local showAll=self.db and self.db.showAllOrders;local hidden=0
   for _,o in ipairs(type(st)=='table' and type(st.orders)=='table' and st.orders or {}) do
-    if type(o)=='table' and (not A.SameGuild or A.SameGuild(o)) then
+    if type(o)=='table' and (not A.SameGuild or A.SameGuild(o)) and A.ORDER_CLOSED[o.status] and not showAll then
+      hidden=hidden+1
+    elseif type(o)=='table' and (not A.SameGuild or A.SameGuild(o)) then
       local color=STATUS_COLOR[o.status] or 'ffffff'
       local text=A.ORDER_STATUS[o.status] and A:Tr(A.ORDER_STATUS[o.status]) or tostring(o.status)
       local ship=shipped[o.id]
@@ -128,7 +136,7 @@ function A:GetOrderOverview()
     end
   end
   local stamp=type(st)=='table' and tonumber(st.generatedAt)
-  return rows,stamp and date(A:Tr('%d.%m.%Y %H:%M'),stamp) or nil
+  return rows,stamp and date(A:Tr('%d.%m.%Y %H:%M'),stamp) or nil,hidden
 end
 
 function A:ShowOrderTooltip(owner,row)

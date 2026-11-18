@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.16.1"
+A.version = "0.16.2"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -155,6 +155,7 @@ function A:OnEvent(event, ...)
     local lang = BanklordDB.settings.locale
     if lang ~= "deDE" and lang ~= "enUS" then BanklordDB.settings.locale = nil end
     A.db = BanklordDB
+    A.loadedAt = time()
     if A.ApplyUILocale then A:ApplyUILocale() end
     if A.InitPeer then A:InitPeer() end
     if A.ReconcileOrderOutbox then A:ReconcileOrderOutbox() end

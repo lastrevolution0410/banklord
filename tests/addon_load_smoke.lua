@@ -133,6 +133,15 @@ local rows=A:GetOrderOverview()
 assert(#rows==2 and rows[2].order and rows[2].order.id==42,'server order must be listed')
 local ok7,err7=pcall(A.RefreshUI,A);assert(ok7,err7)
 local ok8,err8=pcall(A.ShowOrderTooltip,A,UIParent,rows[2]);assert(ok8,err8)
+do
+  local list=Banklord_ServerState.orders;local n=#list
+  list[n+1]={id=43,status='rejected',guild=list[1].guild,realm=list[1].realm,createdAt=time()}
+  list[n+2]={id=44,status='fulfilled',guild=list[1].guild,realm=list[1].realm,createdAt=time()}
+  local r1,_,hid=A:GetOrderOverview();assert(#r1==2 and hid==2,'finished orders hidden by default: '..#r1..'/'..tostring(hid))
+  A.db.showAllOrders=true;local r2,_,hid2=A:GetOrderOverview();assert(#r2==4 and hid2==0,'show all lists finished orders')
+  SEEN_TEXT={};local okf,errf=pcall(A.RefreshUI,A);assert(okf,errf)
+  A.db.showAllOrders=nil;list[n+1]=nil;list[n+2]=nil
+end
 print('PASS: in-game order outbox, server state reconciliation and overview')
 
 -- Bank manager: alert, withdraw from the guild bank, prepare and send mail.
@@ -212,7 +221,18 @@ do
   A:ReceiveManageMessage('BLNEW1','N|Kaelis-Everlook|2|7','GUILD','Kaelis')
   assert(lastChat():find('Kaelis',1,true),'live alert shown')
   assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'live order counts on the badge and blinks')
-  A.liveNewOrders=nil;A:UpdateMinimapBadge(false)
+  -- Kept over /reload until the loaded state is newer than the announcement.
+  A.liveNewOrders=nil;assert(A:LiveNewOrders()==1 and #A.db.liveNotices==1,'live order survives a reload (saved)')
+  Banklord_ServerState.generatedAt=time()+5;assert(A:LiveNewOrders()==0,'gone once the loaded state has it')
+  do -- one offer to load the new state ~25 s after loading
+    local fns,shown={},nil;local oldAfter=C_Timer.After;C_Timer.After=function(_,fn) fns[#fns+1]=fn end
+    local oldOffer=A.OfferReload;A.OfferReload=function(_,t) shown=t;return true end
+    A.db.liveNotices={{at=time()+60,who='Kaelis'}};A.pickupOffered=nil;A:OfferPickup();A:OfferPickup()
+    assert(#fns==1,'offered once per load');local ob,om=A.bankOpen,A.mailOpen;A.bankOpen,A.mailOpen=nil,nil;fns[1]();A.bankOpen,A.mailOpen=ob,om
+    assert(shown and (shown:find('1 neue',1,true) or shown:find('1 new',1,true)),'manager is offered to load new orders: '..tostring(shown))
+    A.db.liveNotices={};A.OfferReload=oldOffer;C_Timer.After=oldAfter;A.pickupOffered=nil
+  end
+  A:UpdateMinimapBadge(false)
   local okc,errc=pcall(SlashCmdList.BANKLORD,'bestellungen');assert(okc,errc)
   -- Reject in game: queued for the website, announced to other managers, hidden from the lists.
   Banklord_ServerState.manage={{id=9,status='submitted',createdAt=time(),requester='Aria',recipient='Borin-Everlook',lines={{itemId=2589,name='Leinenstoff',qty=1}}}}
