@@ -898,6 +898,7 @@ const ACTIVITY={
   'order.expired':['order','⌛',e=>`Bestellung #${e.entity_id}${e.owner?' von '+e.owner:''} ist abgelaufen`],
   'order.limit_approved':['order','✔️',e=>`${e.actor||'Ein Offizier'} hat Bestellung #${e.entity_id}${e.owner?' von '+e.owner:''} über dem Wochenlimit freigegeben`],
   'member.claim.redeemed':['people','🤝',e=>`${e.actor||'Jemand'} ist per Bestätigung im Spiel beigetreten`],
+  'member.invite.joined':['people','🤝',e=>`${e.actor||'Jemand'} ist per Einladung beigetreten`],
   'guild.order_rules':['people','📋',e=>`${e.actor||'Ein Admin'} hat die Bestellregeln geändert`],
   'order.cancel':['order','✖️',e=>`${e.actor||'Jemand'} hat Bestellung #${e.entity_id}${e.owner&&e.owner!==e.actor?' von '+e.owner:''} storniert`],
   'scan.staged':['scan','🔍',e=>`Neuer Bankscan #${e.entity_id} hochgeladen${e.actor?' von '+e.actor:''}`],
@@ -945,7 +946,8 @@ async function loadActivity(){
     if(!ledger.children.length)ledger.append(el('p','muted','Noch keine Bestandsbewegungen.'));
   }else ledger.append(el('p','muted','Nur für Bankverwalter sichtbar.'));
 }
-$('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice('Registrierung: '+err.message,true);}};
+$('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice(err.message==='EMAIL_ALREADY_REGISTERED'?'Du hast schon ein Konto. Melde dich an und löse den Code unter „Konto“ → „Weiterer Gilde beitreten“ ein.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':'Registrierung: '+err.message,true);}};
+$('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){
   if(input.length>20000||!input.startsWith('BL1|'))throw Error('Übertragungscode ungültig');

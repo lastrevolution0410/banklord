@@ -450,6 +450,7 @@ try {
         $_SESSION=[];session_destroy();reply(401,['error'=>'SESSION_EXPIRED']);
     }
     $_SESSION['last_seen']=time();
+    if ($method==='POST' && $path==='/invitations/redeem') reply(200,['guild'=>(new Community($db))->join((string)(body()['invitation']??''),$user)]);
     if ($method==='POST' && $path==='/guilds') reply(201,['guild'=>(new Guilds($db))->create($user,body())]);
     if ($method==='GET' && $path==='/guilds') {
         $s=$db->prepare("SELECT g.id,g.name,g.realm,g.region,g.wow_flavor,m.role FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id WHERE m.user_id=? AND m.status='active'");$s->execute([$user]);reply(200,['guilds'=>$s->fetchAll()]);

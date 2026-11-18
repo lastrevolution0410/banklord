@@ -40,6 +40,28 @@ final class Community {
             $this->db->commit();return ['user_id'=>$uid,'guild_id'=>(int)$row['guild_id']];
         }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
+    /** Signed-in user joins one more guild with an invitation (one account for several guilds). */
+    public function join(string $token,int $user): array {
+        if(!self::inviteFormat($token))throw new DomainError('INVITE_EXPIRED_OR_USED');
+        $this->db->beginTransaction();
+        try{
+            $s=$this->db->prepare('SELECT id,guild_id,role FROM guild_invitations WHERE token_hash=? AND redeemed_at IS NULL AND expires_at>UTC_TIMESTAMP() FOR UPDATE');
+            $s->execute([hash('sha256',$token)]);$row=$s->fetch();if(!$row)throw new DomainError('INVITE_EXPIRED_OR_USED');
+            $m=$this->db->prepare('SELECT status FROM guild_memberships WHERE guild_id=? AND user_id=?');$m->execute([(int)$row['guild_id'],$user]);
+            $status=$m->fetchColumn();
+            // Never re-enable a member an admin has disabled; an invitation stays unused then.
+            if($status==='disabled')throw new DomainError('MEMBERSHIP_DISABLED');
+            if($status!==false)throw new DomainError('ALREADY_MEMBER');
+            $this->db->prepare('INSERT INTO guild_memberships (guild_id,user_id,role) VALUES (?,?,?)')->execute([(int)$row['guild_id'],$user,$row['role']]);
+            $u=$this->db->prepare('UPDATE guild_invitations SET redeemed_at=UTC_TIMESTAMP(),redeemed_by=? WHERE id=? AND redeemed_at IS NULL');
+            $u->execute([$user,$row['id']]);if($u->rowCount()!==1)throw new DomainError('INVITE_ALREADY_USED');
+            $this->db->prepare("INSERT INTO audit_events (guild_id,actor_user_id,action,entity_type,entity_id) VALUES (?,?,'member.invite.joined','user',?)")
+                ->execute([(int)$row['guild_id'],$user,$user]);
+            $g=$this->db->prepare('SELECT name,realm FROM guilds WHERE id=?');$g->execute([(int)$row['guild_id']]);$gr=$g->fetch()?:['name'=>'','realm'=>''];
+            $this->db->commit();
+            return ['guild_id'=>(int)$row['guild_id'],'role'=>(string)$row['role'],'name'=>(string)$gr['name'],'realm'=>(string)$gr['realm']];
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
     public function members(int $guild,int $actor): array {
         $this->admin($guild,$actor);
         $s=$this->db->prepare('SELECT m.user_id,u.display_name,u.email,m.role,m.status, m.joined_at FROM guild_memberships m JOIN users u ON u.id=m.user_id WHERE m.guild_id=? ORDER BY u.display_name,u.id');

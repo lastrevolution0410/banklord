@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.5: **One account for several guilds:** if you are already signed in, redeem another guild's invitation under **Account → “Join another guild”** – no second account needed. Registering with an e-mail that already has an account now tells you exactly that.
 - 1.9.4: the guides now show real in-game pictures (cart, guild bank, mailbox, orders). Under “Orders” the page count fits on one line again (“1 order · page 1/1”).
 - 1.9.3: **Order history and activity log in game** for bank managers and officers: Orders → **Activity log** (or `/bl verlauf`, `/bl protokoll`) lists the guild's latest orders – including finished, rejected and cancelled ones – and the same activity log as the website.
 - 1.9.3: the website's activity log now also reads clearly for “mailed”, “expired”, “approved above the weekly limit”, in-game joins and changed order rules.

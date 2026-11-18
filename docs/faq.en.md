@@ -53,6 +53,8 @@ Yes. Every character is recognised on login and assigned to its guild. Each guil
 
 Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`, `_forever_`).
 
+**One account for several guilds:** if you already have an account on the website and get an invitation from another guild, redeem it under **Account → “Join another guild”**. No second account needed; switch between your guilds at the top. Then create a connection code for the new guild under **Account** and paste it into the Companion under **“More guilds on this PC”**.
+
 **Example MoP Classic, one realm:** characters A and B in the same guild, character C in another guild – that works. On every login Banklord notices which guild the character is in and only shows that guild's stock and orders. An in-game order always goes to the guild of the character you order with.
 
 **Bank manager on one character, member on another?** The role belongs to your website account **per guild**, not to a single character:

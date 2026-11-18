@@ -23,6 +23,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.5: **Ein Konto für mehrere Gilden:** Wer schon angemeldet ist, löst eine Einladung einer weiteren Gilde unter **Konto → „Weiterer Gilde beitreten“** ein – kein zweites Konto mehr nötig. Wer beim Registrieren eine schon vorhandene E-Mail eingibt, bekommt genau diesen Hinweis.
 - 1.9.4: Die Anleitungen zeigen jetzt echte Bilder aus dem Spiel (Warenkorb, Gildenbank, Briefkasten, Aufträge). Unter „Aufträge“ steht die Seitenzahl wieder in einer Zeile („1 Auftrag · Seite 1/1“).
 - 1.9.3: **Bestellverlauf und Protokoll im Spiel** für Bankverwalter und Offiziere: Aufträge → **Protokoll** (oder `/bl verlauf`, `/bl protokoll`) zeigt die letzten Bestellungen der ganzen Gilde – auch erledigte, abgelehnte und stornierte – und dasselbe Protokoll wie auf der Website.
 - 1.9.3: Im Protokoll der Website erscheinen jetzt auch „per Post verschickt“, „abgelaufen“, „über dem Wochenlimit freigegeben“, Beitritte im Spiel und geänderte Bestellregeln verständlich.
