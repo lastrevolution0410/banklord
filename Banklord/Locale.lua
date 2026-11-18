@@ -257,6 +257,7 @@ local EN={
   -- Minimap
   ['Minimap-Symbol ausgeblendet. Mit /banklord minimap wieder anzeigen.']='Minimap icon hidden. Show it again with /banklord minimap.',
   ['Minimap-Symbol eingeblendet.']='Minimap icon shown.',
+  ['Offene Bestellungen: %d']='Open orders: %d',
   ['Addon-Fenster nicht geladen. /reload und Lua-Fehler mit /console scriptErrors 1 pruefen.']=
     'Addon window not loaded. /reload and check Lua errors with /console scriptErrors 1.',
 

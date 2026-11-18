@@ -155,6 +155,9 @@ do
   A:ReconcileManage()
   assert(A:IsBankManager() and #A:OpenManageOrders()==1,'manager sees the open order')
   assert(lastChat():find('#7',1,true),'new order alerted: '..lastChat())
+  assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'minimap badge shows 1 and blinks for a new order')
+  A:ToggleUI();A:ToggleUI()
+  assert(A.minimapFlash==false and A:UpdateMinimapBadge()==1,'opening Banklord stops blinking, count stays')
   A:ShowManagePanel('bank')
   assert(A.manageMode=='bank','panel mode '..tostring(A.manageMode))
   A:ManageAll()
@@ -177,6 +180,8 @@ do
   assert(#A.db.manageOutbox==0,'answered action leaves the outbox')
   A:ReceiveManageMessage('BLNEW1','N|Kaelis-Everlook|2|7','GUILD','Kaelis')
   assert(lastChat():find('Kaelis',1,true),'live alert shown')
+  assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'live order counts on the badge and blinks')
+  A.liveNewOrders=nil;A:UpdateMinimapBadge(false)
   local okc,errc=pcall(SlashCmdList.BANKLORD,'bestellungen');assert(okc,errc)
   C_Timer.After=oldAfter;A.IsGuildBankOpen=oldOpen;C_Container=nil;DEFAULT_CHAT_FRAME.AddMessage=oldAdd
   Banklord_ServerState.manage=nil

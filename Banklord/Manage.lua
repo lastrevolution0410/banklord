@@ -124,6 +124,7 @@ function A:ReconcileManage()
   local seen,new=store('manageSeen'),{}
   for _,o in ipairs(self:OpenManageOrders()) do if not seen[o.id] then new[#new+1]=o;seen[o.id]=true end end
   for id in pairs(seen) do if not open[id] then seen[id]=nil end end
+  if self.UpdateMinimapBadge then self:UpdateMinimapBadge(#new>0 or nil) end
   if #new>0 and C_Timer then
     C_Timer.After(8,function()
       for i,o in ipairs(new) do
@@ -160,6 +161,8 @@ function A:ReceiveManageMessage(prefix,payload,channel,sender)
   if not self:IsBankManager() then return end
   local who,lines,pieces=payload:match('^N|([^|]+)|(%d+)|(%d+)$')
   if not who then return end
+  self.liveNewOrders=(self.liveNewOrders or 0)+1
+  if self.UpdateMinimapBadge then self:UpdateMinimapBadge(true) end
   self:Alert(A:Tr('%s hat bestellt: %d Positionen, %d Stück. Sichtbar nach /reload.'):format(who,tonumber(lines),tonumber(pieces)))
 end
 
@@ -241,6 +244,7 @@ function A:MarkOrderSent(id)
   store('manageMine')[id]=nil
   store('manageLocks')[id]=nil
   sendIds('D|',{id})
+  if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
 end
 
 local function lostOrder(id,by)
@@ -549,6 +553,7 @@ end
 function A:HideManagePanel(mode) if panel and self.manageMode==mode then panel:Hide() end end
 
 function A:RefreshManagePanel()
+  if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
   if not panel or not panel:IsShown() then return end
   local mode,orders,taken=self.manageMode,self:OpenManageOrders(),store('manageTaken')
   panel.title:SetText(mode=='bank' and A:Tr('Banklord – offene Bestellungen entnehmen')

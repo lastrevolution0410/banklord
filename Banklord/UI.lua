@@ -1058,7 +1058,7 @@ function A:ApplyUILocale()
 end
 function A:ToggleUI()
   if window:IsShown() then window:Hide()
-  else self:RefreshUI();window:Show()end
+  else self:RefreshUI();window:Show();if self.UpdateMinimapBadge then self:UpdateMinimapBadge(false) end end
 end
 function A:OpenCartUI()
   active='cart';self:RefreshUI();window:Show()
