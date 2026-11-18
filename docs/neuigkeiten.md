@@ -23,6 +23,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.7 – Kassenbuch und „Dringend“ im Spiel (18.11.2026)
 - **Kassenbuch im Spiel:** Goldstand der Gildenbank und die letzten Einträge im Addon-Fenster (**Aufträge → Kassenbuch** oder `/bl kasse`).
 - **„Dringend“ im Spiel:** Häkchen im Warenkorb oder `/bl bestellen dringend`. Bankverwalter sehen dringende Bestellungen mit rotem **!** ganz oben.
+- 1.7.1: **Anleitungen und diese Seite direkt auf der Website,** auch ohne Anmeldung (Links auf der Anmeldeseite, unter **Hilfe & Feedback** und in der Fußzeile). Sie kommen mit jedem Update mit und haben immer denselben Stand wie GitHub.
 
 ### 1.6 – Kassenbuch, Bankwert und Discord (18.11.2026)
 Vorher haben wir verglichen, was andere Gildenbank-Addons können (z. B. Guild Bank Ledger, Guild Bank Manager, TOGBankClassic, GuildVault), und das Beste übernommen:

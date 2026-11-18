@@ -51,6 +51,7 @@ require dirname(__DIR__) . '/src/Procurement.php';
 require dirname(__DIR__) . '/src/PeerRelay.php';
 require dirname(__DIR__) . '/src/ItemAppearance.php';
 require dirname(__DIR__) . '/src/ItemMetadata.php';
+require dirname(__DIR__) . '/src/DocsPage.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -67,6 +68,19 @@ if (!\Banklord\Installer::configured(dirname(__DIR__))) \Banklord\Installer::han
 // Public signed update channel: no session, no database. Clients verify the
 // Ed25519 signature themselves; the server only hands out stored files.
 $updatePath=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH);
+// Public guides and changelog (no login, no database), shipped with each release.
+if (is_string($updatePath) && preg_match('~/api/v1/docs(?:/([A-Za-z.-]{0,40}))?$~D',$updatePath,$dm)) {
+    if (!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)) {http_response_code(405);exit;}
+    if (!isset($dm[1])) {header('Location: docs/',true,302);exit;}
+    $page=\Banklord\DocsPage::resolve($dm[1],(string)($_SERVER['HTTP_ACCEPT_LANGUAGE']??''));
+    $md=$page?\Banklord\DocsPage::source(dirname(__DIR__),$page['file']):null;
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: public, max-age=300');
+    header('Vary: Accept-Language');
+    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    if ($md===null) {http_response_code(404);echo '<!doctype html><meta charset="utf-8"><title>404</title><p>Seite nicht gefunden. <a href="README">Übersicht</a></p>';exit;}
+    echo \Banklord\DocsPage::render($md,$page,\Banklord\Version::WEB);exit;
+}
 if (is_string($updatePath) && str_starts_with($updatePath,'/updates/preview/')) {
     $releaseDir=dirname(__DIR__).'/private/releases';
     if (($_SERVER['REQUEST_METHOD']??'GET')!=='GET') {http_response_code(405);exit;}

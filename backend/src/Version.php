@@ -5,5 +5,5 @@ namespace Banklord;
 
 /** Website version; set by dev/tools/build_release.py. */
 final class Version {
-    public const WEB = '1.7.0';
+    public const WEB = '1.7.1';
 }
