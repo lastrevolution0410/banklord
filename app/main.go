@@ -33,7 +33,7 @@ var page = template.Must(template.New("wizard").Parse(`<!doctype html><html lang
 </form>
 <form method="post" action="{{.Prefix}}/search"><input type="hidden" name="token" value="{{.Token}}"><button class="secondary">Erneut suchen</button></form>{{end}}
 </div>
-<div class="panel"><h2>Danach</h2><p>Auf der Website unter <b>Konto → Bestellen im Spiel</b> einen Verbindungscode erzeugen und im Companion-Fenster einfügen. Im Spiel öffnet <b>/banklord</b> das Addon.</p></div>
+<div class="panel"><h2>Danach</h2><p>1. Der Companion öffnet sich nach der Installation als <b>Tab im Browser</b> („Banklord Companion“). Später startest du ihn über das Desktop-Symbol <b>Banklord Companion</b> oder das Startmenü.</p><p>2. Auf der Website unter <b>Konto → Bestellen im Spiel</b> einen Verbindungscode erzeugen und dort ins Feld <b>Verbindungscode</b> einfügen, dann <b>Konfiguration speichern und starten</b>.</p><p>3. Im Spiel öffnet <b>/banklord</b> das Addon.</p></div>
 <details class="panel"><summary><b>Erweitert</b> – Ordner von Hand, Reparieren, Updates, Deinstallieren</summary>
 <form method="post" action="{{.Prefix}}/browse"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="secondary">Ordner durchsuchen …</button></form>
 <form method="post" action="{{.Prefix}}/inspect"><input type="hidden" name="token" value="{{.Token}}"><label>WoW-Clientordner<input name="client" type="text" list="paths" value="{{.Selected}}" required placeholder="D:\World of Warcraft\_classic_"></label><datalist id="paths">{{range .Installs}}<option value="{{.Path}}">{{.Edition}}</option>{{end}}</datalist><button type="submit" class="secondary">Prüfen</button></form>
