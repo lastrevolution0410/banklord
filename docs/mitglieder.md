@@ -83,11 +83,17 @@ Ist längere Zeit kein Verwalter online, kann dir ein Admin auf der Website unte
 1. Öffne Banklord mit `/banklord` oder über den Knopf an der Minikarte.
 2. Suche den Gegenstand, gib die Menge ein und lege ihn in den **Warenkorb**.
 3. Eilt es, z. B. für den Raid? Hake **„Dringend“** an (oder `/bl bestellen dringend`).
-4. Klicke **„Bestellen“**.
+4. Klicke **„Bestellung absenden“**.
 
-![Warenkorb im Spiel mit „Dringend“ und „Bestellen“](assets/skizze-order.webp)
+![Warenkorb im Spiel mit „Dringend“ und „Bestellung absenden“](assets/ingame-warenkorb.webp)
 
 5. Es erscheint ein Fenster: **„Jetzt übertragen“** klicken. Damit geht die Bestellung sofort an die Bankverwaltung. (Klickst du „Später“, geht sie beim nächsten Ausloggen raus.)
+
+![Fenster im Spiel nach dem Absenden: „Jetzt übertragen“ oder „Später“](assets/ingame-bestellt.webp)
+
+6. Nach etwa 25 Sekunden fragt Banklord noch einmal: **„Jetzt laden“** klicken – dann siehst du unter „Meine Bestellungen“ den Stand der Website. (WoW liest neue Daten nur beim Laden.)
+
+Unter **„Meine Bestellungen“** stehen nur offene Bestellungen. Ein Haken bei **„Erledigte zeigen“** blendet ausgegebene, abgelehnte und stornierte ein.
 
 **Vertan?** Rechtsklick auf die Bestellung rechts unter **„Meine Bestellungen“** storniert sie (der Hinweis steht auch direkt darunter). Auf der Website gibt es dafür den Knopf **„Bestellung / Restmenge stornieren“**.
 

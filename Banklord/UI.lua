@@ -1146,7 +1146,7 @@ function A:RefreshUI()
     fitText(ob.scan.caption,self.scanRun and A:Tr('Scan abbrechen') or A:Tr('Bank neu scannen'),181)
     ob.scan:SetEnabled(bankOpen and true or false)
     local pages=math.max(1,math.ceil(#orders/ob.size))
-    ob.pager:SetText(#orders>0 and A:Tr('%d Aufträge · Seite %d von %d'):format(#orders,ob.offset/ob.size+1,pages) or '')
+    ob.pager:SetText(#orders>0 and (#orders==1 and A:Tr('1 Auftrag · Seite %d/%d'):format(ob.offset/ob.size+1,pages) or A:Tr('%d Aufträge · Seite %d/%d'):format(#orders,ob.offset/ob.size+1,pages)) or '')
   elseif active=='feedback' then
     refreshFeedback()
   elseif active=='advanced' then

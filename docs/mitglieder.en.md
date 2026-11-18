@@ -83,11 +83,17 @@ If no manager is online for a longer time, an admin can create an invitation for
 1. Open Banklord with `/banklord` or the minimap button.
 2. Search for the item, enter the quantity and put it in the **cart**.
 3. In a hurry, e.g. for the raid? Tick **“Urgent”** (or `/bl order urgent`).
-4. Click **“Order”**.
+4. Click **“Submit order”**.
 
-![In-game cart with “Urgent” and “Order”](assets/skizze-order.webp)
+![In-game cart with “Urgent” and “Submit order”](assets/ingame-warenkorb.webp)
 
 5. A window appears: click **“Transfer now”**. The order goes to the bank managers right away. (If you click “Later”, it goes out the next time you log out.)
+
+![In-game window after submitting: “Transfer now” or “Later”](assets/ingame-bestellt.webp)
+
+6. After about 25 seconds Banklord asks once more: click **“Load now”** – then “My orders” shows the website's status. (WoW only reads new data while loading.)
+
+**“My orders”** lists only open orders. Ticking **“Show finished”** adds delivered, rejected and cancelled ones.
 
 **Made a mistake?** Right-click the order on the right under **“My orders”** to cancel it (the hint is shown right below the list too). On the website use the cancel button of the order.
 

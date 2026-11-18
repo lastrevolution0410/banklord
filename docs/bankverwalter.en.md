@@ -26,13 +26,13 @@ That is all you need day to day. Banklord does the rest.
 
 Open the guild bank. Banklord appears next to it with all open orders. Click **“Withdraw all”** – Banklord puts exactly the ordered amounts into your bags. Urgent orders are at the top with a red **!**.
 
-![Banklord next to the guild bank with “Withdraw all”](assets/skizze-bank.webp)
+![Banklord next to the guild bank with “Withdraw all”](assets/ingame-bank.webp)
 
 ### 2. At the mailbox: “Send all”
 
 Open a mailbox and click **“Send all”**. Banklord fills in recipient, subject and attachments; you only click **“Send”** for each letter.
 
-![Banklord at the mailbox with “Send all”](assets/skizze-mail.webp)
+![Banklord at the mailbox with “Send all”](assets/ingame-mail.webp)
 
 ### 3. Close the mailbox: “Transfer now”
 
@@ -122,6 +122,10 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 Under **Orders** you see all orders with their status, urgent ones first.
 
 ![Orders on the website](assets/website-auftraege.webp)
+
+In game the same list is under **Orders** – with the three steps on top and “Send” and “Reject” per order:
+
+![Orders in game](assets/ingame-auftraege.webp)
 
 Under **Members** you invite new members and assign roles.
 

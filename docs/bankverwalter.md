@@ -26,13 +26,13 @@ Mehr brauchst du im Alltag nicht. Alles andere macht Banklord.
 
 Gildenbank öffnen. Neben dem Fenster erscheint Banklord mit allen offenen Bestellungen. **„Alle entnehmen“** klicken – Banklord legt genau die bestellten Mengen in deine Taschen. Dringende Bestellungen stehen mit rotem **!** ganz oben.
 
-![Banklord neben der Gildenbank mit „Alle entnehmen“](assets/skizze-bank.webp)
+![Banklord neben der Gildenbank mit „Alle entnehmen“](assets/ingame-bank.webp)
 
 ### 2. Am Briefkasten: „Alle versenden“
 
 Briefkasten öffnen, **„Alle versenden“** klicken. Banklord füllt Empfänger, Betreff und Anhänge aus, du klickst bei jedem Brief nur noch **„Senden“**.
 
-![Banklord am Briefkasten mit „Alle versenden“](assets/skizze-mail.webp)
+![Banklord am Briefkasten mit „Alle versenden“](assets/ingame-mail.webp)
 
 ### 3. Briefkasten schließen: „Jetzt übertragen“
 
@@ -120,6 +120,10 @@ Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltun
 Unter **Aufträge** siehst du alle Bestellungen mit Status, dringende zuerst.
 
 ![Aufträge auf der Website](assets/website-auftraege.webp)
+
+Im Spiel steht dieselbe Liste unter **Aufträge** – mit den drei Schritten oben, „Versenden“ und „Ablehnen“ je Bestellung:
+
+![Aufträge im Spiel](assets/ingame-auftraege.webp)
 
 Unter **Mitglieder** lädst du neue Mitglieder ein und vergibst Rollen.
 
