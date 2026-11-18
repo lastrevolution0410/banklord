@@ -145,6 +145,72 @@ local function When(at)
   return type(date) == "function" and date("%d.%m. %H:00", tonumber(at) or 0) or ""
 end
 
+local function WhenExact(at)
+  return type(date) == "function" and date("%d.%m. %H:%M", tonumber(at) or 0) or ""
+end
+
+-- Activity log entry (same events as the website's "Protokoll") as one sentence.
+local function ActivityText(e)
+  local who = (type(e.actor) == "string" and e.actor ~= "") and e.actor or A:Tr("Jemand")
+  local id = tonumber(e.id) or 0
+  local owner = (type(e.owner) == "string" and e.owner ~= "") and e.owner or nil
+  local of = owner and A:Tr(" von %s"):format(owner) or ""
+  local to = owner and A:Tr(" an %s"):format(owner) or ""
+  local a = e.action
+  local t
+  if a == "order_create" then t = A:Tr("%s hat Bestellung #%d aufgegeben"):format(who, id)
+  elseif a == "order_decide" then t = A:Tr("%s hat Bestellung #%d%s geprüft"):format(who, id, of)
+  elseif a == "order_fulfill" then t = A:Tr("%s hat Bestellung #%d%s ausgegeben"):format(who, id, to)
+  elseif a == "order_deliver" then t = A:Tr("%s hat Bestellung #%d%s per Post verschickt"):format(who, id, to)
+  elseif a == "order_cancel" then t = A:Tr("%s hat Bestellung #%d%s storniert"):format(who, id, owner ~= who and of or "")
+  elseif a == "order_expired" then t = A:Tr("Bestellung #%d%s ist abgelaufen"):format(id, of)
+  elseif a == "order_limit_approved" then t = A:Tr("%s hat Bestellung #%d%s über dem Wochenlimit freigegeben"):format(who, id, of)
+  elseif a == "scan_staged" then t = A:Tr("Neuer Bankscan #%d hochgeladen"):format(id)
+  elseif a == "scan_manually_confirmed" then t = A:Tr("%s hat Bankscan #%d freigegeben"):format(who, id)
+  elseif a == "scan_automatically_reconciled" then t = A:Tr("Bankscan #%d automatisch übernommen"):format(id)
+  elseif a == "scan_retention_pruned" then t = A:Tr("Alte Bankscans aufgeräumt")
+  elseif a == "member_claim_redeemed" then t = A:Tr("%s ist per Bestätigung im Spiel beigetreten"):format(who)
+  elseif a == "membership_change" then t = A:Tr("%s hat die Rechte eines Mitglieds geändert"):format(who)
+  elseif a == "character_review" then t = A:Tr("%s hat einen Charakter geprüft"):format(who)
+  elseif a == "restock_configure" then t = A:Tr("%s hat einen Mindestbestand festgelegt"):format(who)
+  elseif a == "guild_order_rules" then t = A:Tr("%s hat die Bestellregeln geändert"):format(who)
+  elseif a == "bridge_token_created" then t = A:Tr("%s hat einen Companion-Verbindungscode erzeugt"):format(who)
+  elseif a == "bridge_token_revoked" then t = A:Tr("%s hat einen Companion-Verbindungscode gesperrt"):format(who)
+  elseif a == "peer_drafts_staged" then t = A:Tr("Bestellentwürfe aus dem Spiel eingegangen")
+  else t = A:Tr("Ereignis: %s"):format(tostring(a)) end
+  local changed = tonumber(e.changed) or -1
+  if changed >= 0 then t = t .. A:Tr(" (%d Mengen geändert)"):format(changed) end
+  return t
+end
+A.ActivityText = ActivityText
+
+-- Guild-wide order history and activity log from the server (bank managers only).
+function A:ServerLogRows(kind)
+  local st = Banklord_ServerState
+  local list = type(st) == "table" and type(st[kind]) == "table" and st[kind] or {}
+  local rows = {}
+  for _, e in ipairs(list) do
+    if type(e) == "table" and (not A.SameGuild or A.SameGuild(e)) and #rows < 120 then
+      if kind == "history" then
+        local color = A.STATUS_COLOR and A.STATUS_COLOR[e.status] or "ffffff"
+        local status = A.ORDER_STATUS and A.ORDER_STATUS[e.status] and A:Tr(A.ORDER_STATUS[e.status]) or tostring(e.status)
+        local who = tostring(e.requester or "?")
+        if type(e.recipient) == "string" and e.recipient ~= "" and e.recipient:match("^[^-]+") ~= who then who = who .. " » " .. e.recipient end
+        rows[#rows + 1] = {cells = {(e.urgent and "|cffff6060!|r" or "") .. "#" .. tostring(e.id or "?") .. "  " .. WhenExact(e.createdAt),
+          who, "|cff" .. color .. status .. "|r", tostring(e.summary or "")}}
+      else
+        rows[#rows + 1] = {cells = {WhenExact(e.at), ActivityText(e)}}
+      end
+    end
+  end
+  return rows
+end
+
+function A:HasServerLog()
+  local st = Banklord_ServerState
+  return type(st) == "table" and (type(st.history) == "table" or type(st.activity) == "table") and self:IsBankManager() and true or false
+end
+
 -- Rows for the cash book: kind = "overview", "gold" or "items".
 -- Each row: {cells = {date/player, ..., ...}} already coloured, newest first.
 function A:BankLogRows(kind)
@@ -195,8 +261,14 @@ local HEADERS = {
   overview = {"Spieler", "Eingezahlt", "Entnommen", "Saldo"},
   gold = {"Zeit", "Spieler", "Aktion", "Betrag"},
   items = {"Zeit", "Spieler", "Aktion", "Gegenstand"},
+  history = {"Bestellung", "Mitglied", "Status", "Gegenstände"},
+  activity = {"Zeit", "Was ist passiert", "", ""},
 }
-local COLS = {overview = {0, 150, 300, 450}, gold = {0, 90, 230, 380}, items = {0, 90, 230, 360}}
+local COLS = {overview = {0, 150, 300, 450}, gold = {0, 90, 230, 380}, items = {0, 90, 230, 360},
+  history = {0, 120, 250, 400}, activity = {0, 90, 578, 579}}
+local SERVER_KIND = {history = true, activity = true}
+local TAB_ORDER = {"history", "activity", "overview", "gold", "items"}
+local TAB_LABEL = {history = "Bestellverlauf", activity = "Protokoll", overview = "Übersicht", gold = "Gold", items = "Gegenstände"}
 local ROW_H, MAX_ROWS = 20, 120
 local book
 
@@ -216,10 +288,10 @@ local function BuildBook()
   book.hint = book:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); book.hint:SetPoint("TOPLEFT", 20, -68)
   book.hint:SetWidth(600); book.hint:SetJustifyH("LEFT")
   book.tabs = {}
-  for i, key in ipairs({"overview", "gold", "items"}) do
+  for _, key in ipairs(TAB_ORDER) do
     local b = CreateFrame("Button", nil, book, "UIPanelButtonTemplate")
-    b:SetSize(130, 24); b:SetPoint("TOPLEFT", 20 + (i - 1) * 136, -90)
-    b:SetText(A:Tr(({overview = "Übersicht", gold = "Gold", items = "Gegenstände"})[key]))
+    b:SetSize(112, 24)
+    b:SetText(A:Tr(TAB_LABEL[key]))
     b:SetScript("OnClick", function() A:ShowBankLog(key) end)
     book.tabs[key] = b
   end
@@ -249,46 +321,68 @@ local function Row(i)
   r.cells = {}
   for c = 1, 4 do
     local f = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f:SetJustifyH("LEFT")
+    if f.SetWordWrap then f:SetWordWrap(false) end -- long names are cut, rows keep their height
     r.cells[c] = f
   end
   book.rows[i] = r
   return r
 end
 
--- Cash book in game: gold of the guild bank and the entries the game still shows.
+-- Cash book in game: gold of the guild bank and the entries the game still shows,
+-- plus (bank managers) the guild's order history and activity log from the website.
 function A:ShowBankLog(kind)
-  kind = kind or (book and book.kind) or "overview"
-  local rows, log = self:BankLogRows(kind)
+  local server = self:HasServerLog()
+  kind = kind or (book and book.kind) or (server and "history" or "overview")
+  if SERVER_KIND[kind] and not server then kind = "overview" end
+  local rows, log
+  if SERVER_KIND[kind] then
+    rows = self:ServerLogRows(kind)
+    log = self.db and type(self.db.bankLog) == "table" and self.db.bankLog or {}
+  else
+    rows, log = self:BankLogRows(kind)
+    if not rows and server then return self:ShowBankLog("history") end
+  end
   if not rows then
     return self:Message(A:Tr("Kassenbuch: Öffne einmal die Gildenbank, dann liest Banklord das Bankprotokoll aus. Die ganze Geschichte steht auf der Website unter „Kassenbuch“."))
   end
   if not book then BuildBook() end
   book.kind = kind
   local guild = type(log.guild) == "string" and log.guild ~= "" and (" – " .. log.guild) or ""
-  book.title:SetText(A:Tr("Banklord – Kassenbuch") .. guild)
+  book.title:SetText(A:Tr(server and "Banklord – Verlauf & Kassenbuch" or "Banklord – Kassenbuch") .. guild)
   book.goldLabel:SetText(A:Tr("Gold in der Gildenbank:"))
   book.gold:SetText(log.money and self:CoinText(log.money) or "?")
-  book.hint:SetText(A:Tr("Stand %s. Das Spiel zeigt nur die letzten Einträge – die ganze Geschichte steht auf der Website unter „Kassenbuch“.")
-    :format(type(date) == "function" and date("%d.%m. %H:%M", tonumber(log.capturedAt) or time()) or ""))
-  for key, b in pairs(book.tabs) do if key == kind then b:Disable() else b:Enable() end end
+  if SERVER_KIND[kind] then
+    local st = Banklord_ServerState
+    book.hint:SetText(A:Tr("Serverstand %s – kommt beim Laden über den Companion. Neueres steht auf der Website."):format(WhenExact(type(st) == "table" and st.generatedAt or 0)))
+  else
+    book.hint:SetText(A:Tr("Stand %s. Das Spiel zeigt nur die letzten Einträge – die ganze Geschichte steht auf der Website unter „Kassenbuch“.")
+      :format(type(date) == "function" and date("%d.%m. %H:%M", tonumber(log.capturedAt) or time()) or ""))
+  end
+  local x = 20
+  for _, key in ipairs(TAB_ORDER) do
+    local b = book.tabs[key]
+    if SERVER_KIND[key] and not server then b:Hide()
+    else b:ClearAllPoints(); b:SetPoint("TOPLEFT", book, "TOPLEFT", x, -90); x = x + 118; b:Show() end
+    if key == kind then b:Disable() else b:Enable() end
+  end
   local cols = COLS[kind]
   for i, h in ipairs(book.head) do
     h:ClearAllPoints(); h:SetPoint("TOPLEFT", book, "TOPLEFT", 24 + cols[i], -128)
-    h:SetWidth((cols[i + 1] or 580) - cols[i] - 6); h:SetText(A:Tr(HEADERS[kind][i]))
+    h:SetWidth(math.max(1, (cols[i + 1] or 580) - cols[i] - 6)); h:SetText(HEADERS[kind][i] ~= "" and A:Tr(HEADERS[kind][i]) or "")
   end
   local shown = math.min(#rows, MAX_ROWS)
   for i = 1, shown do
     local r = Row(i)
     for c = 1, 4 do
       local f = r.cells[c]
-      f:ClearAllPoints(); f:SetPoint("LEFT", r, "LEFT", 4 + cols[c], 0); f:SetWidth((cols[c + 1] or 580) - cols[c] - 6)
+      f:ClearAllPoints(); f:SetPoint("LEFT", r, "LEFT", 4 + cols[c], 0); f:SetWidth(math.max(1, (cols[c + 1] or 580) - cols[c] - 6))
       f:SetText(rows[i].cells[c] or "")
     end
     r:Show()
   end
   for i = shown + 1, #book.rows do book.rows[i]:Hide() end
   book.content:SetHeight(math.max(ROW_H, shown * ROW_H))
-  book.empty:SetText(shown == 0 and A:Tr("Keine Einträge im Bankprotokoll.") or "")
+  book.empty:SetText(shown == 0 and A:Tr(SERVER_KIND[kind] and "Noch keine Einträge vom Server." or "Keine Einträge im Bankprotokoll.") or "")
   book:Show()
   return book
 end

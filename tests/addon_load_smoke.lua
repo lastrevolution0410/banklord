@@ -545,6 +545,27 @@ do
   for _,k in ipairs({'overview','gold','items'}) do local okb,errb=pcall(A.ShowBankLog,A,k);assert(okb,errb) end
   assert(BanklordCashBook and BanklordCashBook.kind=='items','cash book window with tabs')
   local okl,errl=pcall(SlashCmdList.BANKLORD,'kasse');assert(okl,errl)
+  -- Bank managers: guild order history and activity log from the server.
+  do
+    local st=Banklord_ServerState;local gn,gr=A:CurrentGuild();local g={name=gn,realm=gr}
+    local oh,oa,om=st.history,st.activity,st.manage;st.manage=st.manage or {}
+    st.history={{id=12,status='fulfilled',createdAt=time(),requester='Aria',recipient='Ariatwink-Everlook',urgent=true,summary='20× Leinenstoff',guild=g and g.name,guildRealm=g and g.realm},
+      {id=99,status='rejected',requester='Fremd',summary='x',guild='Andere Gilde',guildRealm='Nirgendwo'}}
+    st.activity={{action='order_deliver',id=12,at=time(),actor='Kaelis',owner='Aria',changed=-1,guild=g and g.name,guildRealm=g and g.realm},
+      {action='scan_automatically_reconciled',id=3,at=time(),actor='',owner='',changed=4},{action='voellig_neu',id=0,at=0}}
+    assert(A:HasServerLog(),'manager has server history')
+    local h=A:ServerLogRows('history')
+    assert(#h==(gn and 1 or 2) and h[1].cells[1]:find('#12',1,true) and h[1].cells[2]:find('Ariatwink-Everlook',1,true) and h[1].cells[3]:find('Ausgegeben',1,true) and h[1].cells[4]=='20× Leinenstoff','history row (own guild only): '..#h..' '..tostring(h[1] and h[1].cells[1])..' | '..tostring(h[1] and h[1].cells[3])..' | '..tostring(h[1] and h[1].cells[4]))
+    local ac=A:ServerLogRows('activity')
+    assert(#ac==3 and ac[1].cells[2]:find('Kaelis',1,true) and ac[1].cells[2]:find('Aria',1,true) and ac[2].cells[2]:find('(4 ',1,true) and ac[3].cells[2]:find('voellig_neu',1,true),'activity texts: '..tostring(ac[1] and ac[1].cells[2]))
+    for _,k in ipairs({'history','activity'}) do local okh,errh=pcall(A.ShowBankLog,A,k);assert(okh,errh) end
+    assert(BanklordCashBook.kind=='activity','log tab shown')
+    local okv,errv=pcall(SlashCmdList.BANKLORD,'verlauf');assert(okv,errv);assert(BanklordCashBook.kind=='history','/bl verlauf opens the order history')
+    local okp,errp=pcall(SlashCmdList.BANKLORD,'protokoll');assert(okp,errp);assert(BanklordCashBook.kind=='activity','/bl protokoll opens the log')
+    st.history,st.activity=oh,oa
+    local okk,errk=pcall(A.ShowBankLog,A,'history');assert(okk,errk);assert(BanklordCashBook.kind~='history','no server data: history tab not used')
+    st.manage=om
+  end
   TSM_API=nil;A.bankOpen=oldOpen;A.db.bankLog=nil
   local msg,oldAdd='',DEFAULT_CHAT_FRAME.AddMessage;DEFAULT_CHAT_FRAME.AddMessage=function(_,m) msg=m end
   local okn,errn=pcall(A.ShowBankLog,A);DEFAULT_CHAT_FRAME.AddMessage=oldAdd;assert(okn,errn)

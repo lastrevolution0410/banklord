@@ -23,6 +23,8 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.3: **Order history and activity log in game** for bank managers and officers: Orders → **Activity log** (or `/bl verlauf`, `/bl protokoll`) lists the guild's latest orders – including finished, rejected and cancelled ones – and the same activity log as the website.
+- 1.9.3: the website's activity log now also reads clearly for “mailed”, “expired”, “approved above the weekly limit”, in-game joins and changed order rules.
 - 1.9.2: **Orders reliably reach the game:** WoW only reads the Companion's data while loading. After “Transfer now” Banklord therefore offers a second “Load now” after about 25 seconds – then the order is in game. The minimap number stays until then.
 - 1.9.2: **“My orders” tidied up:** only open orders by default; ticking “Show finished” adds delivered, rejected and cancelled ones. The right-click hint no longer covers the urgent option.
 - 1.9.2: an order you just sent shows “On its way to the website – status arrives with the next load”.

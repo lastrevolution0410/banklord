@@ -72,6 +72,31 @@ type restockRow struct {
 	Target  int64    `json:"target"`
 	Missing int64    `json:"missing"`
 }
+// historyOrder is one guild order (any status) for the managers' in-game order history.
+type historyOrder struct {
+	Guild     guildRef `json:"-"`
+	ID        int64    `json:"id"`
+	Status    string   `json:"status"`
+	CreatedAt int64    `json:"created_at"`
+	UpdatedAt int64    `json:"updated_at"`
+	Requester string   `json:"requester"`
+	Recipient string   `json:"recipient"`
+	Urgent    bool     `json:"urgent"`
+	Requested int64    `json:"requested"`
+	Fulfilled int64    `json:"fulfilled"`
+	Summary   string   `json:"summary"`
+}
+
+// activityRow is one entry of the guild's activity log (website "Protokoll").
+type activityRow struct {
+	Guild    guildRef `json:"-"`
+	Action   string   `json:"action"`
+	EntityID int64    `json:"entity_id"`
+	At       int64    `json:"at"`
+	Actor    string   `json:"actor"`
+	Owner    string   `json:"owner"`
+	Changed  int64    `json:"changed"`
+}
 type manageResult struct {
 	Status string `json:"status,omitempty"`
 	Error  string `json:"error,omitempty"`
@@ -91,6 +116,8 @@ type ingameState struct {
 	FeedbackRes   map[string]feedbackRes  `json:"feedback_results"`
 	Rules         *stateRules             `json:"rules"`
 	Restock       []restockRow            `json:"restock"`
+	History       []historyOrder          `json:"history"`
+	Activity      []activityRow           `json:"activity"`
 	RulesList     []stateRules            `json:"-"`
 	Server        string                  `json:"-"`
 	GuildID       int64                   `json:"-"`
@@ -156,7 +183,7 @@ func decodeState(raw any) (ingameState, error) {
 	if err := json.Unmarshal(b, &st); err != nil {
 		return st, errors.New("Bestellstatus unlesbar")
 	}
-	if len(st.Orders) > 50 || (st.Manage != nil && len(*st.Manage) > 60) {
+	if len(st.Orders) > 50 || (st.Manage != nil && len(*st.Manage) > 60) || len(st.History) > 60 || len(st.Activity) > 100 {
 		return st, errors.New("Bestellstatus zu groß")
 	}
 	return st, nil
@@ -312,6 +339,33 @@ func renderState(st ingameState) string {
 		}
 		b.WriteString("  },\n")
 	}
+	if len(st.History) > 0 {
+		b.WriteString("  history = {\n")
+		for i, o := range st.History {
+			if i >= 60 {
+				break
+			}
+			urgent := ""
+			if o.Urgent {
+				urgent = " urgent = true,"
+			}
+			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, updatedAt = %d, requester = %s, recipient = %s, requested = %d, fulfilled = %d, summary = %s,%s%s },\n",
+				o.ID, luaString(word(o.Status)), o.CreatedAt, o.UpdatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)),
+				o.Requested, o.Fulfilled, luaString(clip(o.Summary, 160)), urgent, guildFields(o.Guild))
+		}
+		b.WriteString("  },\n")
+	}
+	if len(st.Activity) > 0 {
+		b.WriteString("  activity = {\n")
+		for i, e := range st.Activity {
+			if i >= 100 {
+				break
+			}
+			fmt.Fprintf(&b, "    { action = %s, id = %d, at = %d, actor = %s, owner = %s, changed = %d,%s },\n",
+				luaString(word(e.Action)), e.EntityID, e.At, luaString(clip(e.Actor, 60)), luaString(clip(e.Owner, 60)), e.Changed, guildFields(e.Guild))
+		}
+		b.WriteString("  },\n")
+	}
 	if len(st.Feedback) > 0 {
 		b.WriteString("  feedback = {\n")
 		for i, f := range st.Feedback {
@@ -417,6 +471,14 @@ func mergeStates(states []ingameState) ingameState {
 		for _, r := range st.Restock {
 			r.Guild = st.Guild
 			out.Restock = append(out.Restock, r)
+		}
+		for _, o := range st.History {
+			o.Guild = st.Guild
+			out.History = append(out.History, o)
+		}
+		for _, e := range st.Activity {
+			e.Guild = st.Guild
+			out.Activity = append(out.Activity, e)
 		}
 		out.Feedback = append(out.Feedback, st.Feedback...)
 		for k, v := range st.FeedbackRes {

@@ -50,7 +50,7 @@ $row=$db->query("SELECT device,addon_version,updater_version FROM device_heartbe
 $ok(($hb['ok']??false)===true && $row && $row['device']==='DEMO-PC' && $row['addon_version']==='0.6.1' && $row['updater_version']==='0.9.5','heartbeat stored');
 // Bank manager in game: sees open orders with recipient, delivers and rejects by mail outbox.
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
-$ok(!array_key_exists('manage',$r['ingame_state']??[]),'members get no manager view');
+$ok(!array_key_exists('manage',$r['ingame_state']??[]) && !array_key_exists('history',$r['ingame_state']??[]) && !array_key_exists('activity',$r['ingame_state']??[]),'members get no manager view, history or log');
 $c=$db->prepare("SELECT COUNT(*) FROM characters WHERE guild_id=? AND user_id=? AND name='Testchar' AND realm='Everlook'");$c->execute([$g,$member]);
 $ok((int)$c->fetchColumn()===1,'in-game character linked to the account');
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,$sv([["ig-$now-second",'BL1|2589,2,item:2589:0:0:0:0:0:0:0:0',$now]]));
@@ -64,6 +64,11 @@ $mv="BanklordDB = {[\"manageOutbox\"]={{[\"key\"]=\"ma-$now-aaaaaa\",[\"order\"]
 $res=$r['ingame_state']['manage_results']??[];
 $ok(($res["ma-$now-aaaaaa"]['status']??'')==='fulfilled' && ($res["ma-$now-bbbbbb"]['status']??'')==='rejected','deliver + reject '.json_encode($res));
 $ok(($r['ingame_state']['manage']??null)===[],'no open orders left');
+$h=$r['ingame_state']['history']??[];$okh=false;$okr=false;
+foreach ($h as $x) { if ($x['id']===$oid && $x['status']==='fulfilled' && str_contains($x['summary'],'5×')) $okh=true; if ($x['id']===$oid2 && $x['status']==='rejected') $okr=true; }
+$ok($okh && $okr,'manager gets the order history in game '.json_encode($h));
+$acts=array_column($r['ingame_state']['activity']??[],'action');
+$ok(in_array('order_deliver',$acts,true) && in_array('order_create',$acts,true),'manager gets the activity log in game '.json_encode($acts));
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$mtok,$mv);
 $ok(($r['ingame_state']['manage_results']["ma-$now-aaaaaa"]['status']??'')==='fulfilled','deliver is idempotent');
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$tok,"BanklordDB = {[\"manageOutbox\"]={{[\"key\"]=\"ma-$now-cccccc\",[\"order\"]=$oid2,[\"action\"]=\"deliver\"}}}");

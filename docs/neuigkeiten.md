@@ -23,6 +23,8 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.3: **Bestellverlauf und Protokoll im Spiel** für Bankverwalter und Offiziere: Aufträge → **Protokoll** (oder `/bl verlauf`, `/bl protokoll`) zeigt die letzten Bestellungen der ganzen Gilde – auch erledigte, abgelehnte und stornierte – und dasselbe Protokoll wie auf der Website.
+- 1.9.3: Im Protokoll der Website erscheinen jetzt auch „per Post verschickt“, „abgelaufen“, „über dem Wochenlimit freigegeben“, Beitritte im Spiel und geänderte Bestellregeln verständlich.
 - 1.9.2: **Bestellung kommt sicher ins Spiel:** WoW liest die Daten des Companions nur beim Laden. Nach „Jetzt übertragen“ bietet Banklord darum nach etwa 25 Sekunden ein zweites „Jetzt laden“ an – dann ist die Bestellung im Spiel. Die Zahl an der Minikarte bleibt bis dahin stehen.
 - 1.9.2: **„Meine Bestellungen“ aufgeräumt:** standardmäßig nur offene Bestellungen; ein Haken bei „Erledigte zeigen“ blendet ausgegebene, abgelehnte und stornierte ein. Der Rechtsklick-Hinweis überdeckt die Dringend-Option nicht mehr.
 - 1.9.2: Eine gerade abgeschickte Bestellung zeigt „Unterwegs zur Website – Stand kommt beim nächsten Laden“.

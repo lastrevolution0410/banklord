@@ -183,6 +183,44 @@ final class IngameOrders {
         return $out;
     }
 
+    /** Last orders of the whole guild (any status) for the in-game order history. */
+    public function historyView(int $guild): array {
+        $s=$this->db->prepare("SELECT o.id,o.status,o.priority,UNIX_TIMESTAMP(o.created_at) AS created,UNIX_TIMESTAMP(o.updated_at) AS updated,
+            u.display_name AS requester,COALESCE(o.recipient,'') AS recipient
+            FROM orders o JOIN users u ON u.id=o.user_id WHERE o.guild_id=? ORDER BY o.id DESC LIMIT 40");
+        $s->execute([$guild]);
+        $l=$this->db->prepare('SELECT i.name,ol.requested_qty,ol.fulfilled_qty FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id
+            JOIN items i ON i.id=gs.item_id WHERE ol.order_id=? ORDER BY ol.id LIMIT 12');
+        $out=[];
+        foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $o) {
+            $l->execute([(int)$o['id']]);$parts=[];$req=0;$ful=0;
+            foreach ($l->fetchAll(PDO::FETCH_ASSOC) as $line) {
+                $req+=(int)$line['requested_qty'];$ful+=(int)$line['fulfilled_qty'];
+                $parts[]=(int)$line['requested_qty'].'× '.(string)$line['name'];
+            }
+            $out[]=['id'=>(int)$o['id'],'status'=>(string)$o['status'],'created_at'=>(int)$o['created'],'updated_at'=>(int)$o['updated'],
+                'requester'=>mb_substr((string)$o['requester'],0,60),'recipient'=>mb_substr((string)$o['recipient'],0,80),
+                'urgent'=>(int)$o['priority']===1,'requested'=>$req,'fulfilled'=>$ful,'summary'=>mb_substr(implode(', ',$parts),0,160)];
+        }
+        return $out;
+    }
+
+    /** Guild activity log (same events as the website's "Protokoll"), newest first. */
+    public function activityView(int $guild): array {
+        $s=$this->db->prepare("SELECT a.action,a.entity_id,UNIX_TIMESTAMP(a.created_at) AS at,a.details_json,u.display_name AS actor,ou.display_name AS owner
+            FROM audit_events a LEFT JOIN users u ON u.id=a.actor_user_id
+            LEFT JOIN orders o ON a.entity_type='order' AND o.id=a.entity_id AND o.guild_id=a.guild_id LEFT JOIN users ou ON ou.id=o.user_id
+            WHERE a.guild_id=? ORDER BY a.id DESC LIMIT 60");
+        $s->execute([$guild]);$out=[];
+        foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $e) {
+            $d=json_decode((string)($e['details_json']??''),true);
+            $out[]=['action'=>substr(preg_replace('/[^a-z_]/','_',strtolower((string)$e['action'])),0,40),'entity_id'=>(int)$e['entity_id'],'at'=>(int)$e['at'],
+                'actor'=>mb_substr((string)($e['actor']??''),0,60),'owner'=>mb_substr((string)($e['owner']??''),0,60),
+                'changed'=>is_array($d) && is_int($d['changed_stocks']??null)?$d['changed_stocks']:-1];
+        }
+        return $out;
+    }
+
     /** Compact own-order view written into the addon by the companion. */
     /** Restock shortfalls (target stock rules) for the in-game shopping list. */
     public function restockView(int $guild): array {
@@ -229,7 +267,10 @@ final class IngameOrders {
         $state['rules']=['viewonly_tabs'=>$rules['viewonly_tabs'],'expiry_days'=>$rules['expiry_days'],
             'weekly_limit'=>$limit,'weekly_used'=>$limit>0?$rulesObj->weeklyUsed($guild,$user):0];
         $manage=$this->manageView($guild,$user);
-        if ($manage!==null) {$state['manage']=$manage;$state['restock']=$this->restockView($guild);}
+        if ($manage!==null) {
+            $state['manage']=$manage;$state['restock']=$this->restockView($guild);
+            $state['history']=$this->historyView($guild);$state['activity']=$this->activityView($guild);
+        }
         return $state;
     }
 }

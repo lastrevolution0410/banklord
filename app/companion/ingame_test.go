@@ -89,3 +89,17 @@ func TestRenderRulesAndRestock(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderHistoryAndActivity(t *testing.T) {
+	g := guildRef{Name: "Gilde", Realm: "Everlook"}
+	st := mergeStates([]ingameState{{Guild: g,
+		History:  []historyOrder{{ID: 12, Status: "fulfilled", CreatedAt: 5, UpdatedAt: 9, Requester: "Aria", Recipient: "Aria-Everlook", Urgent: true, Requested: 20, Fulfilled: 20, Summary: `20× Leinen"stoff`}},
+		Activity: []activityRow{{Action: "order_deliver", EntityID: 12, At: 9, Actor: "Kaelis", Owner: "Aria", Changed: -1}, {Action: "bad.action!", At: 1}}}})
+	out := renderState(st)
+	for _, want := range []string{`history = {`, `status = "fulfilled", createdAt = 5, updatedAt = 9`, `summary = "20× Leinen\"stoff", urgent = true, guild = "Gilde"`,
+		`action = "order_deliver", id = 12, at = 9, actor = "Kaelis", owner = "Aria", changed = -1, guild = "Gilde"`, `action = "unknown"`} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in\n%s", want, out)
+		}
+	}
+}

@@ -16,6 +16,7 @@ A.ORDER_STATUS={
 }
 local STATUS_COLOR={submitted='ffd28c',partial='ffd28c',reserved='5fe88a',partially_fulfilled='5fe88a',
   fulfilled='bdb6a6',rejected='ff7a6a',cancelled='bdb6a6'}
+A.STATUS_COLOR=STATUS_COLOR
 -- Finished orders are hidden in "My orders" unless the player ticks "show all".
 A.ORDER_CLOSED={fulfilled=true,rejected=true,cancelled=true,expired=true}
 local ERRORS={
