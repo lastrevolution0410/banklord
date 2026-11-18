@@ -138,10 +138,8 @@ function A:ReconcileManage()
 end
 
 function A:Alert(text)
+  -- Chat line and sound only; the minimap button blinks. No big text across the screen.
   self:Message(text)
-  if RaidNotice_AddMessage and RaidWarningFrame then
-    pcall(RaidNotice_AddMessage,RaidWarningFrame,'Banklord: '..text,ChatTypeInfo and ChatTypeInfo.RAID_WARNING or {r=1,g=.82,b=0})
-  end
   if PlaySound then pcall(PlaySound,(SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959) end
 end
 
@@ -352,6 +350,61 @@ local function findBankStack(itemId)
   end
 end
 
+-- Pieces per item in all viewable guild bank tabs (as far as the client has loaded them).
+local function bankStock()
+  local stock={}
+  local tabs=GetNumGuildBankTabs and GetNumGuildBankTabs() or 0
+  for tab=1,tabs do
+    local _,_,viewable=GetGuildBankTabInfo(tab)
+    if viewable then
+      for slot=1,bankSlotsPerTab() do
+        local link=GetGuildBankItemLink(tab,slot)
+        local id=link and tonumber(link:match('item:(%d+)'))
+        if id then local _,count=GetGuildBankItemInfo(tab,slot);stock[id]=(stock[id] or 0)+(count or 0) end
+      end
+    end
+  end
+  return stock
+end
+-- nil when the bank holds everything for the order, else what is missing.
+-- With consume=true the pieces are taken from stock (for "withdraw all").
+local function shortfall(o,stock,consume)
+  local need={}
+  for _,l in ipairs(o.lines or {}) do need[l.itemId]=(need[l.itemId] or 0)+(l.qty or 0) end
+  local miss={}
+  for _,l in ipairs(o.lines or {}) do
+    local n=need[l.itemId]
+    if n and (stock[l.itemId] or 0)<n then miss[#miss+1]=('%dx %s'):format(n-(stock[l.itemId] or 0),l.name or '?') end
+    need[l.itemId]=nil
+  end
+  if #miss>0 then return A:Tr('fehlt: %s'):format(table.concat(miss,', ')) end
+  if consume then for _,l in ipairs(o.lines or {}) do stock[l.itemId]=(stock[l.itemId] or 0)-(l.qty or 0) end end
+end
+A._bankStock,A._shortfall=bankStock,shortfall
+
+-- One place that decides what an order row says and which button it offers:
+-- returns status text, tone ('ok','warn','busy','info'), action ('withdraw',
+-- 'mail' or nil) and whether that action is possible right now.
+-- stock: bankStock() while the guild bank is open, else nil.
+function A:OrderRowState(o,stock)
+  local blocked=self:OrderBlocked(o.id)
+  if blocked then return blocked,'busy' end
+  local taken=store('manageTaken')[o.id]
+  if self.mailOpen then
+    if self:CanMailOrder(o) then return A:Tr('Bereit zum Versenden'),'ok','mail',true end
+    if taken then return A:Tr('Gegenstände fehlen in den Taschen'),'warn','mail',false end
+  end
+  if taken then return A:Tr('Entnommen – jetzt zum Briefkasten'),'info' end
+  if stock then
+    if self.scanRun then return A:Tr('Bestand wird geprüft …'),'busy','withdraw',false end
+    local short=shortfall(o,stock)
+    if short then return short,'warn','withdraw',false end
+    return A:Tr('Bereit zum Entnehmen'),'ok','withdraw',true
+  end
+  return A:Tr('Offen – an der Gildenbank entnehmen'),'info'
+end
+function A:BankStockNow() if self:IsGuildBankOpen() then return bankStock() end end
+
 function A:WithdrawOrders(orders)
   if not self:IsGuildBankOpen() then return self:Message(A:Tr('Bitte zuerst die Gildenbank öffnen.')) end
   if self.withdraw or self.claiming then return self:Message(A:Tr('Entnahme läuft bereits.')) end
@@ -529,19 +582,32 @@ end
 
 function A:ManageOne(o)
   if not o then return end
-  if self.manageMode=='bank' then self:WithdrawOrders({o}) else self.mailAll=false;self:PrepareMail(o) end
+  if self.manageMode=='bank' then
+    local short=shortfall(o,bankStock())
+    if short then return self:Message(A:Tr('Bestellung #%d: %s'):format(o.id,short)) end
+    self:WithdrawOrders({o})
+  else self.mailAll=false;self:PrepareMail(o) end
 end
 function A:ManageAll()
   if self.manageMode=='bank' then
     local list,taken={},store('manageTaken')
-    for _,o in ipairs(self:OpenManageOrders()) do if not taken[o.id] and not self:OrderBlocked(o.id) then list[#list+1]=o end end
+    local stock,skipped=bankStock(),0
+    for _,o in ipairs(self:OpenManageOrders()) do
+      if not taken[o.id] and not self:OrderBlocked(o.id) then
+        if shortfall(o,stock,true) then skipped=skipped+1 else list[#list+1]=o end
+      end
+    end
+    if skipped>0 then self:Message(A:Tr('%d Bestellungen übersprungen: nicht genug in der Gildenbank.'):format(skipped)) end
+    if #list==0 then return self:RefreshManagePanel() end
     self:WithdrawOrders(list)
   else self:MailNext() end
 end
 
 function A:ShowManagePanel(mode,anchor)
   if not self.db or not self:IsBankManager() then return end
-  if #self:OpenManageOrders()==0 and mode~='list' then return end
+  -- At the bank the panel always opens for managers (also with no orders),
+  -- at the mailbox only when there is something to send.
+  if #self:OpenManageOrders()==0 and mode=='mail' then return end
   if not panel then buildPanel() end
   self.manageMode=mode
   panel:ClearAllPoints()
@@ -556,8 +622,10 @@ function A:HideManagePanel(mode) if panel and self.manageMode==mode then panel:H
 
 function A:RefreshManagePanel()
   if self.UpdateMinimapBadge then self:UpdateMinimapBadge() end
+  if self.RefreshOrdersTab then self:RefreshOrdersTab() end
   if not panel or not panel:IsShown() then return end
   local mode,orders,taken=self.manageMode,self:OpenManageOrders(),store('manageTaken')
+  local stock=mode=='bank' and bankStock() or nil
   panel.title:SetText(mode=='bank' and A:Tr('Banklord – offene Bestellungen entnehmen')
     or mode=='mail' and A:Tr('Banklord – Bestellungen versenden') or A:Tr('Banklord – offene Bestellungen'))
   panel.all:SetText(mode=='bank' and A:Tr('Alle entnehmen') or A:Tr('Alle versenden'))
@@ -573,8 +641,14 @@ function A:RefreshManagePanel()
       if blocked then
         r.text:SetText(('#%d %s (%s)'):format(o.id,who,blocked))
         r.go:SetText(A:Tr('Gesperrt'));r.go:SetEnabled(false)
+      elseif mode=='bank' and taken[o.id] then
+        r.go:SetText(A:Tr('Entnommen'));r.go:SetEnabled(true)
+      elseif mode=='bank' and self.scanRun then
+        r.go:SetText(A:Tr('Prüfe …'));r.go:SetEnabled(false)
       elseif mode=='bank' then
-        r.go:SetText(taken[o.id] and A:Tr('Entnommen') or A:Tr('Entnehmen'));r.go:SetEnabled(true)
+        local short=shortfall(o,stock)
+        if short then r.text:SetText(('#%d %s (%s)'):format(o.id,who,short)) end
+        r.go:SetText(short and A:Tr('Fehlt') or A:Tr('Entnehmen'));r.go:SetEnabled(not short)
       else
         r.go:SetText(A:Tr('Versenden'))
         r.go:SetEnabled(self:CanMailOrder(o))
@@ -583,6 +657,10 @@ function A:RefreshManagePanel()
     else r:Hide() end
   end
   local more=#orders-MAX_ROWS
+  local live=self.liveNewOrders or 0
+  if live>0 and more<=0 then
+    panel.note:SetText(A:Tr('%d neue Bestellung(en) im Spiel – sichtbar nach /reload.'):format(live));return
+  end
   panel.note:SetText(more>0 and A:Tr('%d weitere Bestellungen nach dem Versand.'):format(more)
     or (#orders==0 and A:Tr('Keine offenen Bestellungen.') or A:Tr('Ziehen zum Verschieben. Neue Bestellungen erscheinen nach /reload.')))
 end
@@ -602,8 +680,8 @@ for _,e in ipairs({'PLAYER_ENTERING_WORLD','PLAYER_GUILD_UPDATE','MAIL_SHOW','MA
 events:SetScript('OnEvent',function(_,event)
   if not A.db then return end
   if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter();A:StartJoinRequests()
-  elseif event=='MAIL_SHOW' then A:ShowManagePanel('mail',MailFrame)
-  elseif event=='MAIL_CLOSED' then A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
+  elseif event=='MAIL_SHOW' then A.mailOpen=true;A:ShowManagePanel('mail',MailFrame)
+  elseif event=='MAIL_CLOSED' then A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
   elseif event=='MAIL_SEND_SUCCESS' then
     local id=A.mailSending
     A.mailSending,A.mailPrepared=nil,nil

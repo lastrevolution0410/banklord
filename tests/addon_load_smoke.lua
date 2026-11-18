@@ -161,6 +161,12 @@ do
   assert(A.minimapFlash==false and A:UpdateMinimapBadge()==1,'opening Banklord stops blinking, count stays')
   A:ShowManagePanel('bank')
   assert(A.manageMode=='bank','panel mode '..tostring(A.manageMode))
+  assert(A._shortfall(Banklord_ServerState.manage[1],A._bankStock())==nil,'20 in the bank cover 5')
+  assert(A._shortfall({lines={{itemId=2589,name='Leinenstoff',qty=25}}},A._bankStock()):find('5x Leinenstoff',1,true),'shortfall names what is missing')
+  local st=A._bankStock()
+  assert(A._shortfall({lines={{itemId=2589,qty=15}}},st,true)==nil and A._shortfall({lines={{itemId=2589,qty=10}}},st,true),'withdraw all consumes stock across orders')
+  local fired=false;local oldRN=RaidNotice_AddMessage;RaidNotice_AddMessage=function() fired=true end;RaidWarningFrame={}
+  A:Alert('x');assert(not fired,'no big screen text');RaidNotice_AddMessage=oldRN;RaidWarningFrame=nil
   A:ManageAll()
   assert(calls[1]=='bsplit5' and calls[2]=='pick01','splits 5 from the bank stack into an empty bag slot: '..table.concat(calls,','))
   assert(A.db.manageTaken[7],'order marked as taken')
@@ -337,8 +343,8 @@ local function captions()
   return set
 end
 local cap=captions()
-assert(cap['Add to cart'] and cap['Scan all tabs'] and cap['Submit order'],'UI buttons must be English after ApplyUILocale')
-for _,tabName in ipairs({'Items','Cart','Bank management','Sync','Advanced'}) do
+assert(cap['Add to cart'] and cap['Rescan bank'] and cap['Submit order'],'UI buttons must be English after ApplyUILocale')
+for _,tabName in ipairs({'Items','Cart','Orders','Settings'}) do
   local b=assert(cap[tabName],'tab button missing: '..tabName)
   local okc,errc=pcall(b.scripts.OnClick,b);assert(okc,errc)
 end

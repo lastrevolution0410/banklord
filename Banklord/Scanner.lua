@@ -103,6 +103,7 @@ function A:AbortScan(reason)
   local run = self.scanRun
   if not run then return end
   self.scanRun = nil -- invalidate ALL queued timeouts and event-debounce callbacks
+  if self.RefreshManagePanel then self:RefreshManagePanel() end
   self.pendingTab = nil
   self.db.lastScanAttempt = {
     capturedAt = time(), status = "aborted", reason = reason,
@@ -118,6 +119,7 @@ function A:_FinishScan()
   local run = self.scanRun
   if not run then return end
   self.scanRun = nil
+  if self.RefreshManagePanel then self:RefreshManagePanel() end
   self.pendingTab = nil
   -- Don't override a tab that the user selected themselves during the scan.
   if type(SetCurrentGuildBankTab) == "function" and

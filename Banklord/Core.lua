@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.10.1"
+A.version = "0.10.2"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -176,6 +176,7 @@ function A:OnEvent(event, ...)
     if A.ReceiveJoinMessage then A:ReceiveJoinMessage(...) end
   elseif event == "GUILDBANKBAGSLOTS_CHANGED" then
     if A.ScanEvent then A:ScanEvent() end
+    if A.manageMode=='bank' and A.RefreshManagePanel then A:RefreshManagePanel() end
   end
 end
 F:SetScript("OnEvent", function(_, event, ...) A:OnEvent(event, ...) end)

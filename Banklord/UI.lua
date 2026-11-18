@@ -380,10 +380,12 @@ local function updateWindowBackdrop()
   opaqueFill:SetAlpha(settings and settings.solidBackground==true and .98 or 0)
 end
 
-local tabDefs={{'items','Gegenstände'},{'cart','Warenkorb'},{'bank','Bankverwaltung'},{'help','Synchronisierung'},{'advanced','Erweitert'},{'feedback','Hilfe & Feedback'}}
+-- Members see four tabs; bank managers also get "Aufträge" (laid out in RefreshUI).
+local tabDefs={{'items','Gegenstände'},{'cart','Warenkorb'},{'bank','Aufträge'},{'feedback','Hilfe & Feedback'},{'advanced','Einstellungen'}}
+local TAB_W=188
 for i,t in ipairs(tabDefs) do
   local key,caption=t[1],t[2]
-  local b=push(window,caption,18+(i-1)*161,-72,153,29,function()
+  local b=push(window,caption,18+(i-1)*(TAB_W+12),-72,TAB_W,29,function()
     active=key;A:RefreshUI()
   end)
   tabs[key]=b
@@ -393,8 +395,7 @@ for i,t in ipairs(tabDefs) do
   panels[key]=panel
 end
 backdrop(window,20,-599,987,1,.59,.47,.23,1)
-local footerLeft=text(window,'GameFontNormalSmall',22,-612,745,
-  'Lokale Daten • nicht live • Bestellungen werden erst durch den Server verbindlich.',COLORS.warn)
+local footerLeft=text(window,'GameFontNormalSmall',22,-612,745,'',COLORS.muted)
 local footerCart=push(window,'Warenkorb öffnen',803,-606,199,30,function()
   active='cart';A:RefreshUI()
 end)
@@ -718,9 +719,10 @@ end)
 -- Additional UI settings. No influence on banking operations or permissions.
 local advanced=panels.advanced
 panelSurface(advanced,0,0,1004,469)
-text(advanced,'GameFontNormalLarge',22,-19,600,'Erweitert – Darstellung',COLORS.gold)
-text(advanced,'GameFontHighlight',26,-69,924,
-  'Wähle, wie der Hintergrund des Addon-Fensters dargestellt werden soll.',COLORS.bright)
+text(advanced,'GameFontNormalLarge',22,-19,600,'Einstellungen',COLORS.gold)
+text(advanced,'GameFontNormal',26,-50,600,'Darstellung',COLORS.gold)
+text(advanced,'GameFontHighlightSmall',26,-72,924,
+  'Wähle, wie der Hintergrund des Addon-Fensters dargestellt werden soll.',COLORS.muted)
 local backgroundOption=CreateFrame('CheckButton','BanklordBackgroundCheckbox',advanced,'UICheckButtonTemplate')
 backgroundOption:SetPoint('TOPLEFT',advanced,'TOPLEFT',28,-114)
 backgroundOption:SetSize(28,28)
@@ -743,51 +745,65 @@ backgroundOption:SetScript('OnClick',function(self)
   updateWindowBackdrop()
   A:RefreshUI()
 end)
-text(advanced,'GameFontHighlightSmall',29,-178,920,
-  'Deaktiviert: transparente Ansicht mit sichtbarer Spielwelt im Hintergrund.\n'..
-  'Aktiviert: vollständig dunkle Fensterfläche, besser lesbar in hellen Spielbereichen.\n'..
-  'Die Einstellung wird pro WoW-Konto gespeichert. Beim nächsten Spielstart bleibt sie erhalten.',COLORS.muted)
+text(advanced,'GameFontHighlightSmall',29,-152,920,
+  'Aus: durchsichtig, die Spielwelt bleibt sichtbar. An: dunkle Fläche, besser lesbar in hellen Gegenden.',COLORS.muted)
+text(advanced,'GameFontNormal',26,-200,900,'Sprache und Minikarte',COLORS.gold)
+text(advanced,'GameFontHighlightSmall',26,-222,924,
+  'Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap',COLORS.muted)
+text(advanced,'GameFontNormal',26,-270,900,'Warenkorb ohne Companion übergeben',COLORS.gold)
+text(advanced,'GameFontHighlightSmall',26,-292,924,
+  'Wer keinen Companion hat, kann seinen Warenkorb im Reiter „Warenkorb“ an einen Mitspieler schicken, der ihn hochlädt. Hier siehst du, was angekommen oder unterwegs ist.',COLORS.muted)
+local peerStatus=text(advanced,'GameFontHighlightSmall',27,-336,700,'',COLORS.bright)
+push(advanced,'Eingänge anzeigen',28,-366,192,30,function()A:ShowPeerInbox()end)
+push(advanced,'Ausgänge anzeigen',234,-366,192,30,function()A:ShowPeerOutbox()end)
+push(advanced,'Zustellung erneut versuchen',440,-366,256,30,function()A:RetryPendingPeers(true)end)
 
--- Bank scanner: preserve all existing actions and transparency.
+-- Orders (bank managers only): one row per order with status and the one
+-- button that makes sense right now. Same rules as the small bank/mail panel.
 local bank=panels.bank
+local ob={offset=0,rows={}} -- orders board (one upvalue: Lua 5.1 allows 60 per function)
 panelSurface(bank,0,0,1004,469)
-text(bank,'GameFontNormalLarge',22,-20,760,'Inventur & Bankscanner',COLORS.gold)
-local bankState=text(bank,'GameFontHighlight',24,-70,927,'',COLORS.bright)
-local bankProgress=text(bank,'GameFontHighlightSmall',24,-161,917,'',COLORS.muted)
-push(bank,'Alle Fächer scannen',25,-225,268,35,function()A:StartScan('all');A:RefreshUI()end)
-push(bank,'Aktuelles Fach scannen',311,-225,268,35,function()A:StartSingleScan();A:RefreshUI()end)
-push(bank,'Scan abbrechen',597,-225,211,35,function()
-  if A.scanRun then A:AbortScan('Manuell abgebrochen')end
+text(bank,'GameFontNormalLarge',22,-16,330,'Aufträge',COLORS.gold)
+ob.state=text(bank,'GameFontHighlightSmall',360,-21,620,'',COLORS.muted)
+ob.state:SetJustifyH('RIGHT')
+text(bank,'GameFontHighlightSmall',22,-46,960,
+  'So geht es:   1. Gildenbank öffnen → „Entnehmen“     2. Briefkasten öffnen → „Versenden“     3. /reload → die Website wird aktualisiert',COLORS.muted)
+ob.size=9
+local cols={{'Nr.',26,46},{'Empfänger',78,176},{'Gegenstände',262,330},{'Status',600,252}}
+for _,c in ipairs(cols) do text(bank,'GameFontNormalSmall',c[2],-74,c[3],c[1],COLORS.gold) end
+backdrop(bank,22,-90,958,1,.59,.47,.23,.8)
+ob.tone={ok=COLORS.green,warn=COLORS.warn,busy={.62,.6,.56},info=COLORS.bright}
+for i=1,ob.size do
+  local r=CreateFrame('Frame',nil,bank)
+  r:SetPoint('TOPLEFT',bank,'TOPLEFT',22,-94-(i-1)*34)
+  r:SetSize(958,32)
+  r.bg=backdrop(r,0,0,958,32,i%2==0 and .092 or .12,i%2==0 and .087 or .108,i%2==0 and .08 or .095,.85)
+  r.id=rowLabel(r,'GameFontHighlightSmall',8,906,32,'LEFT',COLORS.gold)
+  r.who=rowLabel(r,'GameFontHighlightSmall',56,722,32,'LEFT',COLORS.bright)
+  r.items=rowLabel(r,'GameFontHighlightSmall',240,386,32,'LEFT',COLORS.bright)
+  r.status=rowLabel(r,'GameFontHighlightSmall',578,122,32,'LEFT',COLORS.bright)
+  r.go=push(r,'Entnehmen',842,-3,112,26,function(self)
+    local row=self:GetParent()
+    if not row.order then return end
+    A.manageMode=row.action=='mail' and 'mail' or 'bank'
+    A:ManageOne(row.order)
+    A:RefreshUI()
+  end)
+  ob.rows[i]=r
+end
+ob.empty=text(bank,'GameFontHighlight',26,-110,940,'',COLORS.muted)
+ob.all=push(bank,'Alle entnehmen',22,-414,200,30,function()
+  if A.mailOpen then A.manageMode='mail' elseif A:IsGuildBankOpen() then A.manageMode='bank' else return end
+  A:ManageAll();A:RefreshUI()
+end)
+ob.scan=push(bank,'Bank neu scannen',232,-414,200,30,function()
+  if A.scanRun then A:AbortScan('Manuell abgebrochen') else A:StartScan('all') end
   A:RefreshUI()
 end)
--- Open orders for bank managers: what is waiting, for whom, and who is on it.
-local bankOrdersTitle=text(bank,'GameFontNormal',26,-278,600,'Offene Bestellungen',COLORS.gold)
-local bankOrdersHint=text(bank,'GameFontHighlightSmall',26,-298,940,
-  'An der Gildenbank „Entnehmen“, am Briefkasten „Versenden“. Neue Bestellungen von der Website erscheinen nach /reload.',COLORS.muted)
-local bankOrderRows={}
-for i=1,6 do
-  bankOrderRows[i]=text(bank,'GameFontHighlightSmall',30,-322-(i-1)*20,940,'',COLORS.bright)
-end
-local bankOrdersMore=text(bank,'GameFontHighlightSmall',30,-446,940,'',COLORS.muted)
-
--- Sync: instructions and existing peer inbox/outbox without making live promises.
-local help=panels.help
-panelSurface(help,0,0,1004,469)
-text(help,'GameFontNormalLarge',22,-20,760,'Synchronisierung & Übertragung',COLORS.gold)
-text(help,'GameFontNormal',26,-76,925,
-  'Dein Addon speichert Scans und Entwürfe lokal. Erst nach Prüfung im Web gelten sie als bestätigt.',COLORS.warn)
-text(help,'GameFontHighlightSmall',26,-121,943,
-  '1. Gildenbank öffnen und Inventur starten.\n\n'..
-  '2. /reload oder ausloggen, damit WoW die SavedVariables auf die Festplatte schreibt.\n\n'..
-  '3. Der optionale Windows-Companion überträgt gespeicherte Daten per HTTPS.\n\n'..
-  '4. Verwalter bestätigen importierte Inventuren und Bestellungen über die Website.\n\n'..
-  'Offline-Ingame-Entwürfe können an ONLINE-Spieler weitergegeben werden, sind aber keine Webaufträge.\n'..
-  'Direkte Live-Kommunikation des laufenden Addons mit dem Webserver ist derzeit nicht verfügbar.',COLORS.bright)
-local peerStatus=text(help,'GameFontHighlightSmall',27,-368,700,'',COLORS.muted)
-push(help,'Eingänge anzeigen',28,-411,192,31,function()A:ShowPeerInbox()end)
-push(help,'Ausgänge anzeigen',234,-411,192,31,function()A:ShowPeerOutbox()end)
-push(help,'Zustellung erneut versuchen',440,-411,256,31,function()A:RetryPendingPeers(true)end)
-
+ob.pager=text(bank,'GameFontNormalSmall',450,-422,330,'',COLORS.muted)
+push(bank,'Zurück',792,-414,90,30,function() ob.offset=math.max(0,ob.offset-ob.size);A:RefreshUI() end)
+push(bank,'Weiter',890,-414,90,30,function() ob.offset=ob.offset+ob.size;A:RefreshUI() end)
+function A:RefreshOrdersTab() if window:IsShown() and active=='bank' then self:RefreshUI() end end
 
 -- Help & feedback: three clear choices, one short form, the own reports beside it.
 local fb=panels.feedback
@@ -951,7 +967,19 @@ function A:RefreshUI()
     A:Tr('Noch keine lokale Inventur. Zum Scannen bitte die Gildenbank öffnen.'),775,104)
   local cartRows,positions,units=cartInfo()
   fitText(footerCart.caption,A:Tr('Warenkorb: %d Pos. / %d Stk.'):format(positions,units),footerCart:GetWidth()-22,40)
-  footerLeft:SetText(A:Tr('LOKALER SNAPSHOT  -  kein Live-Bestand · Übertragung nach WoW-Speicherung  ·  Addon %s'):format(tostring(A.version)))
+  footerLeft:SetText(A:Tr('Bestand vom letzten Scan · Neues wird beim /reload übertragen · Addon %s'):format(tostring(A.version)))
+  -- Tabs: "Aufträge" only for bank managers, officers and admins.
+  local manager=self:IsBankManager()
+  if active=='bank' and not manager then active='items' end
+  local shown={}
+  for _,t in ipairs(tabDefs) do if t[1]~='bank' or manager then shown[#shown+1]=t[1] end end
+  local gap=(987-#shown*TAB_W)/math.max(1,#shown-1)
+  for i,key in ipairs(shown) do tabs[key]:ClearAllPoints();tabs[key]:SetPoint('TOPLEFT',window,'TOPLEFT',18+(i-1)*(TAB_W+gap),-72);tabs[key]:Show() end
+  if not manager then tabs.bank:Hide() end
+  if manager then
+    local open=#self:OpenManageOrders()
+    fitText(tabs.bank.caption,open>0 and A:Tr('Aufträge (%d)'):format(open) or A:Tr('Aufträge'),TAB_W-19)
+  end
   for key,panel in pairs(panels) do if key==active then panel:Show()else panel:Hide()end end
   for key,b in pairs(tabs) do
     b.blSelected=key==active
@@ -1038,29 +1066,45 @@ function A:RefreshUI()
     orderStamp:SetText(stamp and A:Tr('Serverstand: %s'):format(stamp) or A:Tr('Serverstand: noch keiner (Companion?)'))
     if positions==0 then submitButton:Disable() else submitButton:Enable() end
   elseif active=='bank' then
-    local opened=self:IsGuildBankOpen() and A:Tr('geöffnet') or A:Tr('geschlossen')
-    local run=self.scanRun
-    bankState:SetText(A:Tr('Gildenbank: %s'):format(opened)..'\n\n'..(
-      scan and A:Tr('Letzter Scan: %s/%s Fächer · %s belegte Slots · %s'):format(tostring(scan.scannedTabs),
-      tostring(scan.totalTabs),tostring(scan.occupiedSlots),tostring(scan.quality)) or A:Tr('Noch keine Inventur vorhanden.')))
-    bankProgress:SetText(run and A:Tr('Aktiver Scan: %s/%s Fächer'):format(tostring(run.completed),tostring(#run.queue)) or
-      A:Tr('Kein aktiver Scan · SavedVariables werden beim /reload oder Ausloggen gespeichert.'))
-    local orders=self:IsBankManager() and self:OpenManageOrders() or {}
-    for i,row in ipairs(bankOrderRows) do
-      local o=orders[i]
+    local bankOpen=self:IsGuildBankOpen()
+    local place=self.mailOpen and A:Tr('Briefkasten geöffnet') or bankOpen and A:Tr('Gildenbank geöffnet') or A:Tr('Gildenbank geschlossen')
+    ob.state:SetText(place..'   ·   '..(scan and A:Tr('Bestand vom %s'):format(snapshotTime(scan)) or A:Tr('Noch kein Scan')))
+    local orders=self:OpenManageOrders()
+    ob.offset=math.max(0,math.min(ob.offset,math.max(0,#orders-1)))
+    ob.offset=ob.offset-(ob.offset%ob.size)
+    local stock=self:BankStockNow()
+    for i,r in ipairs(ob.rows) do
+      local o=orders[ob.offset+i]
+      r.order=o
       if o then
         local who=(o.recipient~='' and o.recipient) or o.requester or '?'
-        local why=self:OrderBlocked(o.id)
-        row:SetText(('#%d  ·  %s  ·  %s%s'):format(o.id,who,self:OrderSummary(o),why and '  ·  '..why or ''))
-      elseif i==1 then
-        row:SetText(self:IsBankManager() and A:Tr('Keine offenen Bestellungen.') or A:Tr('Nur für Bankverwalter, Offiziere und Admins.'))
-      else row:SetText('') end
+        local status,tone,action,possible=self:OrderRowState(o,stock)
+        r.id:SetText('#'..tostring(o.id))
+        fitText(r.who,who,176,40)
+        fitText(r.items,self:OrderSummary(o),328,70)
+        fitText(r.status,status,254,50)
+        r.status:SetTextColor(rgb(ob.tone[tone] or COLORS.bright))
+        r.action=action
+        if action then
+          fitText(r.go.caption,action=='mail' and A:Tr('Versenden') or A:Tr('Entnehmen'),93)
+          r.go:SetEnabled(possible==true);r.go:Show()
+        else r.go:Hide() end
+        r:Show()
+      else r:Hide() end
     end
-    bankOrdersMore:SetText(#orders>#bankOrderRows and A:Tr('… und %d weitere'):format(#orders-#bankOrderRows) or '')
+    local live=self.liveNewOrders or 0
+    ob.empty:SetText(#orders==0 and (A:Tr('Keine offenen Bestellungen.')..
+      (live>0 and '\n\n'..A:Tr('%d neue Bestellung(en) im Spiel – sichtbar nach /reload.'):format(live) or '')) or '')
+    fitText(ob.all.caption,self.mailOpen and A:Tr('Alle versenden') or A:Tr('Alle entnehmen'),181)
+    ob.all:SetEnabled(#orders>0 and (self.mailOpen or bankOpen) and true or false)
+    fitText(ob.scan.caption,self.scanRun and A:Tr('Scan abbrechen') or A:Tr('Bank neu scannen'),181)
+    ob.scan:SetEnabled(bankOpen and true or false)
+    local pages=math.max(1,math.ceil(#orders/ob.size))
+    ob.pager:SetText(#orders>0 and A:Tr('%d Aufträge · Seite %d von %d'):format(#orders,ob.offset/ob.size+1,pages) or '')
   elseif active=='feedback' then
     refreshFeedback()
-  elseif active=='help' then
-    peerStatus:SetText(A:Tr('Ingame-Eingänge: %d   |   Ingame-Ausgänge: %d   |   Keine Serverbestätigung'):format(
+  elseif active=='advanced' then
+    peerStatus:SetText(A:Tr('Eingänge: %d   ·   Ausgänge: %d'):format(
       #(self.db.peerInbox or {}),#(self.db.peerOutbox or {})))
   end
 end
