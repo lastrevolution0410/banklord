@@ -50,6 +50,7 @@ type manageOrder struct {
 	Requester string       `json:"requester"`
 	Recipient string       `json:"recipient"`
 	Approval  int          `json:"approval"`
+	Urgent    bool         `json:"urgent"`
 	Lines     []manageLine `json:"lines"`
 }
 
@@ -269,8 +270,12 @@ func renderState(st ingameState) string {
 			if approval < 0 || approval > 2 {
 				approval = 1
 			}
-			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s, approval = %d,%s lines = {\n",
-				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)), approval, guildFields(o.Guild))
+			urgent := ""
+			if o.Urgent {
+				urgent = " urgent = true,"
+			}
+			fmt.Fprintf(&b, "    { id = %d, status = %s, createdAt = %d, requester = %s, recipient = %s, approval = %d,%s%s lines = {\n",
+				o.ID, luaString(word(o.Status)), o.CreatedAt, luaString(clip(o.Requester, 60)), luaString(clip(o.Recipient, 80)), approval, urgent, guildFields(o.Guild))
 			for i, l := range o.Lines {
 				if i >= 12 {
 					break

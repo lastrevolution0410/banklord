@@ -47,8 +47,9 @@ Ist gerade kein Verwalter online, kann dir ein Admin auf der Website unter **Mit
 
 1. Öffne Banklord mit `/banklord` oder über den Knopf an der Minikarte.
 2. Suche den Gegenstand, gib die Menge ein und lege ihn in den **Warenkorb**.
-3. Im Warenkorb auf **„Bestellen“**.
-4. Gib `/reload` ein oder logge aus. Der Companion lädt die Bestellung hoch; Bankverwalter, die online sind, bekommen sofort einen Hinweis.
+3. Eilt es, z. B. für den Raid? Hake **„Dringend“** an (oder `/bl bestellen dringend`).
+4. Im Warenkorb auf **„Bestellen“**.
+5. Gib `/reload` ein oder logge aus. Der Companion lädt die Bestellung hoch; Bankverwalter, die online sind, bekommen sofort einen Hinweis.
 
 Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reserviert“ ist, hat schon jemand anderes bestellt.
 
@@ -109,6 +110,7 @@ Alle Befehle beginnen mit `/banklord`:
 | `merken <Item-ID> <Menge>` | Gegenstand in den Warenkorb legen |
 | `korb` | Warenkorb anzeigen |
 | `bestellen` | Warenkorb bestellen |
+| `bestellen dringend` | Warenkorb als dringend bestellen |
 | `leeren` | Warenkorb leeren |
 | `senden <Spieler>` | Warenkorb an einen Mitspieler übergeben, der ihn für dich hochlädt (falls du keinen Companion hast) |
 | `eingang`, `ausgang`, `erneut` | Übergebene Warenkörbe ansehen oder erneut senden |
@@ -116,6 +118,7 @@ Alle Befehle beginnen mit `/banklord`:
 | `stornieren <Nr>` | Eigene offene Bestellung stornieren |
 | `bestellungen` | Offene Bestellungen (nur Bankverwalter) |
 | `einkauf` | Einkaufsliste für Auctionator/TSM (nur Bankverwalter) |
+| `kasse` | Kassenbuch: Gold der Gildenbank und letzte Einträge |
 | `tooltip` | Gildenbank-Bestand in Tooltips ein/aus |
 | `feedback` | Hilfe & Feedback: Fehler melden, Idee vorschlagen, Sprache anfragen |
 | `minimap` | Minikarten-Knopf ein- oder ausblenden |

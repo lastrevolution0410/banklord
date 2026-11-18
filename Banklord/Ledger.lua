@@ -96,3 +96,49 @@ function A:OnBankStateChanged()
   if previous then previous(self) end
   if self.bankOpen then self:CaptureBankLog() end
 end
+
+-- Gold amount like the game shows it: 1234g 56s 78c.
+function A:FormatGold(copper)
+  copper = math.max(0, math.floor(tonumber(copper) or 0))
+  local g, s, c = math.floor(copper / 10000), math.floor(copper % 10000 / 100), copper % 100
+  local out = {}
+  if g > 0 then out[#out + 1] = g .. "g" end
+  if s > 0 then out[#out + 1] = s .. "s" end
+  if c > 0 or #out == 0 then out[#out + 1] = c .. "c" end
+  return table.concat(out, " ")
+end
+
+local ACTION = {deposit = "eingezahlt", withdraw = "entnommen", move = "verschoben", repair = "Reparatur",
+  withdrawForTab = "für Fach entnommen", buyTab = "Fach gekauft", depositSummary = "Einzahlung (gesammelt)"}
+
+-- Cash book in game: the bank's gold and the latest log entries this character read.
+function A:BankLogText()
+  local log = self.db and self.db.bankLog
+  if type(log) ~= "table" then return nil end
+  local rows = {}
+  for _, e in ipairs(log.gold or {}) do rows[#rows + 1] = {at = e.at or 0, text = ("%s %s %s"):format(e.p or "?", A:Tr(ACTION[e.t] or tostring(e.t)), self:FormatGold(e.q))} end
+  for _, e in ipairs(log.items or {}) do
+    local where = e.t == "move" and (" (" .. A:Tr("Fach %d → %d"):format(e.tab or 0, e.to or 0) .. ")") or (" (" .. A:Tr("Fach %d"):format(e.tab or 0) .. ")")
+    rows[#rows + 1] = {at = e.at or 0, text = ("%s %s %dx %s%s"):format(e.p or "?", A:Tr(ACTION[e.t] or tostring(e.t)), tonumber(e.q) or 0, (type(e.n) == "string" and e.n ~= "") and e.n or ("Item " .. tostring(e.i or 0)), where)}
+  end
+  table.sort(rows, function(a, b) return a.at > b.at end)
+  local lines = {}
+  if log.money then lines[#lines + 1] = A:Tr("Gold in der Gildenbank: %s"):format(self:FormatGold(log.money)) end
+  lines[#lines + 1] = ""
+  for i, r in ipairs(rows) do
+    if i > 60 then break end
+    lines[#lines + 1] = (type(date) == "function" and date("%d.%m. %H:00", r.at) or "") .. "  " .. r.text
+  end
+  if #rows == 0 then lines[#lines + 1] = A:Tr("Keine Einträge im Bankprotokoll.") end
+  return table.concat(lines, "\n"), log.capturedAt, log.guild
+end
+
+function A:ShowBankLog()
+  local body, at, guild = self:BankLogText()
+  if not body then
+    return self:Message(A:Tr("Kassenbuch: Öffne einmal die Gildenbank, dann liest Banklord das Bankprotokoll aus. Die ganze Geschichte steht auf der Website unter „Kassenbuch“."))
+  end
+  self:ShowTextWindow(A:Tr("Banklord – Kassenbuch") .. (type(guild) == "string" and guild ~= "" and (" – " .. guild) or ""),
+    A:Tr("Stand %s. Die ganze Geschichte steht auf der Website unter „Kassenbuch“."):format(type(date) == "function" and date("%d.%m. %H:%M", at or time()) or ""),
+    body, false)
+end

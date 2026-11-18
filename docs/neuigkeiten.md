@@ -14,13 +14,15 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 
 | Idee | Worum es geht |
 |---|---|
-| Kassenbuch im Spiel | Goldstand und letzte Einträge auch im Addon-Fenster zeigen |
-| „Dringend“ im Spiel | Bestellungen auch im Addon als dringend markieren |
 | macOS und Linux fertigstellen | Setup, Companion und Updater laufen dort noch als Beta; es fehlen Tests auf echten Geräten |
 
 ---
 
 ## Fertig
+
+### 1.7 – Kassenbuch und „Dringend“ im Spiel (18.11.2026)
+- **Kassenbuch im Spiel:** Goldstand der Gildenbank und die letzten Einträge im Addon-Fenster (**Aufträge → Kassenbuch** oder `/bl kasse`).
+- **„Dringend“ im Spiel:** Häkchen im Warenkorb oder `/bl bestellen dringend`. Bankverwalter sehen dringende Bestellungen mit rotem **!** ganz oben.
 
 ### 1.6 – Kassenbuch, Bankwert und Discord (18.11.2026)
 Vorher haben wir verglichen, was andere Gildenbank-Addons können (z. B. Guild Bank Ledger, Guild Bank Manager, TOGBankClassic, GuildVault), und das Beste übernommen:

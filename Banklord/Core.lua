@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.13.0"
+A.version = "0.14.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -258,8 +258,16 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "korb" then
     A:CartDraftStatus()
     if A.OpenCartUI then A:OpenCartUI() end
-  elseif cmd == "bestellen" then
+  elseif cmd == "kasse" or cmd == "kassenbuch" or cmd == "ledger" then
+    A:ShowBankLog()
+  elseif cmd == "bestellen" or cmd == "order" then
     A:SubmitCartOrder()
+  elseif cmd == "bestellen dringend" or cmd == "order urgent" then
+    local before = A.orderUrgent
+    A.orderUrgent = true
+    A:SubmitCartOrder()
+    -- Not sent (e.g. empty cart): keep the checkbox state, not a leftover "urgent".
+    if A.orderUrgent then A.orderUrgent = before end
   elseif cmd == "code" then
     if A.OpenCartUI then A:OpenCartUI() end
   elseif cmd == "leeren" then
@@ -282,6 +290,6 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, stornieren <Nr>, einkauf, tooltip, feedback, debug, minimap, lang de|en|auto"))
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, stornieren <Nr>, einkauf, kasse, tooltip, feedback, debug, minimap, lang de|en|auto"))
   end
 end

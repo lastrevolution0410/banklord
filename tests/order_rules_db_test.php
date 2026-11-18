@@ -49,6 +49,16 @@ $ok($f($o1)===6,'six delivered');
 $view=(new IngameOrders($db))->manageView($g,$bm);$open=null;
 foreach ($view as $row) if ($row['id']===$o1) $open=$row['lines'][0]['qty'];
 $ok($open===9,'manager list shows the open rest');
+// Urgent orders from the game: the outbox flag is read and the manager list puts them first.
+$t=time();$sv="BanklordDB = {[\"orderOutbox\"]={{[\"clientKey\"]=\"ig-$t-urgen1\",[\"code\"]=\"BL1|2589,1,item:2589:0:0:0:0:0:0:0:0\",[\"createdAt\"]=$t,[\"urgent\"]=true},{[\"clientKey\"]=\"ig-$t-norm01\",[\"code\"]=\"BL1|2589,1,item:2589:0:0:0:0:0:0:0:0\",[\"createdAt\"]=$t}}}";
+$ex=IngameOrders::extract($sv);
+$ok($ex[0]['urgent']===true && $ex[1]['urgent']===false,'outbox urgent flag read');
+$bad=false;try { IngameOrders::extract(str_replace('=true','="ja"',$sv)); } catch (\InvalidArgumentException $e) { $bad=true; }
+$ok($bad,'urgent must be a boolean');
+$ou=$orders->create($g,$officer,'rules-urgent-0001',[['stock_id'=>(int)$ore['id'],'quantity'=>1]],'',true);
+$view=(new IngameOrders($db))->manageView($g,$bm);
+$ok($view[0]['id']===$ou && $view[0]['urgent']===true && count(array_filter($view,fn($r)=>$r['urgent']))===1,'urgent order first and flagged for bank managers');
+$orders->cancel($g,$officer,$ou);
 $ok($orders->deliver($g,$bm,$o1,'ma-100002-cccccc')==='fulfilled','rest delivered later');
 
 // Member cancels own order in game; another member may not.

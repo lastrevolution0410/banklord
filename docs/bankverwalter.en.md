@@ -101,10 +101,10 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 
 ## Cash book, bank value and Discord
 
-- **Cash book** (website → Management → Cash book): every time you open the guild bank, Banklord reads the bank log – gold and items, who deposited or withdrew what. WoW only shows the last 25 entries per tab; Banklord keeps everything. The Companion uploads it after the next `/reload`. Filter by gold, items or player, download as CSV for spreadsheets.
+- **Cash book** (website → Management → Cash book): every time you open the guild bank, Banklord reads the bank log – gold and items, who deposited or withdrew what. WoW only shows the last 25 entries per tab; Banklord keeps everything. The Companion uploads it after the next `/reload`. Filter by gold, items or player, download as CSV for spreadsheets. **In game**, **Orders → Cash book** (or `/bl kasse`) shows the gold and the latest entries.
 - **Gold and bank value:** the guild bank's gold is recorded when you open it. With **TSM** or **Auctionator** installed, Banklord records each item's market price. The website then shows the estimated value of the whole bank and per item.
 - **Discord** (website → System, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
-- **Urgent orders** are marked **“Urgent”** under Orders.
+- **Urgent orders** are marked **“Urgent”** under Orders; in game they have a red **!** before the number and are listed first.
 
 ## Together with other addons
 

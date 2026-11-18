@@ -112,6 +112,13 @@ assert(#A.db.orderOutbox==1,'order must be queued')
 local queued=A.db.orderOutbox[1]
 assert(queued.clientKey:match('^ig%-%d+%-[a-z0-9]+$') and queued.code=='BL1|2589,5,item:2589:0:0:0:0:0:0:0:0','outbox entry malformed')
 assert(next(A.db.localCartDraft)==nil,'cart must be emptied after submit')
+assert(queued.urgent==nil,'normal order is not urgent')
+-- "/bl bestellen dringend" marks the order urgent; an empty cart leaves no urgent flag behind.
+pcall(SlashCmdList.BANKLORD,'bestellen dringend');assert(#A.db.orderOutbox==1 and not A.orderUrgent,'empty cart: nothing queued, flag reset')
+A:AddCartDraftByKey('item:2589:0:0:0:0:0:0:0:0',1)
+local oku,erru=pcall(SlashCmdList.BANKLORD,'bestellen dringend');assert(oku,erru)
+assert(#A.db.orderOutbox==2 and A.db.orderOutbox[2].urgent==true and not A.orderUrgent,'urgent order queued')
+table.remove(A.db.orderOutbox,2)
 assert(#A:GetOrderOverview()==1,'pending order must be listed')
 Banklord_ServerState={generatedAt=time(),orders={{id=42,clientKey=queued.clientKey,status='reserved',createdAt=time(),
   lines={{itemId=2589,name='Leinenstoff',requested=5,approved=5,fulfilled=0,decision='approved'}}}},outbox={}}
@@ -149,12 +156,13 @@ do
   AutoStoreGuildBankItem=function() calls[#calls+1]='bstore' end
   A.IsGuildBankOpen=function() return true end
   Banklord_ServerState.manage={{id=7,status='submitted',createdAt=time(),requester='Aria',recipient='Borin-Everlook',
-    lines={{itemId=2589,name='Leinenstoff',qty=5}}}}
+    lines={{itemId=2589,name='Leinenstoff',qty=5}},urgent=true}}
   Banklord_ServerState.manageResults={}
   A.db.manageSeen=nil
   A:ReconcileManage()
   assert(A:IsBankManager() and #A:OpenManageOrders()==1,'manager sees the open order')
   assert(lastChat():find('#7',1,true),'new order alerted: '..lastChat())
+  assert(lastChat():find('Dringend',1,true) or lastChat():find('Urgent',1,true),'urgent order alerted as urgent: '..lastChat())
   assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'minimap badge shows 1 and blinks for a new order')
   A:ToggleUI();A:ToggleUI()
   local okb,errb=pcall(A.ShowTab,A,'bank');assert(okb,errb)
@@ -457,7 +465,17 @@ do
   assert(#log.prices==1 and log.prices[1].c==1250 and log.prices[1].s=='tsm','TSM price captured')
   local queried={};QueryGuildBankLog=function(t) queried[#queried+1]=t end
   A:CaptureBankLog();assert(#queried==3 and queried[3]==(MAX_GUILDBANK_TABS or 8)+1,'all tab logs and the gold log requested')
+  -- In-game cash book window.
+  local body=assert(A:BankLogText(),'cash book text')
+  assert(body:find('123g 45s 67c',1,true) and body:find('Kaelis',1,true) and body:find('15g',1,true) and body:find('Leinenstoff',1,true),'cash book shows gold and entries: '..body)
+  assert(A:FormatGold(0)=='0c' and A:FormatGold(10000)=='1g','gold formatting')
+  A.db.bankLog.items[#A.db.bankLog.items+1]={t='deposit',p='Ohne',i=7,q=1,tab=1,at=0};A.db.bankLog.gold[#A.db.bankLog.gold+1]={p='X',q='kaputt',at=0}
+  assert(A:BankLogText():find('Item 7',1,true),'entry without name or action still shown')
+  local okl,errl=pcall(SlashCmdList.BANKLORD,'kasse');assert(okl,errl)
   TSM_API=nil;A.bankOpen=oldOpen;A.db.bankLog=nil
+  local msg,oldAdd='',DEFAULT_CHAT_FRAME.AddMessage;DEFAULT_CHAT_FRAME.AddMessage=function(_,m) msg=m end
+  local okn,errn=pcall(A.ShowBankLog,A);DEFAULT_CHAT_FRAME.AddMessage=oldAdd;assert(okn,errn)
+  assert(msg:find('Gildenbank',1,true) or msg:find('guild bank',1,true),'hint without log: '..msg)
 end
 print('PASS: order rules in game (approval, partial delivery, shipping notice, cancel, view-only, tooltip, shopping list)')
 

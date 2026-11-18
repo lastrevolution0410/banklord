@@ -50,7 +50,10 @@ function A:SubmitCartOrder()
   table.insert(self.db.orderOutbox,{
     clientKey=('ig-%d-%s'):format(time(),randomTag()),
     code=code,character=clean(name..(realm~='' and '-'..realm:gsub('%s','') or ''),80),note='',createdAt=time(),
-    guild=guild,guildRealm=guildRealm})
+    guild=guild,guildRealm=guildRealm,urgent=self.orderUrgent and true or nil})
+  -- "Urgent" applies to this one order only.
+  self.orderUrgent=false
+  if BanklordUrgentCheckbox then BanklordUrgentCheckbox:SetChecked(false) end
   if self.BroadcastNewOrder then self:BroadcastNewOrder(name,code) end
   local limit,used=self:WeeklyLimit()
   if limit then

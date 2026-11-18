@@ -101,10 +101,10 @@ Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltun
 
 ## Kassenbuch, Bankwert und Discord
 
-- **Kassenbuch** (Website → Verwaltung → Kassenbuch): Jedes Mal, wenn du die Gildenbank öffnest, liest Banklord das Bankprotokoll aus – Gold und Gegenstände, wer was eingezahlt oder entnommen hat. WoW zeigt nur die letzten 25 Einträge je Fach; Banklord hebt alles auf. Nach dem nächsten `/reload` überträgt der Companion es. Filter nach Gold, Gegenständen oder Spieler, Download als CSV für Tabellen.
+- **Kassenbuch** (Website → Verwaltung → Kassenbuch): Jedes Mal, wenn du die Gildenbank öffnest, liest Banklord das Bankprotokoll aus – Gold und Gegenstände, wer was eingezahlt oder entnommen hat. WoW zeigt nur die letzten 25 Einträge je Fach; Banklord hebt alles auf. Nach dem nächsten `/reload` überträgt der Companion es. Filter nach Gold, Gegenständen oder Spieler, Download als CSV für Tabellen. **Im Spiel** zeigt **Aufträge → Kassenbuch** (oder `/bl kasse`) den Goldstand und die letzten Einträge.
 - **Goldstand und Bankwert:** Der Goldstand der Gildenbank wird beim Öffnen mitgenommen. Hast du **TSM** oder **Auctionator** installiert, nimmt Banklord den Marktpreis jedes Gegenstands mit. Die Website zeigt dann den geschätzten Wert der ganzen Bank und pro Gegenstand.
 - **Discord** (Website → System, nur Administratoren): Webhook-URL eines Kanals einfügen und wählen, was gemeldet wird – neue Bestellungen, Freigabe nötig, verschickt, unter Mindestbestand. Mit „Testnachricht“ prüfen.
-- **Dringende Bestellungen** sind in Aufträgen mit **„Dringend“** markiert.
+- **Dringende Bestellungen** sind in Aufträgen mit **„Dringend“** markiert, im Spiel mit einem roten **!** vor der Nummer und stehen oben.
 
 ## Zusammen mit anderen Addons
 

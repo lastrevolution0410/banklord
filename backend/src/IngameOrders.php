@@ -31,8 +31,9 @@ final class IngameOrders {
               || !is_string($code) || !PeerRelay::validCode($code)
               || !is_string($char) || strlen($char)>80 || preg_match('/[|\x00-\x1f\x7f]/',$char)
               || !is_string($note) || strlen($note)>200 || preg_match('/[|\x00-\x1f\x7f]/',$note)
-              || !is_int($at) || $at<time()-30*86400 || $at>time()+86400) throw new \InvalidArgumentException('OUTBOX_ROW_INVALID');
-            $out[]=['client_key'=>$key,'code'=>$code,'character'=>$char,'note'=>$note,'guild'=>self::tag($row)];
+              || !is_int($at) || $at<time()-30*86400 || $at>time()+86400
+              || (isset($row['urgent']) && !is_bool($row['urgent']))) throw new \InvalidArgumentException('OUTBOX_ROW_INVALID');
+            $out[]=['client_key'=>$key,'code'=>$code,'character'=>$char,'note'=>$note,'guild'=>self::tag($row),'urgent'=>($row['urgent']??false)===true];
         }
         return $out;
     }
@@ -83,7 +84,7 @@ final class IngameOrders {
             if ($missing) {$results[$entry['client_key']]=['error'=>'UNKNOWN_ITEM'];continue;}
             $note='Ingame'.($entry['character']!==''?' ('.$entry['character'].')':'').($entry['note']!==''?': '.$entry['note']:'');
             try {
-                $id=$orders->create($guild,$user,$entry['client_key'],$lines,mb_substr($note,0,500));
+                $id=$orders->create($guild,$user,$entry['client_key'],$lines,mb_substr($note,0,500),$entry['urgent']);
                 $results[$entry['client_key']]=['order_id'=>$id];
                 if ($entry['character']!=='') {
                     $this->db->prepare('UPDATE orders SET recipient=? WHERE id=? AND recipient IS NULL')->execute([$entry['character'],$id]);
@@ -156,10 +157,10 @@ final class IngameOrders {
         $r->execute([$guild,$user]);$role=$r->fetchColumn();
         if (!in_array($role,['officer','bank_manager','admin'],true)) return null;
         $canApprove=in_array($role,['officer','admin'],true);
-        $s=$this->db->prepare("SELECT o.id,o.status,o.needs_approval,UNIX_TIMESTAMP(o.created_at) AS created,u.display_name AS requester,
+        $s=$this->db->prepare("SELECT o.id,o.status,o.needs_approval,o.priority,UNIX_TIMESTAMP(o.created_at) AS created,u.display_name AS requester,
             COALESCE(o.recipient,(SELECT CONCAT(c.name,'-',c.realm) FROM characters c WHERE c.guild_id=o.guild_id AND c.user_id=o.user_id AND c.verification_status<>'revoked' ORDER BY c.verification_status='verified' DESC,c.id LIMIT 1),'') AS recipient
             FROM orders o JOIN users u ON u.id=o.user_id
-            WHERE o.guild_id=? AND o.status IN ('submitted','reserved','partial','partially_fulfilled') ORDER BY o.id LIMIT 40");
+            WHERE o.guild_id=? AND o.status IN ('submitted','reserved','partial','partially_fulfilled') ORDER BY o.priority DESC,o.id LIMIT 40");
         $s->execute([$guild]);
         $l=$this->db->prepare("SELECT i.wow_item_id,i.name,ol.requested_qty,ol.approved_qty,ol.fulfilled_qty,ol.decision
             FROM order_lines ol JOIN guild_stock gs ON gs.id=ol.stock_id JOIN items i ON i.id=gs.item_id WHERE ol.order_id=? ORDER BY ol.id LIMIT 12");
@@ -174,7 +175,7 @@ final class IngameOrders {
             }
             // approval: 0 none, 1 waits for an officer, 2 waits and you may release it.
             if ($lines) $out[]=['id'=>(int)$o['id'],'status'=>(string)$o['status'],'created_at'=>(int)$o['created'],
-                'approval'=>(int)$o['needs_approval']===1?($canApprove?2:1):0,
+                'approval'=>(int)$o['needs_approval']===1?($canApprove?2:1):0,'urgent'=>(int)$o['priority']===1,
                 'requester'=>mb_substr((string)$o['requester'],0,60),'recipient'=>mb_substr((string)$o['recipient'],0,80),'lines'=>$lines];
         }
         return $out;

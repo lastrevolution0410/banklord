@@ -47,8 +47,9 @@ If no manager is online right now, an admin can create an invitation for you on 
 
 1. Open Banklord with `/banklord` or the minimap button.
 2. Search for the item, enter the quantity and put it in the **cart**.
-3. In the cart, click **“Order”**.
-4. Type `/reload` or log out. The Companion uploads the order; bank managers who are online get a notice right away.
+3. In a hurry, e.g. for the raid? Tick **“Urgent”** (or `/bl order urgent`).
+4. In the cart, click **“Order”**.
+5. Type `/reload` or log out. The Companion uploads the order; bank managers who are online get a notice right away.
 
 The stock shown in game is the state of the last guild bank scan. Items marked “reserved” have already been ordered by someone else.
 
@@ -110,6 +111,7 @@ All commands start with `/banklord`. The commands are German words; the table li
 | `merken <item ID> <quantity>` | Put an item in the cart |
 | `korb` | Show the cart |
 | `bestellen` | Order the cart |
+| `bestellen dringend` | Order the cart as urgent |
 | `leeren` | Empty the cart |
 | `senden <player>` | Hand your cart to a guildmate who uploads it for you (if you have no Companion) |
 | `eingang`, `ausgang`, `erneut` | View handed-over carts or send them again |
@@ -117,6 +119,7 @@ All commands start with `/banklord`. The commands are German words; the table li
 | `stornieren <no>` | Cancel your own open order |
 | `bestellungen` | Open orders (bank managers only) |
 | `einkauf` | Shopping list for Auctionator/TSM (bank managers only) |
+| `kasse` | Cash book: guild bank gold and latest entries |
 | `tooltip` | Guild bank count in tooltips on/off |
 | `feedback` (or `help`) | Help & Feedback: report a bug, suggest an idea, request a language |
 | `minimap` | Show or hide the minimap button |

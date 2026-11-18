@@ -14,13 +14,15 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 
 | Idea | What it is about |
 |---|---|
-| Cash book in game | Show the bank's gold and latest entries in the addon window too |
-| "Urgent" in game | Mark orders as urgent in the addon as well |
 | Finish macOS and Linux | Setup, Companion and updater are still beta there; tests on real devices are missing |
 
 ---
 
 ## Done
+
+### 1.7 – Cash book and "Urgent" in game (18 Nov 2026)
+- **Cash book in game:** the guild bank's gold and latest entries in the addon window (**Orders → Cash book** or `/bl kasse`).
+- **"Urgent" in game:** tick the box in the cart or use `/bl order urgent`. Bank managers see urgent orders with a red **!** at the top.
 
 ### 1.6 – Cash book, bank value and Discord (18 Nov 2026)
 We first compared what other guild bank addons offer (e.g. Guild Bank Ledger, Guild Bank Manager, TOGBankClassic, GuildVault) and took the best of it:

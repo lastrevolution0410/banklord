@@ -187,7 +187,7 @@ function A:ReconcileManage()
     C_Timer.After(8,function()
       for i,o in ipairs(new) do
         if i>3 then A:Message(A:Tr('… und %d weitere neue Bestellungen.'):format(#new-3));break end
-        A:Alert(A:Tr('Neue Bestellung #%d von %s: %s'):format(o.id,o.recipient~='' and o.recipient or o.requester,summary(o)))
+        A:Alert((o.urgent and A:Tr('Dringend: ') or '')..A:Tr('Neue Bestellung #%d von %s: %s'):format(o.id,o.recipient~='' and o.recipient or o.requester,summary(o)))
       end
     end)
   end
@@ -404,6 +404,12 @@ function A:ShowShoppingList()
   for _,r in ipairs(list) do lines[#lines+1]=A:Tr('%dx %s (vorhanden %d, Ziel %d)'):format(r.missing,cleanName(r.name),r.have or 0,r.target or 0) end
   local auct,tsm=self:ShoppingExport(list)
   local body=table.concat(lines,'\n')..'\n\n'..A:Tr('Auctionator (Einkaufen → Importieren):')..'\n'..auct..'\n\n'..A:Tr('TSM (Gruppe → Importieren):')..'\n'..tsm
+  self:ShowTextWindow(A:Tr('Banklord – Einkaufsliste (%d Gegenstände)'):format(#list),
+    A:Tr('Text markieren und mit Strg+C kopieren. Ziele legst du auf der Website unter „Nachkauf“ fest.'),body,true)
+end
+
+-- Small movable window with selectable text (shopping list, cash book).
+function A:ShowTextWindow(title,hint,body,select)
   if not listFrame then
     listFrame=CreateFrame('Frame','BanklordShoppingList',UIParent,BackdropTemplateMixin and 'BackdropTemplate' or nil)
     listFrame:SetSize(520,380);listFrame:SetPoint('CENTER');listFrame:SetFrameStrata('DIALOG')
@@ -423,9 +429,10 @@ function A:ShowShoppingList()
     local close=CreateFrame('Button',nil,listFrame,'UIPanelButtonTemplate')
     close:SetSize(110,24);close:SetPoint('BOTTOMRIGHT',-16,14);close:SetText(A:Tr('Schließen'));close:SetScript('OnClick',function() listFrame:Hide() end)
   end
-  listFrame.title:SetText(A:Tr('Banklord – Einkaufsliste (%d Gegenstände)'):format(#list))
-  listFrame.hint:SetText(A:Tr('Text markieren und mit Strg+C kopieren. Ziele legst du auf der Website unter „Nachkauf“ fest.'))
-  listFrame.edit:SetText(body);listFrame.edit:SetFocus();listFrame.edit:HighlightText()
+  listFrame.title:SetText(title)
+  listFrame.hint:SetText(hint or '')
+  listFrame.edit:SetText(body)
+  if select then listFrame.edit:SetFocus();listFrame.edit:HighlightText() else listFrame.edit:ClearFocus() end
   listFrame:Show()
 end
 
@@ -928,7 +935,7 @@ function A:RefreshManagePanel()
     local o=orders[i]
     r.order=o
     if o then
-      local who=o.recipient~='' and o.recipient or o.requester
+      local who=(o.urgent and '|cffff6060!|r ' or '')..(o.recipient~='' and o.recipient or o.requester)
       local status,_,action,possible=self:OrderRowState(o,stock)
       r.action=action
       if action and possible and (action=='withdraw' or action=='mail') then

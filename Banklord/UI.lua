@@ -684,7 +684,7 @@ end)
 panelSurface(cart,726,-78,262,344)
 text(cart,'GameFontNormal',740,-91,238,'Meine Bestellungen',COLORS.gold)
 local orderRows={}
-for i=1,8 do
+for i=1,7 do
   local r=CreateFrame('Button',nil,cart)
   r:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-114-(i-1)*31)
   r:SetSize(244,29)
@@ -704,6 +704,13 @@ local orderEmpty=text(cart,'GameFontHighlightSmall',741,-120,229,
   'Noch keine Bestellungen.\n\nWarenkorb füllen und unten auf „Bestellung absenden“ klicken. Der Companion überträgt sie nach /reload oder Logout.',COLORS.muted)
 local orderStamp=text(cart,'GameFontDisableSmall',741,-363,229,'',COLORS.muted)
 local submitButton=push(cart,'Bestellung absenden',740,-385,234,30,function()A:SubmitCartOrder()end)
+-- Urgent orders are marked for the bank managers (in game, on the website and in Discord).
+local urgentOption=CreateFrame('CheckButton','BanklordUrgentCheckbox',cart,'UICheckButtonTemplate')
+urgentOption:SetPoint('TOPLEFT',cart,'TOPLEFT',736,-332);urgentOption:SetSize(24,24)
+local urgentText=cart:CreateFontString(nil,'OVERLAY','GameFontHighlightSmall')
+urgentText:SetPoint('LEFT',urgentOption,'RIGHT',4,0);urgentText:SetText(A:Tr('Dringend (z. B. für den Raid)'))
+track(urgentText,'Dringend (z. B. für den Raid)')
+urgentOption:SetScript('OnClick',function(self) A.orderUrgent=self:GetChecked() and true or false end)
 local transfer=entry(cart,20,-438,488,4000)
 transfer:SetScript('OnEditFocusGained',function(self)self:HighlightText()end)
 push(cart,'Code erzeugen',519,-437,155,27,function()
@@ -816,8 +823,9 @@ ob.scan=push(bank,'Bank neu scannen',232,-414,200,30,function()
   if A.scanRun then A:AbortScan('Manuell abgebrochen') else A:StartScan('all') end
   A:RefreshUI()
 end)
-push(bank,'Einkaufsliste',442,-414,150,30,function() A:ShowShoppingList() end)
-ob.pager=text(bank,'GameFontNormalSmall',602,-422,182,'',COLORS.muted)
+push(bank,'Einkaufsliste',442,-414,112,30,function() A:ShowShoppingList() end)
+push(bank,'Kassenbuch',560,-414,112,30,function() A:ShowBankLog() end)
+ob.pager=text(bank,'GameFontNormalSmall',680,-422,106,'',COLORS.muted)
 push(bank,'Zurück',792,-414,90,30,function() ob.offset=math.max(0,ob.offset-ob.size);A:RefreshUI() end)
 push(bank,'Weiter',890,-414,90,30,function() ob.offset=ob.offset+ob.size;A:RefreshUI() end)
 function A:RefreshOrdersTab() if window:IsShown() and active=='bank' then self:RefreshUI() end end
@@ -1100,7 +1108,7 @@ function A:RefreshUI()
       if o then
         local who=(o.recipient~='' and o.recipient) or o.requester or '?'
         local status,tone,action,possible=self:OrderRowState(o,stock)
-        r.id:SetText('#'..tostring(o.id))
+        r.id:SetText((o.urgent and '|cffff6060!|r' or '')..'#'..tostring(o.id))
         fitText(r.who,who,140,30)
         fitText(r.items,self:OrderSummary(o),262,52)
         fitText(r.status,status,250,50)
