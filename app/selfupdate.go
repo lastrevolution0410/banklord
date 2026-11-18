@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -74,18 +75,15 @@ func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
 	if err != nil {
 		return "Updater-Update: " + err.Error()
 	}
-	old := dest + ".old"
-	_ = os.Remove(old)
-	if err = os.Rename(dest, old); err != nil {
-		return "Updater-Update: " + err.Error()
-	}
-	if err = os.Rename(tmp.Name(), dest); err != nil {
-		_ = os.Rename(old, dest)
+	old, err := replaceRunningFile(tmp.Name(), dest)
+	if err != nil {
 		return "Updater-Update: " + err.Error()
 	}
 	if err = exec.Command(dest, "--watch-updates").Start(); err != nil {
-		_ = os.Remove(dest)
-		_ = os.Rename(old, dest)
+		if old != "" {
+			_ = os.Remove(dest)
+			_ = os.Rename(old, dest)
+		}
 		return "Updater-Update: Neustart fehlgeschlagen: " + err.Error()
 	}
 	log.Println("Updater auf", own.Version, "aktualisiert; übergebe an neuen Prozess.")
@@ -96,7 +94,35 @@ func selfUpdateIfNewer(ctx context.Context, release releasePayload) string {
 func cleanupOldUpdater() {
 	// Lets the companion report the updater version in its heartbeat.
 	_ = os.WriteFile(filepath.Join(filepath.Dir(updaterPath()), "version.txt"), []byte(setupVersion), 0o644)
-	time.AfterFunc(30*time.Second, func() { _ = os.Remove(updaterPath() + ".old") })
+	time.AfterFunc(30*time.Second, func() { removeOldCopies(updaterPath()) })
+}
+
+// replaceRunningFile moves src over dest. Windows refuses to overwrite a
+// running .exe but allows renaming it, so the current file is first moved to
+// a unique "<dest>.old-<n>" name. Returns that name ("" if none was needed).
+func replaceRunningFile(src, dest string) (string, error) {
+	removeOldCopies(dest)
+	if err := os.Rename(src, dest); err == nil {
+		return "", nil
+	}
+	old := fmt.Sprintf("%s.old-%d", dest, time.Now().UnixNano())
+	if err := os.Rename(dest, old); err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	if err := os.Rename(src, dest); err != nil {
+		_ = os.Rename(old, dest)
+		return "", err
+	}
+	return old, nil
+}
+
+// removeOldCopies deletes leftovers from replaceRunningFile; files still in
+// use stay and are retried next time.
+func removeOldCopies(dest string) {
+	matches, _ := filepath.Glob(dest + ".old*")
+	for _, m := range matches {
+		_ = os.Remove(m)
+	}
 }
 
 // startBackgroundUpdater launches the installed updater right after setup.

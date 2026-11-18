@@ -33,8 +33,8 @@ func TestRecognizesKnownAndPrivateServer(t *testing.T) {
 		t.Fatalf("MoP nicht erkannt: %+v", got)
 	}
 	got, ok = candidateInstall(private)
-	if !ok || got.Supported {
-		t.Fatalf("Privatserver fehlerhaft erkannt: %+v", got)
+	if !ok || !got.Supported {
+		t.Fatalf("Privatserver nicht erkannt: %+v", got)
 	}
 	// Reject random AddOns folders without actual game binary + data.
 	dummy := filepath.Join(root, "fake", "Interface", "AddOns")
@@ -93,14 +93,6 @@ func TestAddonInstallAndUpgradeBackup(t *testing.T) {
 	}
 	if b, e := os.ReadFile(external); e != nil || string(b) != "keep" {
 		t.Fatal("WTF verändert")
-	}
-}
-func TestRejectUnsupportedClient(t *testing.T) {
-	root := t.TempDir()
-	retail := fakeGame(t, root, "_retail_")
-	archive, _ := bundled.ReadFile("assets/addon.zip")
-	if _, e := installAddon(retail, archive); e == nil {
-		t.Fatal("nicht unterstützten Client installiert")
 	}
 }
 func TestArchiveTraversalProtection(t *testing.T) {

@@ -59,7 +59,7 @@ func configureUpdaterAutostart(enabled bool) error {
 		if err = staged.Close(); err != nil {
 			return err
 		}
-		if err = os.Rename(temp, dest); err != nil {
+		if _, err = replaceRunningFile(temp, dest); err != nil {
 			return err
 		}
 	}

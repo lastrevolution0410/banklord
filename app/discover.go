@@ -55,10 +55,15 @@ func candidateInstall(path string) (Install, bool) {
 	if n := strings.ToLower(filepath.Base(path)); clients[n] != "" {
 		edition = clients[n]
 	}
-	supported := strings.EqualFold(filepath.Base(path), "_classic_")
-	reason := "Client erkannt; noch kein für diesen Client geprüfter Lua-Adapter vorhanden"
-	if supported {
-		reason = "MoP Classic-Zweig erkannt; Version 5.5.4 vor der Installation bestätigen"
+	// Every client is supported: the addon ships a multi-version TOC and the
+	// installer pins the exact interface number of the detected build.
+	supported := true
+	reason := "Gildenbank, Katalog und Bestellungen"
+	if strings.EqualFold(filepath.Base(path), "_classic_era_") {
+		reason = "Katalog und Bestellungen (Classic Era hat keine Gildenbank)"
+	}
+	if v := clientVersion(path); v != "" {
+		edition += " " + v
 	}
 	abs, _ := filepath.Abs(path)
 	return Install{Path: abs, Edition: edition, Supported: supported, Reason: reason}, true
@@ -131,7 +136,7 @@ func diagnoseChoice(input string) error {
 	if !hasData {
 		return fmt.Errorf("WoW-Programm erkannt, aber Data fehlt sowohl im Clientordner als auch im übergeordneten Spielordner. Bitte die tatsächliche Installation prüfen")
 	}
-	return fmt.Errorf("Clientordner nicht freigegeben; MoP Classic wird derzeit nur im Ordner _classic_ automatisch unterstützt")
+	return fmt.Errorf("Ordner nicht erkannt; bitte den konkreten Clientordner wie _classic_ oder _retail_ wählen")
 }
 
 func possibleAt(path string) []Install {
@@ -319,7 +324,63 @@ func resolveChoice(input string) (string, error) {
 		return "", fmt.Errorf("mehrere passende WoW-Versionen gefunden; konkreten Clientordner wählen")
 	}
 	if len(children) > 0 {
-		return "", fmt.Errorf("WoW erkannt, aber diese Version ist für die aktuelle Addon-Ausgabe nicht freigegeben. Bisher ist nur MoP Classic im _classic_-Clientordner unterstützt")
+		return "", fmt.Errorf("WoW erkannt, aber kein Clientordner gefunden; bitte den konkreten Ordner wie _classic_ oder _retail_ wählen")
 	}
 	return "", diagnoseChoice(path)
+}
+
+// clientVersion reads the game version ("5.5.4") of a client folder from the
+// shared .build.info file, or returns "".
+func clientVersion(clientPath string) string {
+	products := map[string][]string{"_retail_": {"wow"}, "_classic_": {"wow_classic"}, "_classic_era_": {"wow_classic_era"}, "_anniversary_": {"wow_anniversary", "wow_classic_anniversary"}, "_ptr_": {"wowt"}, "_xptr_": {"wowxptr"}, "_beta_": {"wow_beta"}}
+	want := products[strings.ToLower(filepath.Base(clientPath))]
+	for _, dir := range []string{filepath.Dir(clientPath), clientPath} {
+		data, err := os.ReadFile(filepath.Join(dir, ".build.info"))
+		if err != nil {
+			continue
+		}
+		lines := strings.Split(strings.ReplaceAll(string(data), "\r", ""), "\n")
+		if len(lines) < 2 {
+			continue
+		}
+		vi, pi := -1, -1
+		for i, h := range strings.Split(lines[0], "|") {
+			switch strings.ToLower(strings.SplitN(h, "!", 2)[0]) {
+			case "version":
+				vi = i
+			case "product":
+				pi = i
+			}
+		}
+		if vi < 0 {
+			continue
+		}
+		for _, line := range lines[1:] {
+			cols := strings.Split(line, "|")
+			if vi >= len(cols) {
+				continue
+			}
+			match := len(want) == 0 || pi < 0
+			for _, w := range want {
+				if pi < len(cols) && strings.EqualFold(cols[pi], w) {
+					match = true
+				}
+			}
+			if m := versionRE.FindString(cols[vi]); match && m != "" {
+				return m
+			}
+		}
+	}
+	return ""
+}
+
+var versionRE = regexp.MustCompile(`^\d+\.\d+\.\d+`)
+
+// interfaceNumber turns "5.5.4" into "50504" (the TOC "## Interface" value).
+func interfaceNumber(version string) string {
+	var a, b, c int
+	if _, err := fmt.Sscanf(version, "%d.%d.%d", &a, &b, &c); err != nil || b > 99 || c > 99 {
+		return ""
+	}
+	return fmt.Sprintf("%d", a*10000+b*100+c)
 }

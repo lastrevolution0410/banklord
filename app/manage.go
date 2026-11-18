@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const setupVersion = "1.0.1"
+const setupVersion = "1.0.2"
 const bundledCompanionVersion = "0.6.0"
 
 // ComponentStatus is a read-only inspection. Installation decisions are derived anew on POST.
@@ -150,6 +150,10 @@ func inspectAddon(client string, payload []byte) (ComponentStatus, error) {
 	mismatches := 0
 	for rel, expected := range files {
 		b, e := os.ReadFile(filepath.Join(dest, rel))
+		if rel == "Banklord.toc" {
+			// The installer pins the client's interface number; ignore that line.
+			b, expected = tocInterfaceRE.ReplaceAll(b, nil), tocInterfaceRE.ReplaceAll(expected, nil)
+		}
 		if e != nil || hashBytes(b) != hashBytes(expected) {
 			mismatches++
 		}

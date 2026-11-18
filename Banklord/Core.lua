@@ -1,8 +1,14 @@
+-- Retail moved some item functions into C_Item; provide the classic names.
+if C_Item then
+  if not GetItemInfo and C_Item.GetItemInfo then GetItemInfo = C_Item.GetItemInfo end
+  if not GetItemIcon and C_Item.GetItemIconByID then GetItemIcon = C_Item.GetItemIconByID end
+  if not GetItemStats and C_Item.GetItemStats then GetItemStats = C_Item.GetItemStats end
+end
 -- Banklord / MoP Classic 5.5.4 / Interface 50504
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.7.0"
+A.version = "0.7.1"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")

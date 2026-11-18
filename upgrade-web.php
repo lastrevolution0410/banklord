@@ -6,13 +6,13 @@ declare(strict_types=1);
  * requires an unmodified release archive and backs up SQL + files outside webroot.
  * This is NOT a remotely self-updating endpoint.
  */
-const BANKLORD_VERSION='1.0.0';
-const BANKLORD_PAYLOAD_SHA256 = '60c01d0a56b355406a2c6a4064c5cc61d90864212102c4e91f9f38f4f049b397';
+const BANKLORD_VERSION='1.0.2';
+const BANKLORD_PAYLOAD_SHA256 = '06aef431227874c83bff73d9f050f4e53a125d117892a69fcf1cfff06d99d995';
 const BANKLORD_FILE_DIGESTS = [
     'backend/bin/bootstrap.php' => '575d1bc301031fd0063bad52811058c0e5e190d2d0a8abd39fb667ab247446ff',
     'backend/public/app.css' => '783d2e673e641f6c38db833b401fd0d9707c6747fedd1be117ea63aecbc30959',
-    'backend/public/app.html' => '129717f32eed631e865da64ebe48e4623ff2410d0028248f868180758796503c',
-    'backend/public/app.js' => '7efa77fd0d649e9e95a0934e4e258a65439442c3924d904f484876c76a16f75d',
+    'backend/public/app.html' => '7fbc8c99aea069d1e8c2f36b044d8cb332a40e188e2992a2fc616e4c6b9452ce',
+    'backend/public/app.js' => '0fd1e2874302049d986aefacc64eda43f32f155229d16655c09334a55eb66cf3',
     'backend/public/import.css' => '102ab8535ade1eb3e2f2dff92c1a2b5288e011527b00094d08a5aafc2b35e83c',
     'backend/public/import.html' => 'b341552864389972fe22969101aae983ed5e92622c64eb4e730736e32e74fcdb',
     'backend/public/import.js' => 'ad7b389f19845a459403cf6ef170293fb39879f17fda6ab3c429c97249e0fc09',
@@ -52,7 +52,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/ScanStaging.php' => '1892303aa41183bc1f61aed56ad2ce0d5b8e845d0ebeda597d6c8f3786c8da63',
     'backend/src/StockReconciliation.php' => 'dee5a7dfa39525949104ea0be948071cb9e43c530c2560dd71066e7dfc37c5dc',
     'backend/src/UpstreamUpdater.php' => '7af1aa325687c972101781b7b1b83cd8545563bdec0a7c084266a6d6e37dae80',
-    'backend/src/Version.php' => '142651f53a91fb92e1cf338fd3564aab2b35297435efed936afc9ee239b93af4',
+    'backend/src/Version.php' => '6c959aa006e5c598e71896b1ccad88331b68f68802471f721a9f66ed6a031407',
     'backend/src/WebUpdater.php' => '60c07a88cffc83b1670a249d012a07f67db7841025c8a124d2811087d3e8632d',
     'backend/src/icon-filedata.tsv.gz' => '668d50315200dccb7e5728da372d90d136118ecb33474513792e81d5ab9c1832',
 ];

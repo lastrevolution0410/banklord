@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"archive/zip"
 	"bytes"
 	"errors"
@@ -93,6 +94,7 @@ func installAddon(clientPath string, archive []byte) (InstallOutcome, error) {
 	if e = unpackAddon(archive, stage); e != nil {
 		return InstallOutcome{}, e
 	}
+	pinInterface(filepath.Join(stage, "Banklord.toc"), interfaceNumber(clientVersion(clientPath)))
 	target := filepath.Join(addonRoot, addonDirectory)
 	result := InstallOutcome{AddonPath: target}
 	// Never follow a link from the target folder into another location.
@@ -120,3 +122,20 @@ func installAddon(clientPath string, archive []byte) (InstallOutcome, error) {
 	}
 	return result, nil
 }
+
+// pinInterface writes the detected client's interface number into the TOC so
+// the game never lists Banklord as "out of date". Unknown builds keep the
+// multi-version list shipped in the package.
+func pinInterface(toc, iface string) {
+	if iface == "" {
+		return
+	}
+	data, err := os.ReadFile(toc)
+	if err != nil {
+		return
+	}
+	out := tocInterfaceRE.ReplaceAll(data, []byte("## Interface: "+iface))
+	_ = os.WriteFile(toc, out, 0644)
+}
+
+var tocInterfaceRE = regexp.MustCompile(`(?m)^## Interface:[^\r\n]*`)

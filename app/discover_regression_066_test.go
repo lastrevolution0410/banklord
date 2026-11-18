@@ -101,10 +101,20 @@ func Test066RetailWithSharedDataNotInstallable(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, ok := candidateInstall(retail)
-	if !ok || got.Supported {
-		t.Fatalf("retail recognition/unsupported state: %+v %v", got, ok)
+	if !ok || !got.Supported {
+		t.Fatalf("retail must be supported: %+v %v", got, ok)
 	}
-	if _, err := installAddon(retail, bundleAddon(t)); err == nil {
-		t.Fatal("installed MoP addon into retail")
+	if err := os.WriteFile(filepath.Join(filepath.Dir(retail), ".build.info"), []byte("Branch!STRING:0|Version!STRING:0|Product!STRING:0\neu|11.2.7.64000|wow\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := installAddon(retail, bundleAddon(t)); err != nil {
+		t.Fatal(err)
+	}
+	toc, _ := os.ReadFile(filepath.Join(retail, "Interface", "AddOns", addonDirectory, "Banklord.toc"))
+	if !strings.Contains(string(toc), "## Interface: 110207") {
+		t.Fatalf("interface not pinned: %s", toc)
+	}
+	if st, err := inspectAddon(retail, bundleAddon(t)); err != nil || st.Modified {
+		t.Fatalf("pinned TOC counted as modified: %+v %v", st, err)
 	}
 }
