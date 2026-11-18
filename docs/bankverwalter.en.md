@@ -45,6 +45,10 @@ The window can be moved and remembers its position.
 
 Only mails Banklord prepared itself count as issued. If you change the subject, nothing is booked.
 
+**Bags full?** Banklord stops, tells you which order is only partly withdrawn, and the next “Withdraw” takes only the rest.
+
+**Reject:** In the Banklord window under **Orders**, “Reject” next to each order (with confirmation), or `/banklord ablehnen <no>`. Other managers see the order as rejected right away; the website and the member learn about it after your next `/reload`.
+
 ---
 
 ## Several bank managers

@@ -769,7 +769,7 @@ ob.state:SetJustifyH('RIGHT')
 text(bank,'GameFontHighlightSmall',22,-46,960,
   'So geht es:   1. Gildenbank öffnen → „Entnehmen“     2. Briefkasten öffnen → „Versenden“     3. /reload → die Website wird aktualisiert',COLORS.muted)
 ob.size=9
-local cols={{'Nr.',26,46},{'Empfänger',78,176},{'Gegenstände',262,330},{'Status',600,252}}
+local cols={{'Nr.',26,46},{'Empfänger',78,140},{'Gegenstände',226,260},{'Status',496,236}}
 for _,c in ipairs(cols) do text(bank,'GameFontNormalSmall',c[2],-74,c[3],c[1],COLORS.gold) end
 backdrop(bank,22,-90,958,1,.59,.47,.23,.8)
 ob.tone={ok=COLORS.green,warn=COLORS.warn,busy={.62,.6,.56},info=COLORS.bright}
@@ -779,16 +779,17 @@ for i=1,ob.size do
   r:SetSize(958,32)
   r.bg=backdrop(r,0,0,958,32,i%2==0 and .092 or .12,i%2==0 and .087 or .108,i%2==0 and .08 or .095,.85)
   r.id=rowLabel(r,'GameFontHighlightSmall',8,906,32,'LEFT',COLORS.gold)
-  r.who=rowLabel(r,'GameFontHighlightSmall',56,722,32,'LEFT',COLORS.bright)
-  r.items=rowLabel(r,'GameFontHighlightSmall',240,386,32,'LEFT',COLORS.bright)
-  r.status=rowLabel(r,'GameFontHighlightSmall',578,122,32,'LEFT',COLORS.bright)
-  r.go=push(r,'Entnehmen',842,-3,112,26,function(self)
+  r.who=rowLabel(r,'GameFontHighlightSmall',56,758,32,'LEFT',COLORS.bright)
+  r.items=rowLabel(r,'GameFontHighlightSmall',204,490,32,'LEFT',COLORS.bright)
+  r.status=rowLabel(r,'GameFontHighlightSmall',474,228,32,'LEFT',COLORS.bright)
+  r.go=push(r,'Entnehmen',736,-3,108,26,function(self)
     local row=self:GetParent()
     if not row.order then return end
     A.manageMode=row.action=='mail' and 'mail' or 'bank'
     A:ManageOne(row.order)
     A:RefreshUI()
   end)
+  r.no=push(r,'Ablehnen',850,-3,104,26,function(self) A:RejectOrder(self:GetParent().order) end)
   ob.rows[i]=r
 end
 ob.empty=text(bank,'GameFontHighlight',26,-110,940,'',COLORS.muted)
@@ -1080,15 +1081,16 @@ function A:RefreshUI()
         local who=(o.recipient~='' and o.recipient) or o.requester or '?'
         local status,tone,action,possible=self:OrderRowState(o,stock)
         r.id:SetText('#'..tostring(o.id))
-        fitText(r.who,who,176,40)
-        fitText(r.items,self:OrderSummary(o),328,70)
-        fitText(r.status,status,254,50)
+        fitText(r.who,who,140,30)
+        fitText(r.items,self:OrderSummary(o),262,52)
+        fitText(r.status,status,250,50)
         r.status:SetTextColor(rgb(ob.tone[tone] or COLORS.bright))
         r.action=action
         if action then
           fitText(r.go.caption,action=='mail' and A:Tr('Versenden') or A:Tr('Entnehmen'),93)
           r.go:SetEnabled(possible==true);r.go:Show()
         else r.go:Hide() end
+        r.no:SetEnabled(not self:OrderBlocked(o.id));r.no:Show()
         r:Show()
       else r:Hide() end
     end

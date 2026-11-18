@@ -134,8 +134,8 @@ local EN={
   -- Core / slash commands
   ['v%s geladen. /banklord zeigt die Befehle.']='v%s loaded. /banklord lists the commands.',
   ['Kein Scan aktiv.']='No scan running.',
-  ['Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, feedback, debug, minimap, lang de|en|auto']=
-    'Commands: /banklord open, scan, scanfach (current tab), liste (list), suche <name> (search), merken <item ID> <qty> (add to cart), korb (cart), code, leeren (empty cart), senden <player> (send), eingang (inbox), ausgang (outbox), erneut (retry), status, bestellungen (orders, bank managers), feedback (help & feedback), debug, minimap, lang de|en|auto (language)',
+  ['Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, feedback, debug, minimap, lang de|en|auto']=
+    'Commands: /banklord open, scan, scanfach (current tab), liste (list), suche <name> (search), merken <item ID> <qty> (add to cart), korb (cart), code, leeren (empty cart), senden <player> (send), eingang (inbox), ausgang (outbox), erneut (retry), status, bestellungen (orders, bank managers), ablehnen <no> (reject an order), feedback (help & feedback), debug, minimap, lang de|en|auto (language)',
   ['nicht verfügbar']='not available',
   ['API-Fehler']='API error',
   ['unbekannt']='unknown',
@@ -292,6 +292,13 @@ local EN={
   ['Bestellung #%d konnte nicht gebucht werden: %s']='Order #%d could not be booked: %s',
   ['… und %d weitere neue Bestellungen.']='… and %d more new orders.',
   ['Offene Bestellungen']='Open orders',
+  ['abgelehnt']='rejected',
+  ['Ablehnen']='Reject',
+  ['Bestellung #%d von %s ablehnen?\n\nDas Mitglied sieht „Abgelehnt“ nach deinem nächsten /reload.']='Reject order #%d from %s?\n\nThe member sees “Rejected” after your next /reload.',
+  ['Bestellung #%d abgelehnt. Die Website erfährt es beim nächsten /reload.']='Order #%d rejected. The website learns about it with your next /reload.',
+  ['Bitte die entnommenen Gegenstände zurück in die Gildenbank legen.']='Please put the withdrawn items back into the guild bank.',
+  ['Taschen voll: Bestellung #%d ist erst teilweise entnommen. Platz schaffen und erneut „Entnehmen“ klicken – Banklord nimmt dann nur den Rest.']='Bags full: order #%d is only partly withdrawn. Make room and click “Withdraw” again – Banklord then takes only the rest.',
+  ['Keine offene Bestellung #%d.']='No open order #%d.',
   ['Bereit zum Versenden']='Ready to send',
   ['Gegenstände fehlen in den Taschen']='Items missing from your bags',
   ['Entnommen – jetzt zum Briefkasten']='Withdrawn – now go to a mailbox',

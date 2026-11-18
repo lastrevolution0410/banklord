@@ -161,6 +161,20 @@ do
   assert(A.minimapFlash==false and A:UpdateMinimapBadge()==1,'opening Banklord stops blinking, count stays')
   A:ShowManagePanel('bank')
   assert(A.manageMode=='bank','panel mode '..tostring(A.manageMode))
+  -- Full bags: stop cleanly, remember progress, resume takes only the rest.
+  do
+    local oldSlots=C_Container.GetContainerNumSlots
+    C_Container.GetContainerNumSlots=function() return 0 end
+    A.db.manageMine[7]={ts=time(),est=true}
+    A:StartWithdraw({Banklord_ServerState.manage[1]})
+    assert(A.withdraw==nil and lastChat():find('Taschen voll',1,true),'full bags stop with a clear message: '..lastChat())
+    assert(not A.db.manageTaken[7],'order not marked as taken when nothing fit')
+    C_Container.GetContainerNumSlots=oldSlots
+    A.db.manageProgress={[7]={[2589]=3}}
+    local stockNow=A._bankStock()
+    assert(A._shortfall({id=7,lines={{itemId=2589,qty=5}}},{[2589]=2})==nil,'shortfall counts what was already withdrawn')
+    A.db.manageProgress={};A.db.manageMine[7]=nil;calls={}
+  end
   assert(A._shortfall(Banklord_ServerState.manage[1],A._bankStock())==nil,'20 in the bank cover 5')
   assert(A._shortfall({lines={{itemId=2589,name='Leinenstoff',qty=25}}},A._bankStock()):find('5x Leinenstoff',1,true),'shortfall names what is missing')
   local st=A._bankStock()
@@ -190,6 +204,21 @@ do
   assert(A:UpdateMinimapBadge()==1 and A.minimapFlash==true,'live order counts on the badge and blinks')
   A.liveNewOrders=nil;A:UpdateMinimapBadge(false)
   local okc,errc=pcall(SlashCmdList.BANKLORD,'bestellungen');assert(okc,errc)
+  -- Reject in game: queued for the website, announced to other managers, hidden from the lists.
+  Banklord_ServerState.manage={{id=9,status='submitted',createdAt=time(),requester='Aria',recipient='Borin-Everlook',lines={{itemId=2589,name='Leinenstoff',qty=1}}}}
+  local sentMsgs={};local oldSend=C_ChatInfo;C_ChatInfo={SendAddonMessage=function(_,m) sentMsgs[#sentMsgs+1]=m end};local oldIG=IsInGuild;IsInGuild=function() return true end
+  local oldAfter2=C_Timer.After;C_Timer.After=function(_,f) f() end
+  A.db.manageMine[9]={ts=time(),est=true}
+  StaticPopupDialogs=nil
+  A:RejectOrder(Banklord_ServerState.manage[1])
+  local queued=false;for _,r in ipairs(A.db.manageOutbox) do if r.order==9 and r.action=='reject' then queued=true end end
+  assert(queued,'reject queued for the website')
+  local rsent=false;for _,m in ipairs(sentMsgs) do if m=='R|9' then rsent=true end end
+  assert(rsent,'other managers are told: '..table.concat(sentMsgs,' '))
+  assert(#A:OpenManageOrders()==0,'rejected order leaves the list')
+  A:ReceiveManageMessage('BLNEW1','R|12','GUILD','Kaelis')
+  assert(A:OrderBlocked(12)=='abgelehnt','order rejected by another manager is blocked')
+  C_ChatInfo=oldSend;IsInGuild=oldIG;C_Timer.After=oldAfter2;A.db.manageOutbox={}
   C_Timer.After=oldAfter;A.IsGuildBankOpen=oldOpen;C_Container=nil;DEFAULT_CHAT_FRAME.AddMessage=oldAdd
   Banklord_ServerState.manage=nil
 end

@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.10.3"
+A.version = "0.10.4"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -222,6 +222,11 @@ SlashCmdList.BANKLORD = function(text)
     A:Status()
   elseif cmd == "debug" then
     A:Debug()
+  elseif cmd:match("^ablehnen%s+%d+$") or cmd:match("^reject%s+%d+$") then
+    local id = tonumber(cmd:match("(%d+)$"))
+    local found
+    for _, o in ipairs(A:IsBankManager() and A:OpenManageOrders() or {}) do if o.id == id then found = o end end
+    if found then A:RejectOrder(found) else A:Message(A:Tr("Keine offene Bestellung #%d."):format(id)) end
   elseif cmd == "orders" or cmd == "bestellungen" then
     if A:IsBankManager() then A:ShowManagePanel("list") else A:Message(A:Tr("Nur für Bankverwalter.")) end
   elseif cmd == "liste" or cmd:match("^suche%s*") then
@@ -257,6 +262,6 @@ SlashCmdList.BANKLORD = function(text)
   elseif cmd == "open" or cmd == "" then
     A:ToggleUI()
   else
-    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, feedback, debug, minimap, lang de|en|auto"))
+    A:Message(A:Tr("Befehle: /banklord open, scan, scanfach, liste, suche <Name>, merken <Item-ID> <Menge>, korb, code, leeren, senden <Spieler>, eingang, ausgang, erneut, status, bestellungen, ablehnen <Nr>, feedback, debug, minimap, lang de|en|auto"))
   end
 end

@@ -157,7 +157,7 @@ end
 
 function A:ReceiveManageMessage(prefix,payload,channel,sender)
   if prefix~=PREFIX or channel~='GUILD' or type(payload)~='string' or #payload>250 then return end
-  if payload:match('^[CDXQ]') then return self:ReceiveCoordination(payload,sender) end
+  if payload:match('^[CDXQR]') then return self:ReceiveCoordination(payload,sender) end
   if not self:IsBankManager() then return end
   local who,lines,pieces=payload:match('^N|([^|]+)|(%d+)|(%d+)$')
   if not who then return end
@@ -200,6 +200,7 @@ end
 
 -- Why this order may not be handled here (nil = free or our own reservation).
 function A:OrderBlocked(id)
+  if store('manageRejected')[id] then return A:Tr('abgelehnt') end
   if store('manageSent')[id] then return A:Tr('bereits versendet') end
   if store('manageMine')[id] then return nil end
   local l=store('manageLocks')[id]
@@ -240,6 +241,7 @@ function A:ReleaseOrders(ids)
 end
 
 function A:MarkOrderSent(id)
+  store('manageProgress')[id]=nil
   store('manageSent')[id]=now()
   store('manageMine')[id]=nil
   store('manageLocks')[id]=nil
@@ -261,7 +263,7 @@ end
 function A:ReceiveCoordination(payload,sender)
   local from=short(sender)
   if from=='' or lname(from)==lname(meName()) then return end
-  local kind,rest=payload:match('^([CDXQ])|?(.*)$')
+  local kind,rest=payload:match('^([CDXQR])|?(.*)$')
   if kind=='C' then
     local ts,est,ids=rest:match('^(%d+)|([01])|([%d,]+)$')
     ts=tonumber(ts);if not ts then return end
@@ -298,6 +300,10 @@ function A:ReceiveCoordination(payload,sender)
       end
     end
     self:RefreshManagePanel()
+  elseif kind=='R' then
+    -- Another manager rejected these orders: nobody may withdraw or send them.
+    for _,id in ipairs(idList(rest)) do store('manageRejected')[id]=now() end
+    self:RefreshManagePanel()
   elseif kind=='X' then
     local locks=store('manageLocks')
     for _,id in ipairs(idList(rest)) do if locks[id] and lname(locks[id].by)==lname(from) then locks[id]=nil end end
@@ -327,6 +333,7 @@ end
 function A:InitCoordination()
   local t=now()
   for id,v in pairs(store('manageSent')) do if t-v>SENT_TTL then store('manageSent')[id]=nil end end
+  for id,v in pairs(store('manageRejected')) do if t-v>SENT_TTL then store('manageRejected')[id]=nil end end
   for id,l in pairs(store('manageLocks')) do if t-(l.seen or 0)>CLAIM_TTL then store('manageLocks')[id]=nil end end
   for _,m in pairs(store('manageMine')) do if t-m.ts>CLAIM_TTL then m.est=false end end
   if C_Timer then C_Timer.After(6,function() guildSend('Q');A:AnnounceCoordination() end) end
@@ -369,8 +376,9 @@ end
 -- nil when the bank holds everything for the order, else what is missing.
 -- With consume=true the pieces are taken from stock (for "withdraw all").
 local function shortfall(o,stock,consume)
-  local need={}
+  local need,done={},store('manageProgress')[o.id] or {}
   for _,l in ipairs(o.lines or {}) do need[l.itemId]=(need[l.itemId] or 0)+(l.qty or 0) end
+  for id,n in pairs(need) do need[id]=math.max(0,n-(done[id] or 0)) end
   local miss={}
   for _,l in ipairs(o.lines or {}) do
     local n=need[l.itemId]
@@ -378,7 +386,7 @@ local function shortfall(o,stock,consume)
     need[l.itemId]=nil
   end
   if #miss>0 then return A:Tr('fehlt: %s'):format(table.concat(miss,', ')) end
-  if consume then for _,l in ipairs(o.lines or {}) do stock[l.itemId]=(stock[l.itemId] or 0)-(l.qty or 0) end end
+  if consume then for _,l in ipairs(o.lines or {}) do stock[l.itemId]=(stock[l.itemId] or 0)-math.max(0,(l.qty or 0)-(done[l.itemId] or 0)) end end
 end
 A._bankStock,A._shortfall=bankStock,shortfall
 
@@ -418,7 +426,14 @@ function A:StartWithdraw(orders)
   if not self:IsGuildBankOpen() then return self:Message(A:Tr('Entnahme abgebrochen: Gildenbank geschlossen.')) end
   local queue={}
   for _,o in ipairs(orders) do
-    for _,l in ipairs(o.lines or {}) do queue[#queue+1]={item=l.itemId,name=l.name,qty=l.qty,order=o.id} end
+    -- Only what is still missing: a stop (e.g. full bags) can be resumed without taking twice.
+    local credit={}
+    for id,n in pairs(store('manageProgress')[o.id] or {}) do credit[id]=n end
+    for _,l in ipairs(o.lines or {}) do
+      local use=math.min(credit[l.itemId] or 0,l.qty or 0)
+      credit[l.itemId]=(credit[l.itemId] or 0)-use
+      queue[#queue+1]={item=l.itemId,name=l.name,qty=(l.qty or 0)-use,order=o.id}
+    end
   end
   self.withdraw={queue=queue,i=1,orders=orders,missing={}}
   self:WithdrawStep()
@@ -450,16 +465,66 @@ function A:WithdrawStep()
     return C_Timer.After(.6,function() A:WithdrawStep() end)
   end
   local take=math.min(count,job.qty)
+  local bag,bslot=emptyBagSlot()
+  if not bag then return self:StopWithdrawBagsFull(job) end
   if take==count then
     AutoStoreGuildBankItem(tab,slot)
   else
-    local bag,bslot=emptyBagSlot()
-    if not bag then self.withdraw=nil;return self:Message(A:Tr('Taschen voll. Entnahme gestoppt.')) end
     SplitGuildBankItem(tab,slot,take)
     pickupBag(bag,bslot)
   end
+  local progress=store('manageProgress')
+  progress[job.order]=progress[job.order] or {}
+  progress[job.order][job.item]=(progress[job.order][job.item] or 0)+take
   job.qty=job.qty-take
   C_Timer.After(.8,function() A:WithdrawStep() end)
+end
+
+-- Rejecting in game: confirm, reserve like any other action (so two managers
+-- never handle the same order), queue the rejection for the website and tell
+-- the other managers ("R", plus "D" for older addon versions).
+function A:RejectOrder(o)
+  if not o then return end
+  local why=self:OrderBlocked(o.id)
+  if why then return self:Message(A:Tr('Bestellung #%d: %s.'):format(o.id,why)) end
+  local who=(o.recipient~='' and o.recipient) or o.requester or '?'
+  if StaticPopupDialogs and StaticPopup_Show then
+    StaticPopupDialogs.BANKLORD_REJECT={button1=YES or 'Ja',button2=NO or 'Nein',timeout=0,whileDead=true,hideOnEscape=true,preferredIndex=3,
+      text=A:Tr('Bestellung #%d von %s ablehnen?\n\nDas Mitglied sieht „Abgelehnt“ nach deinem nächsten /reload.'):format(o.id,who):gsub('%%','%%%%'),
+      OnAccept=function() A:ConfirmReject(o) end}
+    StaticPopup_Show('BANKLORD_REJECT')
+  else self:ConfirmReject(o) end
+end
+function A:ConfirmReject(o)
+  self:ClaimOrders({o},function(won)
+    if not won[1] then return end
+    local id=o.id
+    A:QueueManageAction(id,'reject')
+    local t=now()
+    store('manageRejected')[id]=t;store('manageSent')[id]=t
+    store('manageMine')[id]=nil;store('manageLocks')[id]=nil;store('manageProgress')[id]=nil
+    local had=store('manageTaken')[id];store('manageTaken')[id]=nil
+    sendIds('R|',{id});sendIds('D|',{id})
+    A:Message(A:Tr('Bestellung #%d abgelehnt. Die Website erfährt es beim nächsten /reload.'):format(id))
+    if had then A:Message(A:Tr('Bitte die entnommenen Gegenstände zurück in die Gildenbank legen.')) end
+    A:RefreshManagePanel()
+  end)
+end
+
+-- Bags full: keep what was taken (and the reservation of that order), release
+-- the orders not started yet, and say exactly how to continue.
+function A:StopWithdrawBagsFull(job)
+  local w=self.withdraw
+  self.withdraw=nil
+  local release={}
+  for _,o in ipairs(w and w.orders or {}) do
+    local started=store('manageProgress')[o.id]
+    if o.id~=job.order and not started then release[#release+1]=o.id end
+  end
+  if #release>0 then self:ReleaseOrders(release) end
+  self:Message(A:Tr('Taschen voll: Bestellung #%d ist erst teilweise entnommen. Platz schaffen und erneut „Entnehmen“ klicken – Banklord nimmt dann nur den Rest.'):format(job.order))
+  if PlaySound then pcall(PlaySound,(SOUNDKIT and SOUNDKIT.IG_QUEST_FAILED) or 847) end
+  self:RefreshManagePanel()
 end
 
 -- Mail -------------------------------------------------------------------

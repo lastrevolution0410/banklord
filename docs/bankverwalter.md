@@ -45,6 +45,10 @@ Das Fenster lässt sich verschieben und merkt sich seine Position.
 
 Nur Briefe, die Banklord selbst vorbereitet hat, zählen als Ausgabe. Änderst du den Betreff, wird nichts gebucht.
 
+**Taschen voll?** Banklord stoppt, sagt welche Bestellung erst teilweise entnommen ist, und nimmt beim nächsten „Entnehmen“ nur noch den Rest.
+
+**Ablehnen:** Im Banklord-Fenster unter **Aufträge** neben jeder Bestellung „Ablehnen“ (mit Rückfrage) oder `/banklord ablehnen <Nr>`. Andere Verwalter sehen die Bestellung sofort als abgelehnt; die Website und das Mitglied erfahren es nach deinem nächsten `/reload`.
+
 ---
 
 ## Mehrere Bankverwalter
