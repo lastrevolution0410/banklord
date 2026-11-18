@@ -33,7 +33,7 @@ For ordering in game with automatic transfer: yes. Without the Companion you can
 
 ### Do I have to update anything before playing?
 
-No. The Updater keeps addon and Companion up to date automatically in the background – when Windows starts, continuously for new releases, and right after WoW closes. Just start WoW as usual through Battle.net. The former “Banklord – sicher starten” shortcut is therefore gone and is removed with the update.
+No. The Updater keeps addon and Companion up to date automatically in the background – when Windows starts, continuously for new releases, and right after WoW closes. Just start WoW as usual through Battle.net.
 
 ### Why do I have to `/reload` so often?
 

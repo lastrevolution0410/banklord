@@ -6,6 +6,7 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 
 ## Inhalt
 
+1. [Kurz: Dein Alltag in 3 Schritten](#kurz-dein-alltag-in-3-schritten)
 1. [Neue Bestellungen bemerken](#neue-bestellungen-bemerken)
 2. [An der Gildenbank: entnehmen](#an-der-gildenbank-entnehmen)
 3. [Am Briefkasten: versenden](#am-briefkasten-versenden)
@@ -16,6 +17,30 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 8. [Zusammen mit anderen Addons](#zusammen-mit-anderen-addons)
 
 ---
+
+## Kurz: Dein Alltag in 3 Schritten
+
+Mehr brauchst du im Alltag nicht. Alles andere macht Banklord.
+
+### 1. An der Gildenbank: „Alle entnehmen“
+
+Gildenbank öffnen. Neben dem Fenster erscheint Banklord mit allen offenen Bestellungen. **„Alle entnehmen“** klicken – Banklord legt genau die bestellten Mengen in deine Taschen. Dringende Bestellungen stehen mit rotem **!** ganz oben.
+
+![Banklord neben der Gildenbank mit „Alle entnehmen“](assets/skizze-bank.webp)
+
+### 2. Am Briefkasten: „Alle versenden“
+
+Briefkasten öffnen, **„Alle versenden“** klicken. Banklord füllt Empfänger, Betreff und Anhänge aus, du klickst bei jedem Brief nur noch **„Senden“**.
+
+![Banklord am Briefkasten mit „Alle versenden“](assets/skizze-mail.webp)
+
+### 3. Briefkasten schließen: „Jetzt übertragen“
+
+Beim Schließen fragt Banklord, ob es die verschickten Bestellungen an die Website übertragen soll. **„Jetzt übertragen“** klicken – fertig. Die Mitglieder sehen sofort „verschickt“.
+
+![Fenster im Spiel: „2 Bestellung(en) verschickt … Jetzt übertragen“](assets/skizze-popup-manager.webp)
+
+> **Neue Mitglieder:** Wenn du online bist, bestätigt dein Addon neue Mitglieder von selbst. Danach fragt ein Fenster, ob du die Bestätigung übertragen willst – einfach **„Jetzt übertragen“** klicken (außerhalb eines Kampfes).
 
 ## Neue Bestellungen bemerken
 
@@ -42,7 +67,7 @@ Das Fenster lässt sich verschieben und merkt sich seine Position.
 2. **„Versenden“** ist nur aktiv, wenn du alle Gegenstände der Bestellung in den Taschen hast.
 3. Banklord füllt **Empfänger**, **Betreff** (`Banklord #<Nummer>`) und die **Anhänge** aus. Du klickst nur noch auf **„Senden“**.
 4. Mit **„Alle versenden“** wird nach jedem Brief automatisch der nächste vorbereitet.
-5. Nach dem Senden gilt die Bestellung als ausgegeben. Die Website wird beim nächsten `/reload` aktualisiert; das Mitglied wird benachrichtigt.
+5. Nach dem Senden gilt die Bestellung als ausgegeben; das Mitglied wird benachrichtigt. Beim Schließen des Briefkastens bietet Banklord **„Jetzt übertragen“** an, dann ist auch die Website sofort aktuell.
 
 Nur Briefe, die Banklord selbst vorbereitet hat, zählen als Ausgabe. Änderst du den Betreff, wird nichts gebucht.
 
@@ -55,6 +80,8 @@ Nur Briefe, die Banklord selbst vorbereitet hat, zählen als Ausgabe. Änderst d
 **Wochenlimit:** Bestellungen über dem Limit zeigen „wartet auf einen Offizier“. Offiziere und Administratoren sehen stattdessen „Freigeben“ (im Spiel oder auf der Website unter **Aufträge**). Die Regeln stellt ein Administrator auf der Website unter **Mitglieder → Bestellregeln** ein: Wochenlimits, automatisches Stornieren alter Bestellungen und Nur-ansehen-Tabs.
 
 **Einkaufsliste:** Unter **Aufträge → Einkaufsliste** (oder `/banklord einkauf`) steht, was unter den Mindestbestand gefallen ist – zum Kopieren für Auctionator und TSM. Mindest- und Zielbestand legst du auf der Website unter **Nachkauf** fest; dort gibt es dieselben Listen zum Kopieren.
+
+![Nachkauf auf der Website](assets/website-nachkauf.webp)
 
 **Storniert ein Mitglied** seine Bestellung im Spiel, ist sie bei dir sofort gesperrt.
 
@@ -83,12 +110,20 @@ Du musst nichts tun. Wenn du online bist und ein Mitglied mit frisch installiert
 
 1. Dein Addon prüft den Namen gegen die **echte Gildenliste** (der Absender einer Addon-Nachricht wird von Blizzards Server gesetzt und kann nicht gefälscht werden).
 2. Es antwortet dem Mitglied mit der Website-Adresse deiner Gilde und merkt sich die Bestätigung.
-3. Nach deinem nächsten `/reload` lädt dein Companion die Bestätigung hoch. Die Website nimmt sie nur von Bankverwaltern, Offizieren und Admins an.
+3. Es erscheint ein Fenster **„… wurde für Banklord bestätigt. Jetzt an die Website übertragen?“** – **„Jetzt übertragen“** klicken (oder später `/reload`). Dein Companion lädt die Bestätigung hoch. Die Website nimmt sie nur von Bankverwaltern, Offizieren und Admins an.
 4. Das Mitglied klickt im Companion auf „Verbinden“ und ist freigeschaltet.
 
 Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltung-im-spiel).
 
 ## Auf der Website
+
+Unter **Aufträge** siehst du alle Bestellungen mit Status, dringende zuerst.
+
+![Aufträge auf der Website](assets/website-auftraege.webp)
+
+Unter **Mitglieder** lädst du neue Mitglieder ein und vergibst Rollen.
+
+![Mitglieder und Rollen auf der Website](assets/website-mitglieder.webp)
 
 | Bereich | Wofür |
 |---|---|
@@ -105,6 +140,8 @@ Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltun
 - **Goldstand und Bankwert:** Der Goldstand der Gildenbank wird beim Öffnen mitgenommen. Hast du **TSM** oder **Auctionator** installiert, nimmt Banklord den Marktpreis jedes Gegenstands mit. Die Website zeigt dann den geschätzten Wert der ganzen Bank und pro Gegenstand.
 - **Discord** (Website → System, nur Administratoren): Webhook-URL eines Kanals einfügen und wählen, was gemeldet wird – neue Bestellungen, Freigabe nötig, verschickt, unter Mindestbestand. Mit „Testnachricht“ prüfen.
 - **Dringende Bestellungen** sind in Aufträgen mit **„Dringend“** markiert, im Spiel mit einem roten **!** vor der Nummer und stehen oben.
+
+![Kassenbuch auf der Website mit Goldstand, Bankwert und Beiträgen pro Spieler](assets/website-kassenbuch.webp)
 
 ## Zusammen mit anderen Addons
 

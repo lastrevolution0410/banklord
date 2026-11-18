@@ -15,26 +15,61 @@
 
 ## Einmal einrichten
 
-### 1. Installieren
+Dauert etwa 5 Minuten. Du brauchst nur deinen Windows-PC und WoW.
 
-1. Öffne die Banklord-Website deiner Gilde und klicke unten auf **„Windows-Setup herunterladen“**.
-2. Starte die Datei. Windows warnt beim ersten Mal vor einer unbekannten App: **„Weitere Informationen“ → „Trotzdem ausführen“** ([warum?](installation.md#windows-warnt-vor-einer-unbekannten-app)).
-3. Im Setup sind alle gefundenen WoW-Versionen schon angehakt. Klicke **„Installieren / Aktualisieren“**.
-4. Danach öffnet sich der Companion im Browser. Das Fenster kannst du offen lassen oder schließen – der Companion läuft weiter.
+### Schritt 1: Setup herunterladen
 
-### 2. Freischalten – automatisch im Spiel
+Öffne die Banklord-Website deiner Gilde. Gleich oben steht **„Neu hier? In 3 Schritten startklar“**. Klicke auf den großen Knopf **„Windows-Setup herunterladen“**.
 
-1. Starte WoW und logge dich mit einem Charakter deiner Gilde ein.
-2. Gib einmal `/reload` ein. Ab jetzt meldet sich dein Addon bei den Bankverwaltern deiner Gilde.
-3. Sobald ein **Bankverwalter, Offizier oder Admin online** ist, prüft sein Addon, dass du wirklich in der Gilde bist, und bestätigt dich.
-4. Der Companion öffnet sich mit **„Freischaltung im Spiel“**. Prüfe, dass die angezeigte Website-Adresse die deiner Gilde ist, und klicke **„Verbinden“**.
-5. Ist das dein erster Zugang, öffnet sich die Website: Lege **E-Mail, Anzeigename und ein Passwort** (mindestens 14 Zeichen) fest. Der Link gilt 7 Tage und nur einmal.
+![Startkasten auf der Website mit dem großen Download-Knopf](assets/website-start.webp)
 
-> **Erscheint „noch nicht bestätigt“?** Der Verwalter muss einmal `/reload` machen, damit seine Bestätigung zur Website gelangt. Dein Companion versucht es von selbst weiter.
+### Schritt 2: Setup starten
+
+Öffne die heruntergeladene Datei (meist unten im Browser oder im Ordner **Downloads**).
+
+Windows warnt beim ersten Mal, weil Banklord ein kleines Fanprojekt ohne teures Zertifikat ist ([warum?](installation.md#windows-warnt-vor-einer-unbekannten-app)). Klicke **① „Weitere Informationen“** und dann **② „Trotzdem ausführen“**.
+
+![Windows-Warnung: erst „Weitere Informationen“, dann „Trotzdem ausführen“](assets/skizze-smartscreen.webp)
+
+### Schritt 3: Installieren klicken
+
+Das Setup findet WoW von selbst, alles ist schon angehakt. **WoW muss dabei geschlossen sein.** Klicke **„Installieren / Aktualisieren“** – fertig.
+
+![Setup mit gefundenen WoW-Versionen und dem Knopf „Installieren / Aktualisieren“](assets/setup-installieren.webp)
+
+### Schritt 4: WoW starten
+
+Starte WoW wie immer und logge dich mit einem Charakter deiner Gilde ein. **Mehr musst du nicht tun.** Im Chat steht: *„Freischaltung angefragt … du musst nichts tun.“*
+
+### Schritt 5: „Jetzt übertragen“ klicken
+
+Sobald ein Bankverwalter, Offizier oder Admin online ist, bestätigt sein Addon dich von selbst. Bei dir erscheint dieses Fenster. Klicke **„Jetzt übertragen“**.
+
+![Fenster im Spiel: „Du wurdest bestätigt!“ mit dem Knopf „Jetzt übertragen“](assets/skizze-popup-member.webp)
+
+### Schritt 6: „Verbinden“ klicken
+
+Auf dem PC öffnet sich der **Banklord Companion**. Steht dort die Website deiner Gilde? Dann klicke **„Verbinden“**.
+
+![Companion: „Freischaltung im Spiel“ mit dem Knopf „Verbinden“](assets/companion-freischalten.webp)
+
+Beim ersten Mal öffnet sich danach die Website: E-Mail, Anzeigename und ein Passwort festlegen (mindestens 14 Zeichen – Tipp: drei Wörter mit Bindestrich, z. B. *Drache-Kaffee-Fenster*). **Fertig!**
+
+### Klappt nicht?
+
+| Was du siehst | Was du tust |
+|---|---|
+| Im Spiel steht „Noch nicht verbunden: Lade … das Banklord-Setup herunter“ | Schritt 1 bis 3 fehlen noch. Danach WoW neu starten. |
+| Lange passiert nichts | Es ist noch kein Bankverwalter online. Einfach weiterspielen – es geht von selbst weiter, sobald einer kommt. |
+| Das Setup sagt „WoW läuft noch“ | WoW schließen und erneut **„Installieren / Aktualisieren“** klicken. |
+| Der Companion zeigt „noch nicht bestätigt“ | Der Verwalter muss bei sich einmal **„Jetzt übertragen“** klicken. Dein Companion versucht es von selbst weiter. |
+| WoW lief schon während der Installation | Im Spiel einmal `/reload` eingeben. |
+
+Hilft das alles nicht, schreib uns über **Hilfe & Feedback → Fehler melden** auf der Website oder `/bl hilfe` im Spiel.
 
 ### Ausweichweg: Einladung
 
-Ist gerade kein Verwalter online, kann dir ein Admin auf der Website unter **Mitglieder** eine Einladung erstellen. Damit registrierst du dich auf der Website und verbindest danach den Companion unter **Konto**.
+Ist längere Zeit kein Verwalter online, kann dir ein Admin auf der Website unter **Mitglieder** eine Einladung erstellen. Damit registrierst du dich auf der Website und verbindest danach den Companion unter **Konto**.
 
 ### Mehrere Charaktere oder Gilden
 
@@ -48,18 +83,28 @@ Ist gerade kein Verwalter online, kann dir ein Admin auf der Website unter **Mit
 1. Öffne Banklord mit `/banklord` oder über den Knopf an der Minikarte.
 2. Suche den Gegenstand, gib die Menge ein und lege ihn in den **Warenkorb**.
 3. Eilt es, z. B. für den Raid? Hake **„Dringend“** an (oder `/bl bestellen dringend`).
-4. Im Warenkorb auf **„Bestellen“**.
-5. Gib `/reload` ein oder logge aus. Der Companion lädt die Bestellung hoch; Bankverwalter, die online sind, bekommen sofort einen Hinweis.
+4. Klicke **„Bestellen“**.
+
+![Warenkorb im Spiel mit „Dringend“ und „Bestellen“](assets/skizze-order.webp)
+
+5. Es erscheint ein Fenster: **„Jetzt übertragen“** klicken. Damit geht die Bestellung sofort an die Bankverwaltung. (Klickst du „Später“, geht sie beim nächsten Ausloggen raus.)
 
 Der Bestand im Spiel ist der Stand vom letzten Scan der Gildenbank. Was „reserviert“ ist, hat schon jemand anderes bestellt.
 
 ## Bestellen auf der Website
 
-1. Melde dich an. Unter **Gildenbank** siehst du den Bestand mit Suche und Filtern.
-2. Lege Gegenstände in den **Warenkorb** oder auf die **Merkliste**.
-3. Wähle im Warenkorb den **Empfänger-Charakter** – an ihn schickt der Bankverwalter die Post. Es erscheinen nur Charaktere, mit denen du dich mindestens einmal im Spiel mit Banklord eingeloggt hast.
-4. Eilt es, z. B. für den nächsten Raid? Hake **„Dringend“** an. Die Bankverwaltung sieht das sofort.
-5. **„Bestellen“**.
+1. Melde dich an. Unter **Gildenbank** siehst du den Bestand mit Suche und Filtern. Klicke einen Gegenstand an, gib die Menge ein und klicke **„In Warenkorb legen“**.
+
+![Gildenbank auf der Website mit Gegenstandsdetails](assets/website-gegenstand.webp)
+
+2. Öffne den **Warenkorb**. Wähle den **Empfänger-Charakter** – an ihn schickt der Bankverwalter die Post. (Es erscheinen nur Charaktere, mit denen du dich einmal im Spiel mit Banklord eingeloggt hast.)
+3. Eilt es? Hake **„Dringend“** an. Dann **„Bestellung an die Bankverwaltung senden“**.
+
+![Warenkorb auf der Website mit Empfänger und „Dringend“](assets/website-warenkorb.webp)
+
+Unter **Meine Bestellungen** siehst du jederzeit, wie weit deine Bestellung ist.
+
+![Meine Bestellungen mit Status](assets/website-meine-bestellungen.webp)
 
 ## Was passiert nach der Bestellung?
 

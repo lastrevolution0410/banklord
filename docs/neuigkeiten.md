@@ -20,6 +20,13 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 
 ## Fertig
 
+### 1.8 – Einfacher geht's nicht (18.11.2026)
+- **Kein `/reload` mehr tippen:** An den wichtigen Stellen fragt Banklord im Spiel mit einem Fenster und dem Knopf **„Jetzt übertragen“** – nach der Bestätigung als neues Mitglied, nach einer Bestellung, für Verwalter nach dem Bestätigen eines Mitglieds und beim Schließen des Briefkastens nach dem Versenden. Nie im Kampf.
+- **Startseite mit „In 3 Schritten startklar“** und großem Download-Knopf statt eines kleinen Links unten.
+- **Klare Hinweise:** Fehlt der Companion, sagt das Addon genau, was zu tun ist. Wer auf die Freischaltung wartet, liest „du musst nichts tun“.
+- **Anleitungen mit Bildern,** Schritt für Schritt, mit „Klappt nicht?“-Tabelle. Für Bankverwalter: „Dein Alltag in 3 Schritten“.
+- Setup und Companion erklären nur noch den einfachen Weg (WoW starten → „Verbinden“).
+
 ### 1.7 – Kassenbuch und „Dringend“ im Spiel (18.11.2026)
 - **Kassenbuch im Spiel:** Goldstand der Gildenbank und die letzten Einträge im Addon-Fenster (**Aufträge → Kassenbuch** oder `/bl kasse`).
 - **„Dringend“ im Spiel:** Häkchen im Warenkorb oder `/bl bestellen dringend`. Bankverwalter sehen dringende Bestellungen mit rotem **!** ganz oben.

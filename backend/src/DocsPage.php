@@ -11,6 +11,8 @@ namespace Banklord;
 final class DocsPage
 {
     public const PAGES=['README','mitglieder','bankverwalter','faq','neuigkeiten','installation','selbst-hosten','sicherheit','entwicklung'];
+    /** Website root for picture sizes (set before rendering; null = no sizes). */
+    public static ?string $root=null;
     private const REPO='https://github.com/lastrevolution0410/banklord/blob/main/';
 
     /** Resolves "mitglieder", "mitglieder.en" or "" (overview); null = unknown page. */
@@ -32,6 +34,16 @@ final class DocsPage
             if (str_starts_with($lang,'en')) return true;
         }
         return false;
+    }
+
+    /** Picture for a guide: [content type, bytes] or null. Only plain names, only webp/png. */
+    public static function image(string $root, string $name): ?array
+    {
+        if (!preg_match('/^[A-Za-z0-9_-]{1,60}\.(webp|png)$/D',$name,$m)) return null;
+        foreach ([$root.'/src/docimg_'.$name, dirname($root).'/docs/assets/'.$name] as $p) {
+            if (is_file($p)) { $b=file_get_contents($p); return is_string($b)?['image/'.$m[1],$b]:null; }
+        }
+        return null;
     }
 
     public static function source(string $root, string $file): ?string
@@ -125,6 +137,14 @@ final class DocsPage
         $codes=[];
         $s=preg_replace_callback('/`([^`]+)`/',function($m) use (&$codes){$codes[]='<code>'.self::e($m[1]).'</code>';return "\x01".(count($codes)-1)."\x02";},$s);
         $links=[];
+        // Pictures from docs/assets (shipped with the release).
+        $s=preg_replace_callback('/!\[([^\]]*)\]\(assets\/([A-Za-z0-9_-]{1,60}\.(?:webp|png))\)/',function($m) use (&$links){
+            // Fixed size so jumping to a section does not shift while pictures load.
+            $size='';
+            $img=self::$root!==null?self::image(self::$root,$m[2]):null;
+            if ($img && ($d=@getimagesizefromstring($img[1])) && $d[0]>0) $size=' width="'.(int)$d[0].'" height="'.(int)$d[1].'"';
+            $links[]='<img src="img/'.self::e($m[2]).'" alt="'.self::e($m[1]).'"'.$size.' loading="lazy">';return "\x03".(count($links)-1)."\x04";
+        },$s);
         $s=preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/',function($m) use (&$links){
             $href=self::href($m[2]);$text=self::e($m[1]);
             $links[]=$href===null?$text:'<a href="'.self::e($href).'"'.(preg_match('~^https?://~',$href)?' rel="noopener" target="_blank"':'').'>'.$text.'</a>';

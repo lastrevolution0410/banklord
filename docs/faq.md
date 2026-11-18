@@ -33,7 +33,7 @@ Für das Bestellen im Spiel mit automatischer Übertragung: ja. Ohne Companion k
 
 ### Muss ich vor dem Spielen etwas aktualisieren?
 
-Nein. Der Updater hält Addon und Companion im Hintergrund automatisch aktuell – beim Windows-Start, laufend auf neue Veröffentlichungen und direkt nach dem Beenden von WoW. Starte WoW einfach wie immer über Battle.net. Die frühere Verknüpfung „Banklord – sicher starten“ ist deshalb entfallen und wird beim Update entfernt.
+Nein. Der Updater hält Addon und Companion im Hintergrund automatisch aktuell – beim Windows-Start, laufend auf neue Veröffentlichungen und direkt nach dem Beenden von WoW. Starte WoW einfach wie immer über Battle.net.
 
 ### Warum muss ich so oft `/reload` machen?
 

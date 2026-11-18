@@ -453,6 +453,19 @@ local EN={
   ['Gildenbank-Bestand in Tooltips: aus.']='Guild bank count in tooltips: off.',
   ['Einkaufsliste']='Shopping list',
   ['Kassenbuch']='Cash book',
+  ['Freischaltung angefragt. Sobald ein Bankverwalter online ist, geht es von selbst weiter – du musst nichts tun.']=
+    'Unlock requested. As soon as a bank manager is online it continues by itself – you do not need to do anything.',
+  ['Jetzt übertragen']='Transfer now',
+  ['Bestellung vorgemerkt. Jetzt an die Bankverwaltung schicken?']='Order saved. Send it to the bank managers now?',
+  ['Noch nicht verbunden: Lade auf der Website deiner Gilde das Banklord-Setup herunter (großer Knopf „Setup herunterladen“), installiere es und starte WoW neu.']=
+    'Not connected yet: download the Banklord setup on your guild\'s website (big "Download setup" button), install it and restart WoW.',
+  ['Später']='Later',
+  ['Das Spiel lädt dafür kurz die Oberfläche neu (wie /reload).']='The game briefly reloads the interface for this (like /reload).',
+  ['%s wurde für Banklord bestätigt. Jetzt an die Website übertragen?']='%s was confirmed for Banklord. Transfer to the website now?',
+  ['Du wurdest bestätigt! Klicke „Jetzt übertragen“, dann öffnet sich der Companion zum Verbinden.']=
+    'You were confirmed! Click "Transfer now" and the Companion opens to connect.',
+  ['%d Bestellung(en) verschickt. Jetzt an die Website übertragen, damit sie als ausgegeben gebucht werden?']=
+    '%d order(s) sent. Transfer to the website now so they are booked as handed out?',
   ['Dringend (z. B. für den Raid)']='Urgent (e.g. for the raid)',
   ['Dringend: ']='Urgent: ',
   ['eingezahlt']='deposited',

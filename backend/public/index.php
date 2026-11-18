@@ -69,6 +69,12 @@ if (!\Banklord\Installer::configured(dirname(__DIR__))) \Banklord\Installer::han
 // Ed25519 signature themselves; the server only hands out stored files.
 $updatePath=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH);
 // Public guides and changelog (no login, no database), shipped with each release.
+if (is_string($updatePath) && preg_match('~/api/v1/docs/img/([A-Za-z0-9_.-]{1,70})$~D',$updatePath,$im)) {
+    $img=\Banklord\DocsPage::image(dirname(__DIR__),$im[1]);
+    if ($img===null) {http_response_code(404);exit;}
+    header('Content-Type: '.$img[0]);header('Cache-Control: public, max-age=86400');header("Content-Security-Policy: default-src 'none'");
+    echo $img[1];exit;
+}
 if (is_string($updatePath) && preg_match('~/api/v1/docs(?:/([A-Za-z.-]{0,40}))?$~D',$updatePath,$dm)) {
     if (!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)) {http_response_code(405);exit;}
     if (!isset($dm[1])) {header('Location: docs/',true,302);exit;}
@@ -79,6 +85,7 @@ if (is_string($updatePath) && preg_match('~/api/v1/docs(?:/([A-Za-z.-]{0,40}))?$
     header('Vary: Accept-Language');
     header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     if ($md===null) {http_response_code(404);echo '<!doctype html><meta charset="utf-8"><title>404</title><p>Seite nicht gefunden. <a href="README">Übersicht</a></p>';exit;}
+    \Banklord\DocsPage::$root=dirname(__DIR__);
     echo \Banklord\DocsPage::render($md,$page,\Banklord\Version::WEB);exit;
 }
 if (is_string($updatePath) && str_starts_with($updatePath,'/updates/preview/')) {

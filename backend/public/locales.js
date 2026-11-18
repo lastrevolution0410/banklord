@@ -593,7 +593,17 @@ exact:{
 "– Banklord":"– Banklord",
 "★ Favorit":"★ Favorite",
 "☆ Merken":"☆ Save",
-"⬇ Windows-Setup herunterladen":"⬇ Download Windows setup"
+"⬇ Windows-Setup herunterladen":"⬇ Download Windows setup",
+"Neu hier? In 3 Schritten startklar":"New here? Ready in 3 steps",
+"Banklord installieren":"Install Banklord",
+"Datei öffnen und auf „Installieren“ klicken. Warnt Windows? Auf „Weitere Informationen“ und dann „Trotzdem ausführen“ klicken.":"Open the file and click “Install”. Windows warns you? Click “More info”, then “Run anyway”.",
+"Datei öffnen und den Schritten folgen.":"Open the file and follow the steps.",
+"WoW starten":"Start WoW",
+"Mit einem Charakter deiner Gilde einloggen. Mehr musst du nicht tun.":"Log in with a character of your guild. That is all you need to do.",
+"„Verbinden“ klicken":"Click “Connect”",
+"Sobald ein Bankverwalter online ist, erscheint ein Fenster. Auf „Verbinden“ klicken und ein Passwort für die Website festlegen. Fertig!":"As soon as a bank manager is online, a window appears. Click “Connect” and choose a password for the website. Done!",
+"Anleitung mit Bildern ansehen":"See the guide with pictures",
+"Schon dabei? Anmelden":"Already set up? Sign in"
 },
 patterns:[
 ["Gold in der Bank · Stand {}","Gold in the bank · as of {}"],

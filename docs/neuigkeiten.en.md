@@ -20,6 +20,13 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 
 ## Done
 
+### 1.8 – As simple as it gets (18 Nov 2026)
+- **No more typing `/reload`:** at the important moments Banklord shows a window in game with a **“Transfer now”** button – after you are confirmed as a new member, after an order, for managers after confirming a member and when closing the mailbox after sending. Never in combat.
+- **Start page with “Ready in 3 steps”** and a big download button instead of a small link at the bottom.
+- **Clear hints:** if the Companion is missing, the addon says exactly what to do. Waiting for the unlock shows “you do not need to do anything”.
+- **Guides with pictures,** step by step, with a “Not working?” table. For bank managers: “Your routine in 3 steps”.
+- Setup and Companion only explain the simple way (start WoW → “Connect”).
+
 ### 1.7 – Cash book and "Urgent" in game (18 Nov 2026)
 - **Cash book in game:** the guild bank's gold and latest entries in the addon window (**Orders → Cash book** or `/bl kasse`).
 - **"Urgent" in game:** tick the box in the cart or use `/bl order urgent`. Bank managers see urgent orders with a red **!** at the top.

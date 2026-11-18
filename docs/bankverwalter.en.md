@@ -6,6 +6,7 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 
 ## Contents
 
+1. [In short: your routine in 3 steps](#in-short-your-routine-in-3-steps)
 1. [Noticing new orders](#noticing-new-orders)
 2. [At the guild bank: withdraw](#at-the-guild-bank-withdraw)
 3. [At the mailbox: send](#at-the-mailbox-send)
@@ -16,6 +17,32 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 8. [Together with other addons](#together-with-other-addons)
 
 ---
+
+## In short: your routine in 3 steps
+
+That is all you need day to day. Banklord does the rest.
+
+### 1. At the guild bank: “Withdraw all”
+
+Open the guild bank. Banklord appears next to it with all open orders. Click **“Withdraw all”** – Banklord puts exactly the ordered amounts into your bags. Urgent orders are at the top with a red **!**.
+
+![Banklord next to the guild bank with “Withdraw all”](assets/skizze-bank.webp)
+
+### 2. At the mailbox: “Send all”
+
+Open a mailbox and click **“Send all”**. Banklord fills in recipient, subject and attachments; you only click **“Send”** for each letter.
+
+![Banklord at the mailbox with “Send all”](assets/skizze-mail.webp)
+
+### 3. Close the mailbox: “Transfer now”
+
+When you close it, Banklord asks whether to transfer the sent orders to the website. Click **“Transfer now”** – done. Members see “sent” right away.
+
+![In-game window: “2 order(s) sent … Transfer now”](assets/skizze-popup-manager.webp)
+
+> **New members:** While you are online your addon confirms new members by itself. A window then asks whether to transfer the confirmation – just click **“Transfer now”** (outside of combat).
+
+*The sketches show the German interface; in English the buttons are labelled accordingly.*
 
 ## Noticing new orders
 
@@ -42,7 +69,7 @@ The window can be moved and remembers its position.
 2. **“Send”** is only active when you have all items of the order in your bags.
 3. Banklord fills in the **recipient**, **subject** (`Banklord #<number>`) and **attachments**. You only click **“Send”**.
 4. With **“Send all”** the next mail is prepared automatically after each one.
-5. After sending, the order counts as issued. The website is updated with the next `/reload`; the member is notified.
+5. After sending, the order counts as issued; the member is notified. When you close the mailbox Banklord offers **“Transfer now”**, then the website is up to date right away.
 
 Only mails Banklord prepared itself count as issued. If you change the subject, nothing is booked.
 
@@ -55,6 +82,8 @@ Only mails Banklord prepared itself count as issued. If you change the subject, 
 **Weekly limit:** Orders above the limit show “waiting for an officer”. Officers and admins see “Approve” instead (in game or on the website under **Orders**). An admin sets the rules on the website under **Members → Order rules**: weekly limits, automatic cancelling of old orders and view-only tabs.
 
 **Shopping list:** **Orders → Shopping list** (or `/banklord einkauf`) shows what fell below the minimum stock, ready to copy for Auctionator and TSM. Set minimum and target stock on the website under **Restock**; the same lists can be copied there.
+
+![Restock on the website](assets/website-nachkauf.webp)
 
 **If a member cancels** their order in game, it is locked for you right away.
 
@@ -83,12 +112,20 @@ You do not need to do anything. When you are online and a member with a freshly 
 
 1. Your addon checks the name against the **real guild roster** (the sender of an addon message is set by Blizzard's server and cannot be forged).
 2. It answers the member with your guild's website address and remembers the confirmation.
-3. After your next `/reload` your Companion uploads the confirmation. The website only accepts it from bank managers, officers and admins.
+3. A window asks **“… was confirmed for Banklord. Transfer to the website now?”** – click **“Transfer now”** (or `/reload` later). Your Companion uploads the confirmation. The website only accepts it from bank managers, officers and admins.
 4. The member clicks “Connect” in the Companion and is unlocked.
 
 More about the process and why it is safe: [Security](sicherheit.en.md#unlocking-in-game).
 
 ## On the website
+
+Under **Orders** you see all orders with their status, urgent ones first.
+
+![Orders on the website](assets/website-auftraege.webp)
+
+Under **Members** you invite new members and assign roles.
+
+![Members and roles on the website](assets/website-mitglieder.webp)
 
 | Area | Purpose |
 |---|---|
@@ -105,6 +142,8 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 - **Gold and bank value:** the guild bank's gold is recorded when you open it. With **TSM** or **Auctionator** installed, Banklord records each item's market price. The website then shows the estimated value of the whole bank and per item.
 - **Discord** (website → System, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
 - **Urgent orders** are marked **“Urgent”** under Orders; in game they have a red **!** before the number and are listed first.
+
+![Cash book on the website with gold, bank value and contributions per player](assets/website-kassenbuch.webp)
 
 ## Together with other addons
 

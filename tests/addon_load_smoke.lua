@@ -276,6 +276,17 @@ do
   C_ChatInfo.SendAddonMessage=oldSend;IsInGuild=nil;GetGuildInfo=nil;GetNumGuildMembers=nil;GetGuildRosterInfo=nil
   Banklord_ServerState.manage=nil;Banklord_ServerState.connections=nil;Banklord_Claim=nil
 end
+-- One click instead of /reload: popup with "Transfer now", never in combat.
+do
+  local shown,reloaded=nil,false
+  StaticPopupDialogs={};StaticPopup_Show=function(n) shown=n end;StaticPopup_Visible=function() return false end
+  ReloadUI=function() reloaded=true end;InCombatLockdown=function() return true end
+  assert(A:OfferReload('x')==false and shown==nil,'no popup in combat')
+  InCombatLockdown=function() return false end
+  assert(A:OfferReload('50% fertig')==true and shown=='BANKLORD_SYNC','popup shown')
+  StaticPopupDialogs.BANKLORD_SYNC.OnAccept();assert(reloaded,'accept reloads the interface')
+  StaticPopupDialogs=nil;StaticPopup_Show=nil;ReloadUI=nil;InCombatLockdown=nil;StaticPopup_Visible=nil
+end
 print('PASS: joining by in-game confirmation (request, roster check, answer)')
 
 -- Several bank managers: reservations on the guild channel, never twice.

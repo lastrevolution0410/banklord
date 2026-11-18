@@ -24,6 +24,7 @@ files = sorted(p for d in ('bin', 'public', 'sql', 'src') for p in (ROOT / 'back
 entries = [(f'backend/{p.parent.name}/{p.name}', p.read_bytes()) for p in files]
 # Guides and changelog for the website (/api/v1/docs/...), always the same as docs/ in git.
 entries += [(f'backend/src/doc_{p.stem}.md', p.read_bytes()) for p in sorted((ROOT / 'docs').glob('*.md'))]
+entries += [(f'backend/src/docimg_{p.name}', p.read_bytes()) for p in sorted((ROOT / 'docs' / 'assets').iterdir()) if p.suffix in ('.webp', '.png')]
 entries.sort()
 for n, b in entries: assert 0 < len(b) <= 350000, (n, len(b))
 payload = DIST / '02_WEB_PAYLOAD' / f'Banklord-Web-Payload-{V}.zip'

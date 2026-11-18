@@ -66,6 +66,7 @@ function A:SubmitCartOrder()
   self.db.localCartDraft={}
   self:Message(A:Tr('Bestellung vorgemerkt. Der Companion überträgt sie nach /reload oder Logout; der Status erscheint danach hier.'))
   if self.RefreshUI then self:RefreshUI() end
+  if self.OfferReload then self:OfferReload(A:Tr('Bestellung vorgemerkt. Jetzt an die Bankverwaltung schicken?')) end
 end
 
 -- Called once after SavedVariables are loaded: drop queued orders the server has answered.

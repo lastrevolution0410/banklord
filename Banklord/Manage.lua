@@ -972,11 +972,18 @@ events:SetScript('OnEvent',function(_,event)
   if not A.db then return end
   if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter();A:StartJoinRequests()
   elseif event=='MAIL_SHOW' then A.mailOpen=true;A:ShowManagePanel('mail',MailFrame)
-  elseif event=='MAIL_CLOSED' then A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
+  elseif event=='MAIL_CLOSED' then
+    A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
+    -- Shipped something here: offer to book it on the website right away.
+    if (A.mailSentCount or 0)>0 then
+      local n=A.mailSentCount;A.mailSentCount=0
+      A:OfferReload(A:Tr('%d Bestellung(en) verschickt. Jetzt an die Website übertragen, damit sie als ausgegeben gebucht werden?'):format(n))
+    end
   elseif event=='MAIL_SEND_SUCCESS' then
     local id,part=A.mailSending,A.mailPartial
     A.mailSending,A.mailPrepared,A.mailPartial=nil,nil,nil
     if id then
+      A.mailSentCount=(A.mailSentCount or 0)+1
       A:NotifyRecipient(stateOrder(id),part~=nil)
       if part then
         A:MarkOrderPartlySent(id,part)
@@ -1050,6 +1057,23 @@ function A:SendJoinRequest()
   local key,g,r=claimKey(),self:CurrentGuild()
   if not key or not g or self:ConnectionFor(g,r) then return false end
   send('K|'..key,'GUILD')
+  if not self.joinHintShown then
+    self.joinHintShown=true
+    self:Message(A:Tr('Freischaltung angefragt. Sobald ein Bankverwalter online ist, geht es von selbst weiter – du musst nichts tun.'))
+  end
+  return true
+end
+
+-- One click instead of typing /reload: WoW hands addon data to the Companion
+-- only when the interface reloads. Never during combat, never twice at once.
+function A:OfferReload(text)
+  if type(ReloadUI)~='function' or not (StaticPopupDialogs and StaticPopup_Show) then return false end
+  if InCombatLockdown and InCombatLockdown() then return false end
+  if StaticPopup_Visible and StaticPopup_Visible('BANKLORD_SYNC') then return false end
+  StaticPopupDialogs.BANKLORD_SYNC={button1=A:Tr('Jetzt übertragen'),button2=A:Tr('Später'),timeout=0,whileDead=true,hideOnEscape=true,preferredIndex=3,
+    text=(text..'\n\n'..A:Tr('Das Spiel lädt dafür kurz die Oberfläche neu (wie /reload).')):gsub('%%','%%%%'),
+    OnAccept=function() ReloadUI() end}
+  StaticPopup_Show('BANKLORD_SYNC')
   return true
 end
 
@@ -1059,6 +1083,10 @@ function A:StartJoinRequests()
   local function again()
     tries=tries+1
     local g,r=A:CurrentGuild()
+    -- Addon without Companion: say plainly what is missing, once per session.
+    if tries==1 and g and not claimKey() and not A:ConnectionFor(g,r) then
+      A:Message(A:Tr('Noch nicht verbunden: Lade auf der Website deiner Gilde das Banklord-Setup herunter (großer Knopf „Setup herunterladen“), installiere es und starte WoW neu.'))
+    end
     if not claimKey() or (g and A:ConnectionFor(g,r)) or tries>6 then return end
     A:SendJoinRequest()
     C_Timer.After(g and 300 or 20,again)
@@ -1086,6 +1114,7 @@ function A:ReceiveJoinMessage(prefix,payload,channel,sender)
       claims[key:lower()]={character=who,guild=g,guildRealm=r,seen=time()}
       send(('S|%s|%d'):format(conn.server,conn.guildId),'WHISPER',sender)
       A:Message(A:Tr('%s möchte Banklord nutzen und wurde bestätigt. Die Freischaltung wird nach deinem nächsten /reload übertragen.'):format(who))
+      A:OfferReload(A:Tr('%s wurde für Banklord bestätigt. Jetzt an die Website übertragen?'):format(who))
     end
     return vouch(true)
   end
@@ -1102,6 +1131,7 @@ function A:ReceiveJoinMessage(prefix,payload,channel,sender)
       if offers[k] then return end
       offers[k]={server=server,guild=tonumber(id),by=by,at=time()}
       A:Message(A:Tr('%s hat dich für die Gilden-Website bestätigt. Nach /reload oder Logout verbindet der Companion automatisch.'):format(by))
+      A:OfferReload(A:Tr('Du wurdest bestätigt! Klicke „Jetzt übertragen“, dann öffnet sich der Companion zum Verbinden.'))
     end
     accept(true)
   end

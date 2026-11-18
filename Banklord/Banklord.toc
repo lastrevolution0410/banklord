@@ -1,11 +1,11 @@
 ## Interface: 11508, 20505, 50504, 110207, 120005
-## Title: Banklord - Guild bank & orders 0.14.0
-## Title-deDE: Banklord - Gildenbank & Bestellungen 0.14.0
+## Title: Banklord - Guild bank & orders 0.15.0
+## Title-deDE: Banklord - Gildenbank & Bestellungen 0.15.0
 ## Notes: Guild bank catalog, cart and orders (all WoW versions)
 ## Notes-deDE: Gildenbank-Katalog, Warenkorb und Bestellungen (alle WoW-Versionen)
 ## Author: Björn Thiel Ebert
 ## X-License: CC-BY-NC-ND-4.0 (self-hosting allowed, see LICENSE-ADDITIONAL-PERMISSIONS.md)
-## Version: 0.14.0
+## Version: 0.15.0
 ## SavedVariables: BanklordDB
 Core.lua
 Locale.lua

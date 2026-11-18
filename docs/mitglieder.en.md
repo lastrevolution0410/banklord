@@ -15,26 +15,61 @@
 
 ## Set up once
 
-### 1. Install
+Takes about 5 minutes. All you need is your Windows PC and WoW. *(The pictures show the German interface; in English the buttons are labelled accordingly.)*
 
-1. Open your guild's Banklord website and click **“Download Windows setup”** at the bottom.
-2. Run the file. The first time, Windows warns about an unknown app: **“More info” → “Run anyway”** ([why?](installation.en.md#windows-warns-about-an-unknown-app)).
-3. All WoW versions found are already ticked in the setup. Click **“Install / Update”**.
-4. The Companion then opens in your browser. You can leave the window open or close it – the Companion keeps running.
+### Step 1: Download the setup
 
-### 2. Unlock – automatically in game
+Open your guild's Banklord website. Right at the top it says **“New here? Ready in 3 steps”**. Click the big **“Download Windows setup”** button.
 
-1. Start WoW and log in with a character in your guild.
-2. Type `/reload` once. From now on your addon announces itself to your guild's bank managers.
-3. As soon as a **bank manager, officer or admin is online**, their addon checks that you really are in the guild and confirms you.
-4. The Companion opens with **“Unlock in game”**. Check that the website address shown is your guild's and click **“Connect”**.
-5. If this is your first access, the website opens: choose an **e-mail, display name and password** (at least 14 characters). The link is valid for 7 days and only once.
+![Start box on the website with the big download button](assets/website-start.webp)
 
-> **Does it say “not confirmed yet”?** The manager has to do one `/reload` so that their confirmation reaches the website. Your Companion keeps retrying on its own.
+### Step 2: Start the setup
+
+Open the downloaded file (usually at the bottom of the browser or in your **Downloads** folder).
+
+Windows warns you the first time because Banklord is a small fan project without an expensive certificate ([why?](installation.en.md#windows-warns-about-an-unknown-app)). Click **① “More info”** and then **② “Run anyway”**.
+
+![Windows warning: first “More info”, then “Run anyway”](assets/skizze-smartscreen.webp)
+
+### Step 3: Click install
+
+The setup finds WoW by itself, everything is already ticked. **WoW must be closed.** Click **“Installieren / Aktualisieren”** (install / update) – done.
+
+![Setup with the WoW versions found and the install button](assets/setup-installieren.webp)
+
+### Step 4: Start WoW
+
+Start WoW as usual and log in with a character of your guild. **That is all you need to do.** The chat says: *“Unlock requested … you do not need to do anything.”*
+
+### Step 5: Click “Transfer now”
+
+As soon as a bank manager, officer or admin is online, their addon confirms you automatically. This window appears for you. Click **“Transfer now”**.
+
+![In-game window: “You were confirmed!” with the “Transfer now” button](assets/skizze-popup-member.webp)
+
+### Step 6: Click “Connect”
+
+The **Banklord Companion** opens on your PC. Does it show your guild's website? Then click **“Verbinden”** (connect).
+
+![Companion: “Unlock in game” with the connect button](assets/companion-freischalten.webp)
+
+The first time, the website opens afterwards: choose e-mail, display name and a password (at least 14 characters – tip: three words with hyphens, e.g. *dragon-coffee-window*). **Done!**
+
+### Not working?
+
+| What you see | What to do |
+|---|---|
+| The game says “Not connected yet: download the Banklord setup …” | Steps 1 to 3 are still missing. Restart WoW afterwards. |
+| Nothing happens for a long time | No bank manager is online yet. Just keep playing – it continues by itself as soon as one comes online. |
+| The setup says WoW is still running | Close WoW and click install again. |
+| The Companion shows “not confirmed yet” | The manager has to click **“Transfer now”** once. Your Companion keeps trying by itself. |
+| WoW was already running during the install | Type `/reload` once in game. |
+
+If none of this helps, write to us via **Help & feedback → Report a bug** on the website or `/bl help` in game.
 
 ### Fallback: invitation
 
-If no manager is online right now, an admin can create an invitation for you on the website under **Members**. Use it to register on the website, then connect the Companion under **Account**.
+If no manager is online for a longer time, an admin can create an invitation for you on the website under **Members**. Use it to register on the website, then connect the Companion under **Account**.
 
 ### Several characters or guilds
 
@@ -48,18 +83,28 @@ If no manager is online right now, an admin can create an invitation for you on 
 1. Open Banklord with `/banklord` or the minimap button.
 2. Search for the item, enter the quantity and put it in the **cart**.
 3. In a hurry, e.g. for the raid? Tick **“Urgent”** (or `/bl order urgent`).
-4. In the cart, click **“Order”**.
-5. Type `/reload` or log out. The Companion uploads the order; bank managers who are online get a notice right away.
+4. Click **“Order”**.
+
+![In-game cart with “Urgent” and “Order”](assets/skizze-order.webp)
+
+5. A window appears: click **“Transfer now”**. The order goes to the bank managers right away. (If you click “Later”, it goes out the next time you log out.)
 
 The stock shown in game is the state of the last guild bank scan. Items marked “reserved” have already been ordered by someone else.
 
 ## Ordering on the website
 
-1. Sign in. Under **Guild bank** you see the stock with search and filters.
-2. Put items in the **cart** or on the **wish list**.
-3. In the cart, choose the **recipient character** – the bank manager mails the items to this character. Only characters you have logged in with Banklord at least once are listed.
-4. In a hurry, e.g. for the next raid? Tick **“Urgent”**. The bank managers see it right away.
-5. **“Order”**.
+1. Sign in. Under **Guild bank** you see the stock with search and filters. Click an item, enter the quantity and click **“Add to cart”**.
+
+![Guild bank on the website with item details](assets/website-gegenstand.webp)
+
+2. Open the **cart**. Choose the **recipient character** – the bank manager mails the items to them. (Only characters you have logged in with Banklord at least once appear.)
+3. In a hurry? Tick **“Urgent”**. Then send the order to the bank managers.
+
+![Cart on the website with recipient and “Urgent”](assets/website-warenkorb.webp)
+
+Under **My orders** you can always see how far your order has got.
+
+![My orders with status](assets/website-meine-bestellungen.webp)
 
 ## What happens after ordering?
 
