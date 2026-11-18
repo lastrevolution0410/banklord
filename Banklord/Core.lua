@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.8.0"
+A.version = "0.9.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -172,6 +172,7 @@ function A:OnEvent(event, ...)
   elseif event == "CHAT_MSG_ADDON" then
     if A.ReceivePeerMessage then A:ReceivePeerMessage(...) end
     if A.ReceiveManageMessage then A:ReceiveManageMessage(...) end
+    if A.ReceiveJoinMessage then A:ReceiveJoinMessage(...) end
   elseif event == "GUILDBANKBAGSLOTS_CHANGED" then
     if A.ScanEvent then A:ScanEvent() end
   end

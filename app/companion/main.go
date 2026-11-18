@@ -2,6 +2,7 @@ package companion
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
@@ -21,7 +22,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.7.0"
+const companionVersion = "0.8.0"
 
 type controller struct {
 	mu           sync.Mutex
@@ -34,6 +35,11 @@ type controller struct {
 	nextBeat     time.Time
 	lastOutbox   map[string]outboxResult
 	lastManage   map[string]manageResult
+	claimKey     ed25519.PrivateKey
+	offers       []joinOffer
+	notified     map[string]bool
+	autoRetry    map[string]bool
+	nextClaim    time.Time
 	status       string
 	lastUploaded string
 	messages     []string
@@ -61,6 +67,7 @@ func (c *controller) run(ctx context.Context) {
 			return
 		case <-ticker.C:
 		}
+		c.claimTick(ctx)
 		c.mu.Lock()
 		if !c.active || time.Now().Before(c.next) {
 			c.mu.Unlock()
@@ -96,7 +103,9 @@ func (c *controller) run(ctx context.Context) {
 				continue
 			}
 			if result.State != nil {
-				states = append(states, *result.State)
+				st := *result.State
+				st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
+				states = append(states, st)
 			}
 			c.report(result)
 		}
@@ -115,6 +124,143 @@ func (c *controller) run(ctx context.Context) {
 			c.applyState(p, merged)
 		}
 	}
+}
+
+// claimTick keeps the public key in the addon and watches for confirmations.
+func (c *controller) claimTick(ctx context.Context) {
+	c.mu.Lock()
+	if time.Now().Before(c.nextClaim) {
+		c.mu.Unlock()
+		return
+	}
+	c.nextClaim = time.Now().Add(20 * time.Second)
+	key := c.claimKey
+	c.mu.Unlock()
+	if key == nil {
+		k, err := claimKey()
+		if err != nil {
+			return
+		}
+		key = k
+		c.mu.Lock()
+		c.claimKey = k
+		c.mu.Unlock()
+	}
+	writeClaimFiles(key.Public().(ed25519.PublicKey))
+	open := []joinOffer{}
+	for _, o := range findOffers() {
+		if !c.connected(o.Server, o.Guild) {
+			open = append(open, o)
+		}
+	}
+	c.mu.Lock()
+	c.offers = open
+	if c.notified == nil {
+		c.notified, c.autoRetry = map[string]bool{}, map[string]bool{}
+	}
+	fresh, retry := false, []joinOffer{}
+	for _, o := range open {
+		if !c.notified[o.key()] {
+			c.notified[o.key()], fresh = true, true
+		}
+		if c.autoRetry[o.key()] && time.Now().Minute()%2 == 0 {
+			retry = append(retry, o)
+		}
+	}
+	c.mu.Unlock()
+	if fresh {
+		c.message("Im Spiel bestätigt: bitte hier auf „Verbinden“ klicken.")
+		browser(c.base + "/ui/" + c.uiKey)
+	}
+	for _, o := range retry {
+		_, _ = c.connectOffer(ctx, o)
+	}
+}
+
+func (c *controller) connected(server string, guild int64) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.token != "" && c.profile.Server == server && c.profile.GuildID == guild {
+		return true
+	}
+	for _, l := range c.profile.Extra {
+		if l.Server == server && l.GuildID == guild {
+			return true
+		}
+	}
+	return false
+}
+
+// connectOffer redeems a confirmation and stores the new connection(s).
+func (c *controller) connectOffer(ctx context.Context, o joinOffer) (string, error) {
+	c.mu.Lock()
+	key := c.claimKey
+	c.mu.Unlock()
+	if key == nil {
+		return "", errors.New("Schlüssel noch nicht bereit")
+	}
+	grants, err := redeemOffer(ctx, key, o)
+	if err != nil {
+		if errors.Is(err, errNotYetConfirmed) {
+			c.mu.Lock()
+			c.autoRetry[o.key()] = true
+			c.mu.Unlock()
+		}
+		return "", err
+	}
+	names := []string{}
+	for _, g := range grants {
+		if err := c.addConnection(o.Server, g.GuildID, g.Token, o.Source); err != nil {
+			return "", err
+		}
+		names = append(names, g.Guild)
+		if strings.HasPrefix(g.Welcome, o.Server+"/#welcome=") {
+			browser(g.Welcome)
+		}
+	}
+	c.mu.Lock()
+	delete(c.autoRetry, o.key())
+	c.mu.Unlock()
+	msg := "Verbunden mit " + strings.Join(names, ", ") + ". Bestellungen im Spiel sind jetzt aktiv."
+	c.message(msg)
+	return msg, nil
+}
+
+func (c *controller) addConnection(server string, guild int64, token, source string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.token == "" || (c.profile.Server == server && c.profile.GuildID == guild) {
+		p := c.profile
+		p.Server, p.GuildID = server, guild
+		if p.Source == "" {
+			p.Source = source
+		}
+		if p.IntervalSeconds == 0 {
+			p.IntervalSeconds = 15
+		}
+		if err := saveProfile(p, token); err != nil {
+			return err
+		}
+		c.profile, c.token, c.active, c.next, c.lastHash = p, token, true, time.Time{}, ""
+		return nil
+	}
+	sealed, err := protectNamed(linkAccount(server, guild), token)
+	if err != nil {
+		return err
+	}
+	base := c.profile
+	extra := []Link{}
+	for _, l := range base.Extra {
+		if !(l.Server == server && l.GuildID == guild) {
+			extra = append(extra, l)
+		}
+	}
+	base.Extra = append(extra, Link{Server: server, GuildID: guild, EncryptedToken: sealed})
+	if err := saveProfile(base, c.token); err != nil {
+		return err
+	}
+	c.profile, c.lastHash, c.next = base, "", time.Time{}
+	return nil
 }
 
 // withExtra keeps the further guild connections when the main one is re-saved.
@@ -155,6 +301,7 @@ func (c *controller) refreshState(ctx context.Context, p Profile, tok string) {
 	states := []ingameState{}
 	for _, cn := range p.connections(tok) {
 		if st, err := fetchState(ctx, cn.p, cn.token); err == nil {
+			st.Server, st.GuildID = cn.p.Server, cn.p.GuildID
 			states = append(states, st)
 		}
 	}
@@ -288,6 +435,7 @@ func Main() {
 var page = template.Must(template.New("page").Parse(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Banklord Companion</title><link rel="icon" href="data:image/png;base64,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"><style>
 :root{color-scheme:dark;font-family:system-ui,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:#111927;color:#eef2fc}main{max-width:790px;margin:3em auto;padding:0 1.3em}h1{font-size:1.65rem}p,small{color:#b7c4d9;line-height:1.5}article{border:1px solid #344258;border-radius:12px;background:#1b273a;padding:1.3em;margin:1em 0}label{display:block;margin:.8em 0 .35em;font-weight:600}input,select{width:100%;background:#101b2a;color:white;border:1px solid #526784;border-radius:7px;padding:.7em;font:inherit}button{margin:.8em .5em .3em 0;padding:.7em 1em;border:0;border-radius:8px;background:#4b90f9;color:#061326;font-weight:700;cursor:pointer}button.secondary{background:#425673;color:white}.status{font-weight:700;color:#9bdfc2}.info{color:#b7c4d9}.error{color:#ffb3b3}code{color:#99d5f8}.warning{border-left:3px solid #e4b267;padding-left:.75em}ul{padding-left:1.5em;line-height:1.8}</style></head><body><main><h1>Banklord Companion <small>0.5.0</small></h1>
 <p>Einmal einrichten, danach werden neue <strong>gespeicherte</strong> Bankscans automatisch über verschlüsseltes HTTPS übertragen. Während des Spielens schreibt WoW die Datei regulär erst bei <code>/reload</code> oder Logout.</p>
+{{if .Offers}}<article><h2>Freischaltung im Spiel</h2>{{range $i, $e := .Offers}}<form method="post"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="index" value="{{$i}}"><p>{{$e}}</p><p><small>Verbinde nur, wenn du diese Website-Adresse kennst.</small></p><button name="action" value="claim">Verbinden</button></form>{{end}}</article>{{end}}
 <article><h2>Status</h2><p class="status">{{.Status}}</p>{{if .Last}}<p>Letzter bestätigter Upload: {{.Last}}</p>{{end}}<p>{{if .Active}}Überwachung aktiv{{else}}Überwachung pausiert oder noch nicht eingerichtet{{end}} · Ohne ausdrücklich eingerichteten Auto-Token bleiben Scans zur Prüfung vorgemerkt. Bei aktivierter Automatik werden geeignete Scans automatisch abgeglichen; Konflikte erfordern manuelle Prüfung.</p><form method="post"><input type="hidden" name="csrf" value="{{.CSRF}}"><button name="action" value="refresh" class="secondary">Status aktualisieren</button>{{if .Configured}}<button name="action" value="toggle" class="secondary">{{if .Active}}Pause{{else}}Fortsetzen{{end}}</button>{{end}}<button name="action" value="exit" class="secondary">Companion beenden</button></form><ul>{{range .Messages}}<li>{{.}}</li>{{end}}</ul></article>
 <article><h2>Einrichtung</h2><form method="post" autocomplete="off"><input type="hidden" name="csrf" value="{{.CSRF}}">
 <label for="connect"><strong>Verbindungscode</strong> (auf der Website unter Konto erzeugen und hier einfügen – füllt Server, Gilde und Schlüssel)</label><input name="connect" id="connect" type="password" placeholder="BL1C:…" spellcheck="false" autocomplete="off">
@@ -309,7 +457,7 @@ var page = template.Must(template.New("page").Parse(`<!doctype html><html lang="
 
 type view struct {
 	Status, Last, Server, Guild, Source, Interval, Result, CSRF string
-	Files, Messages, Extra                                      []string
+	Files, Messages, Extra, Offers                              []string
 	Active, Configured, HasError                                bool
 }
 
@@ -461,7 +609,7 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 				cancel()
 				sealed := ""
 				if err == nil {
-					sealed, err = protectToken(code.Token)
+					sealed, err = protectNamed(linkAccount(q.Server, q.GuildID), code.Token)
 				}
 				if err != nil {
 					result, failure = "Gilde nicht verbunden: "+briefError(err), true
@@ -501,6 +649,23 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 					result = "Verbindung entfernt."
 				}
 			}
+		case "claim":
+			idx, _ := strconv.Atoi(r.Form.Get("index"))
+			c.mu.Lock()
+			offers := append([]joinOffer(nil), c.offers...)
+			c.mu.Unlock()
+			if idx < 0 || idx >= len(offers) {
+				result, failure = "Bestätigung nicht mehr vorhanden.", true
+				break
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+			msg, err := c.connectOffer(ctx, offers[idx])
+			cancel()
+			if err != nil {
+				result, failure = briefError(err), true
+			} else {
+				result = msg
+			}
 		case "refresh":
 		default:
 			http.Error(w, "Aktion unbekannt", 400)
@@ -512,6 +677,13 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 	data := view{CSRF: c.csrfToken, Status: c.status, Last: c.lastUploaded, Server: p.Server, Guild: strconv.FormatInt(p.GuildID, 10), Source: p.Source, Interval: strconv.Itoa(p.IntervalSeconds), Result: result, HasError: failure, Messages: append([]string(nil), c.messages...), Active: c.active, Configured: c.token != ""}
 	for _, l := range p.Extra {
 		data.Extra = append(data.Extra, fmt.Sprintf("%s · Gilde %d", l.Server, l.GuildID))
+	}
+	for _, o := range c.offers {
+		by := o.By
+		if by == "" {
+			by = "Ein Bankverwalter"
+		}
+		data.Offers = append(data.Offers, fmt.Sprintf("%s hat dich im Spiel bestätigt. Website: %s (Gilde %d)", by, o.Server, o.Guild))
 	}
 	c.mu.Unlock()
 	if data.Guild == "0" {

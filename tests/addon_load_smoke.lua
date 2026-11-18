@@ -197,6 +197,85 @@ do
   A.db.manageOutbox={};A.db.manageDone={};Banklord_ServerState.manage=nil;IsInGuild=nil;GetGuildInfo=nil
 end
 print('PASS: characters and orders are matched to the current guild')
+do
+  local sent={}
+  C_ChatInfo=C_ChatInfo or {}
+  local oldSend=C_ChatInfo.SendAddonMessage
+  C_ChatInfo.SendAddonMessage=function(p,m,ch,t) sent[#sent+1]={p,m,ch,t} end
+  IsInGuild=function() return true end
+  GetGuildInfo=function() return 'Hausmeister','Rang',1,nil end
+  GetNumGuildMembers=function() return 2 end
+  GetGuildRosterInfo=function(i) return ({'Neuling-Everlook','Borin-Everlook'})[i] end
+  local key=string.rep('ab',32)
+  Banklord_Claim={key=key}
+  Banklord_ServerState.connections={}
+  assert(A:SendJoinRequest() and sent[#sent][2]=='K|'..key and sent[#sent][3]=='GUILD','member asks on the guild channel')
+  -- Manager side: confirms a roster member, ignores strangers.
+  Banklord_ServerState.manage={}
+  Banklord_ServerState.connections={{server='https://bank.example',guildId=12,guild='Hausmeister',guildRealm='Everlook'}}
+  A:ReceiveJoinMessage('BLJOIN1','K|'..key,'GUILD','Fremder-Everlook')
+  assert(not (A.db.claims or {})[key],'stranger not confirmed')
+  A:ReceiveJoinMessage('BLJOIN1','K|'..key,'GUILD','Neuling-Everlook')
+  assert(A.db.claims[key].character=='Neuling-Everlook' and A.db.claims[key].guild=='Hausmeister','roster member confirmed')
+  assert(sent[#sent][2]=='S|https://bank.example|12' and sent[#sent][3]=='WHISPER','answer whispered with website address')
+  -- Member side: accepts the answer only from a guild member.
+  A:ReceiveJoinMessage('BLJOIN1','S|https://evil.example|1','WHISPER','Fremder-Everlook')
+  assert(not (A.db.joinOffers or {})['https://evil.example|1'],'offer from outside the guild ignored')
+  A:ReceiveJoinMessage('BLJOIN1','S|https://bank.example|12','WHISPER','Borin')
+  assert(A.db.joinOffers['https://bank.example|12'].by=='Borin-Everlook','offer stored')
+  assert(not A:SendJoinRequest(),'no request once connected to this guild')
+  C_ChatInfo.SendAddonMessage=oldSend;IsInGuild=nil;GetGuildInfo=nil;GetNumGuildMembers=nil;GetGuildRosterInfo=nil
+  Banklord_ServerState.manage=nil;Banklord_ServerState.connections=nil;Banklord_Claim=nil
+end
+print('PASS: joining by in-game confirmation (request, roster check, answer)')
+
+-- Several bank managers: reservations on the guild channel, never twice.
+do
+  local sent={}
+  local oldSend=C_ChatInfo.SendAddonMessage
+  C_ChatInfo.SendAddonMessage=function(p,m,ch) sent[#sent+1]=m end
+  IsInGuild=function() return true end
+  local oldAfter=C_Timer.After
+  local later={}
+  C_Timer.After=function(_,fn) later[#later+1]=fn end
+  local function run() local l=later;later={};for _,fn in ipairs(l) do fn() end end
+  A.db.manageMine,A.db.manageLocks,A.db.manageSent,A.db.manageTaken={}, {}, {}, {}
+  local o={id=21,status='submitted',requester='Aria',recipient='Borin',lines={{itemId=2589,name='Leinenstoff',qty=1}}}
+  local won
+  -- Another manager reserved first (older timestamp) while we wait: we lose.
+  A:ClaimOrders({o},function(w) won=w end)
+  assert(sent[#sent]:match('^C|%d+|0|21$'),'claim announced: '..tostring(sent[#sent]))
+  local myTs=A.db.manageMine[21].ts
+  A:ReceiveManageMessage('BLNEW1',('C|%d|0|21'):format(myTs-1),'GUILD','Zora-Everlook')
+  run()
+  assert(not won and not A.db.manageMine[21],'older competing claim wins')
+  assert(A:OrderBlocked(21),'order now blocked for us')
+  -- She releases it; now we reserve and keep it against a later claim.
+  A:ReceiveManageMessage('BLNEW1','X|21','GUILD','Zora')
+  assert(not A:OrderBlocked(21),'released order is free again')
+  A:ClaimOrders({o},function(w) won=w end)
+  run()
+  assert(won and won[1].id==21 and A.db.manageMine[21].est,'uncontested claim established')
+  sent={}
+  A:ReceiveManageMessage('BLNEW1',('C|%d|0|21'):format(A.db.manageMine[21].ts-50),'GUILD','Kaelis')
+  assert(A.db.manageMine[21] and sent[1] and sent[1]:match('|1|21$'),'established claim defended: '..tostring(sent[1]))
+  -- Done message from anyone: the order disappears and can never be mailed again.
+  A:ReceiveManageMessage('BLNEW1','D|21','GUILD','Zora')
+  assert(A.db.manageSent[21] and not A.db.manageMine[21] and A:OrderBlocked(21),'sent order locked for good')
+  won=nil;A:ClaimOrders({o},function(w) won=w end);run()
+  assert(not won,'sent order cannot be claimed again')
+  -- A manager logging in later asks; we repeat the shipment.
+  sent={}
+  A:ReceiveManageMessage('BLNEW1','Q','GUILD','Late');run()
+  local repeated=false
+  for _,m in ipairs(sent) do if m:match('^D|.*21') then repeated=true end end
+  assert(repeated,'shipment repeated for late managers')
+  -- Own echoes are ignored.
+  A:ReceiveManageMessage('BLNEW1','D|99','GUILD','Tester')
+  assert(not A.db.manageSent[99],'own message ignored')
+  C_ChatInfo.SendAddonMessage=oldSend;IsInGuild=nil;C_Timer.After=oldAfter
+end
+print('PASS: several bank managers coordinate reservations and never send twice')
 
 -- Localization: client language decides, BanklordDB.settings.locale overrides.
 local EN=assert(A._localeEN,'EN table not exposed')

@@ -240,3 +240,8 @@ func uploadWithResult(ctx context.Context, p Profile, token string, payload []by
 	return result, nil
 }
 func hash(data []byte) string { s := sha256.Sum256(data); return hex.EncodeToString(s[:]) }
+
+// linkAccount names the keychain entry of a further guild connection.
+func linkAccount(server string, guild int64) string {
+	return "bridge-token-" + hash([]byte(server + "|" + strconv.FormatInt(guild, 10)))[:16]
+}

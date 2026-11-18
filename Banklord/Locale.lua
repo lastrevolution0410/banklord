@@ -286,6 +286,8 @@ local EN={
   ['Peer-ACK bedeutet nicht Serverannahme. Bei fehlender Verbindung: direkt im Web bestellen.']=
     'A peer ACK does not mean server acceptance. If there is no connection, order directly on the web.',
   -- Bank manager tools
+  ['%s möchte Banklord nutzen und wurde bestätigt. Die Freischaltung wird nach deinem nächsten /reload übertragen.']='%s wants to use Banklord and was confirmed. The activation is sent after your next /reload.',
+  ['%s hat dich für die Gilden-Website bestätigt. Nach /reload oder Logout verbindet der Companion automatisch.']='%s confirmed you for the guild website. After /reload or logout the companion connects automatically.',
   ['Bestellung #%d konnte nicht gebucht werden: %s']='Order #%d could not be booked: %s',
   ['… und %d weitere neue Bestellungen.']='… and %d more new orders.',
   ['Neue Bestellung #%d von %s: %s']='New order #%d from %s: %s',
@@ -293,6 +295,13 @@ local EN={
   ['Bitte zuerst die Gildenbank öffnen.']='Please open the guild bank first.',
   ['Entnahme läuft bereits.']='Already taking items out.',
   ['Entnahme abgebrochen: Gildenbank geschlossen.']='Stopped: the guild bank was closed.',
+  ['bereits versendet']='already sent',
+  ['in Arbeit bei %s']='being handled by %s',
+  ['Bestellung #%d: %s.']='Order #%d: %s.',
+  ['Reserviere %d Bestellung(en) bei den anderen Verwaltern …']='Reserving %d order(s) with the other bank managers …',
+  ['Bestellung #%d übernimmt bereits ein anderer Verwalter.']='Order #%d is already being handled by another bank manager.',
+  ['Bestellung #%d übernimmt jetzt %s. Bitte entnommene Gegenstände zurücklegen.']='Order #%d is now handled by %s. Please put any items you took back.',
+  ['Gesperrt']='Locked',
   ['Entnahme fertig. Jetzt zum Briefkasten gehen.']='Done. Now go to a mailbox.',
   ['Nicht genug %s in der Gildenbank (es fehlen %d).']='Not enough %s in the guild bank (%d missing).',
   ['Taschen voll. Entnahme gestoppt.']='Bags full. Stopped.',

@@ -7,6 +7,7 @@ use Banklord\ScanImport;
 use Banklord\ScanStaging;
 use Banklord\BridgeTokens;
 use Banklord\IngameOrders;
+use Banklord\Claims;
 use Banklord\WebUpdater;
 use Banklord\ReleasePublisher;
 use Banklord\UpstreamUpdater;
@@ -27,6 +28,7 @@ require dirname(__DIR__) . '/src/ScanImport.php';
 require dirname(__DIR__) . '/src/ScanStaging.php';
 require dirname(__DIR__) . '/src/BridgeTokens.php';
 require dirname(__DIR__) . '/src/IngameOrders.php';
+require dirname(__DIR__) . '/src/Claims.php';
 require dirname(__DIR__) . '/src/WebUpdater.php';
 require dirname(__DIR__) . '/src/ReleasePublisher.php';
 require dirname(__DIR__) . '/src/UpstreamUpdater.php';
@@ -290,6 +292,7 @@ try {
         // Manager handovers first: they release reservations before a new scan lowers the stock.
         $managed=$ingame->processManage($guildId,$actor,$file,$record);
         $ingame->syncCharacters($guildId,$actor,$file,$record);
+        (new Claims($db))->record($guildId,$actor,$file,$record);
         if ($auth['scope']==='member.orders') {
             // Personal token: orders only. Scans and peer drafts in the file are ignored.
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
@@ -317,6 +320,13 @@ try {
         $results=$ingame->processOutbox($guildId,$actor,$file,$record);
         reply($staged['created']?201:200,['import'=>$staged,'auto_reconcile'=>$autoResult,'new_peer_drafts'=>$peers,
             'ingame_orders'=>(object)$results,'ingame_state'=>$ingame->state($guildId,$actor,$results,$managed)]);
+    }
+    // Joining by in-game confirmation (see Claims.php). No session; the key signature is the proof.
+    $origin=(getenv('APP_HTTPS')==='off'?'http':'https').'://'.preg_replace('/[^A-Za-z0-9.:\-]/','',(string)($_SERVER['HTTP_HOST']??''));
+    if ($method==='GET' && $path==='/claims/challenge') reply(200,(new Claims($db))->challenge((string)($_GET['key']??'')));
+    if ($method==='POST' && $path==='/claims/redeem') {
+        $b=body();
+        reply(200,['grants'=>(new Claims($db))->redeem((string)($b['key']??''),(string)($b['signature']??''),$origin)]);
     }
     if (in_array($method,['POST','PUT','PATCH','DELETE'],true)) csrf();
 
@@ -355,6 +365,12 @@ try {
         reply(200,['user_id'=>$_SESSION['uid'],'csrf'=>$_SESSION['csrf']]);
     }
     if ($method==='POST' && $path==='/logout') {$_SESSION=[];session_destroy();reply(200,['ok'=>true]);}
+    if ($method==='POST' && $path==='/claims/complete') {
+        $b=body();
+        $uid=(new Claims($db))->complete((string)($b['welcome']??''),(string)($b['email']??''),(string)($b['password']??''),(string)($b['display_name']??''));
+        session_regenerate_id(true);unset($_SESSION['demo']);$_SESSION['uid']=$uid;$_SESSION['csrf']=bin2hex(random_bytes(32));
+        reply(200,['user_id'=>$uid,'csrf'=>$_SESSION['csrf']]);
+    }
     $user=mustLogin();
     if (isset($_SESSION['last_seen']) && time()-(int)$_SESSION['last_seen']>28800) {
         $_SESSION=[];session_destroy();reply(401,['error'=>'SESSION_EXPIRED']);

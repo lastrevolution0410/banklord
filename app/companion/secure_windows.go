@@ -53,3 +53,6 @@ func unprotectToken(s string) (string, error) {
 	out, err := sealed(raw, true)
 	return string(out), err
 }
+
+// protectNamed: DPAPI blobs are self-contained, the name is not needed.
+func protectNamed(_ string, s string) (string, error) { return protectToken(s) }

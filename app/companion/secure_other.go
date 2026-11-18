@@ -23,22 +23,30 @@ const (
 	markFile   = "file:v1:"
 )
 
-func protectToken(s string) (string, error) {
+func protectToken(s string) (string, error) { return protectNamed(keyAccount, s) }
+
+// protectNamed stores a secret under its own keychain entry; the returned mark
+// names that entry (the primary bridge token keeps the original mark).
+func protectNamed(account, s string) (string, error) {
+	suffix := ""
+	if account != keyAccount {
+		suffix = ":" + account
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		// "security -i" reads the command from stdin, keeping the token out of ps.
 		cmd := exec.Command("security", "-i")
-		cmd.Stdin = strings.NewReader(`add-generic-password -U -a "` + keyAccount + `" -s "` + keyService + `" -w "` + s + "\"\n")
+		cmd.Stdin = strings.NewReader(`add-generic-password -U -a "` + account + `" -s "` + keyService + `" -w "` + s + "\"\n")
 		if out, err := cmd.CombinedOutput(); err != nil || bytes.Contains(out, []byte("rror")) {
 			return "", errors.New("Schlüsselbund nicht verfügbar")
 		}
-		return markMac, nil
+		return markMac + suffix, nil
 	default:
 		if path, err := exec.LookPath("secret-tool"); err == nil {
-			cmd := exec.Command(path, "store", "--label="+keyService, "service", keyService, "account", keyAccount)
+			cmd := exec.Command(path, "store", "--label="+keyService, "service", keyService, "account", account)
 			cmd.Stdin = strings.NewReader(s)
 			if cmd.Run() == nil {
-				return markLinux, nil
+				return markLinux + suffix, nil
 			}
 		}
 		return markFile + base64.StdEncoding.EncodeToString([]byte(s)), nil
@@ -48,11 +56,15 @@ func protectToken(s string) (string, error) {
 func unprotectToken(s string) (string, error) {
 	var out []byte
 	var err error
+	account := keyAccount
+	if i := strings.Index(s, ":v1:"); i > 0 && !strings.HasPrefix(s, markFile) {
+		account, s = s[i+4:], s[:i+3]
+	}
 	switch {
 	case s == markMac:
-		out, err = exec.Command("security", "find-generic-password", "-a", keyAccount, "-s", keyService, "-w").Output()
+		out, err = exec.Command("security", "find-generic-password", "-a", account, "-s", keyService, "-w").Output()
 	case s == markLinux:
-		out, err = exec.Command("secret-tool", "lookup", "service", keyService, "account", keyAccount).Output()
+		out, err = exec.Command("secret-tool", "lookup", "service", keyService, "account", account).Output()
 	case strings.HasPrefix(s, markFile):
 		out, err = base64.StdEncoding.DecodeString(strings.TrimPrefix(s, markFile))
 	default:

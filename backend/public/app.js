@@ -67,6 +67,14 @@ async function initialize(){
   $('demoBanner').classList.toggle('hidden',!state.demo);
   const logged=Boolean(state.user);document.body.classList.toggle('is-logged-in',logged);$('loginPage').classList.toggle('hidden',logged);$('workspace').classList.toggle('hidden',!logged);
   $('logoutBtn').classList.toggle('hidden',!logged);$('userBadge').textContent=logged?'':'Nicht angemeldet';if(!logged){$('bellBtn').classList.add('hidden');$('guildSelector').classList.add('hidden');$('guildTitle').textContent='Banklord';$('guildSub').textContent='Gildenbank · Bestellungen';}
+  const welcome=(location.hash.match(/^#welcome=([a-f0-9]{64})$/)||[])[1];
+  if(welcome){$('loginPage').classList.add('hidden');$('workspace').classList.add('hidden');$('welcomePage').classList.remove('hidden');
+    $('welcomeForm').onsubmit=async e=>{e.preventDefault();
+      if($('welcomePassword').value!==$('welcomePassword2').value){notice('Die Passwörter stimmen nicht überein.',true);return;}
+      try{await post('/claims/complete',{welcome,email:$('welcomeEmail').value,password:$('welcomePassword').value,display_name:$('welcomeName').value});
+        history.replaceState(null,'',location.pathname);location.reload();}
+      catch(err){notice('Registrierung fehlgeschlagen: '+err.message,true);}};
+    return;}
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;
   $('guildSelector').replaceChildren();for(const g of data.guilds){const o=el('option','',`${g.name} · ${g.realm}`);o.value=g.id;$('guildSelector').append(o);}

@@ -66,6 +66,17 @@ type ingameState struct {
 	Outbox        map[string]outboxResult `json:"outbox"`
 	Manage        *[]manageOrder          `json:"manage"`
 	ManageResults map[string]manageResult `json:"manage_results"`
+	Server        string                  `json:"-"`
+	GuildID       int64                   `json:"-"`
+	Connections   []stateConnection       `json:"-"`
+}
+
+// stateConnection tells the addon which website belongs to which guild, so a
+// bank manager can answer join requests with the right address.
+type stateConnection struct {
+	Server  string
+	GuildID int64
+	Guild   guildRef
 }
 
 var manageKeyPattern = regexp.MustCompile(`^ma-[0-9]{6,12}-[a-z0-9]{6}$`)
@@ -224,6 +235,17 @@ func renderState(st ingameState) string {
 		}
 		b.WriteString("  },\n")
 	}
+	if len(st.Connections) > 0 {
+		b.WriteString("  connections = {\n")
+		for _, c := range st.Connections {
+			if !strings.HasPrefix(c.Server, "https://") || c.GuildID <= 0 || c.Guild.Name == "" {
+				continue
+			}
+			fmt.Fprintf(&b, "    { server = %s, guildId = %d, guild = %s, guildRealm = %s },\n",
+				luaString(clip(c.Server, 200)), c.GuildID, luaString(clip(c.Guild.Name, 80)), luaString(clip(c.Guild.Realm, 80)))
+		}
+		b.WriteString("  },\n")
+	}
 	b.WriteString("}\n")
 	return b.String()
 }
@@ -266,6 +288,9 @@ func mergeStates(states []ingameState) ingameState {
 	for _, st := range states {
 		if st.GeneratedAt > out.GeneratedAt {
 			out.GeneratedAt = st.GeneratedAt
+		}
+		if st.Server != "" {
+			out.Connections = append(out.Connections, stateConnection{Server: st.Server, GuildID: st.GuildID, Guild: st.Guild})
 		}
 		for _, o := range st.Orders {
 			o.Guild = st.Guild
