@@ -214,7 +214,10 @@ try {
         try {$auth=(new BridgeTokens($db))->authorizeScoped($guildId,$match[1]);}
         catch (DomainError $e) {reply(401,['error'=>'BRIDGE_TOKEN_INVALID']);}
         $caps=['scan.auto'=>['scan_stage','auto_reconcile_when_safe','order_sync'],'scan.stage'=>['scan_stage','order_sync'],'member.orders'=>['order_sync']];
-        reply(200,['ok'=>true,'scope'=>$auth['scope'],'guild_id'=>$guildId,'capabilities'=>$caps[$auth['scope']]??[]]);
+        $roleQ=$db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
+        $roleQ->execute([$guildId,$auth['actor']]);
+        $cap=in_array($roleQ->fetchColumn(),['admin','bank_manager','officer'],true)?$caps['scan.auto']:$caps['member.orders'];
+        reply(200,['ok'=>true,'scope'=>$auth['scope'],'guild_id'=>$guildId,'capabilities'=>$cap]);
     }
     // Version heartbeat from a companion: device name + installed versions only.
     if ($method==='POST' && preg_match('~^/bridge/guilds/([1-9][0-9]{0,17})/heartbeat$~D',$path,$bm)) {
@@ -305,13 +308,27 @@ try {
             $st['feedback_results']=(object)$fbResults;
             return $st;
         };
-        if ($auth['scope']==='member.orders') {
-            // Personal token: orders only. Scans and peer drafts in the file are ignored.
+        // Scans count for every active bank manager, officer or admin, however the
+        // companion was connected. The role is checked on every upload, so a
+        // demoted member's scans are ignored immediately.
+        $roleQ=$db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
+        $roleQ->execute([$guildId,$actor]);
+        $scanner=in_array($roleQ->fetchColumn(),['admin','bank_manager','officer'],true);
+        if (!$scanner) {
+            // Members: orders only. Scans and peer drafts in the file are ignored.
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
             reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$withFeedback($ingame->state($guildId,$actor,$results,$managed))]);
         }
-        $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']);
-        $auto=$auth['scope']==='scan.auto';
+        try { $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']); }
+        catch (\InvalidArgumentException $e) {
+            // No complete scan in this file (e.g. only orders or a mail handover): nothing to stage.
+            $results=$ingame->processOutbox($guildId,$actor,$file,$record);
+            reply(200,['scan_skipped'=>substr($e->getMessage(),0,60),'ingame_orders'=>(object)$results,'ingame_state'=>$withFeedback($ingame->state($guildId,$actor,$results,$managed))]);
+        }
+        // Automatic reconciliation for all managers once an admin enabled it for the guild.
+        $autoQ=$db->prepare('SELECT enabled FROM guild_scan_automation WHERE guild_id=?');
+        $autoQ->execute([$guildId]);
+        $auto=(int)$autoQ->fetchColumn()===1;
         $staged=(new ScanStaging($db))->stage($guildId,$actor,$candidate,$auto);
         $peers=(new PeerRelay($db))->stage($guildId,$actor,$file);
         $autoResult=['status'=>'not_enabled'];

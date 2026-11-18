@@ -7,7 +7,7 @@ use PDO;
 final class StockReconciliation
 {
     /** SavedVariables reach the companion only on /reload or logout, often hours after the scan. */
-    public const MAX_AGE_AUTOMATED=1800;
+    public const MAX_AGE_AUTOMATED=43200;
     public const MAX_AGE_MANUAL=43200;
 
     public function __construct(private readonly PDO $db) {}
@@ -76,7 +76,7 @@ final class StockReconciliation
             if (!$gr || $gr['wow_flavor']!=='mop_classic') throw new DomainError('GUILD_NOT_FOUND');
             $role=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active' FOR UPDATE");
             $role->execute([$guild,$actor]);
-            if (!in_array($role->fetchColumn(),['admin','bank_manager'],true))throw new DomainError('FORBIDDEN');
+            if (!in_array($role->fetchColumn(),['admin','bank_manager','officer'],true))throw new DomainError('FORBIDDEN');
             if ($automated) {
                 // A scan.auto grant alone cannot enable automation; explicit
                 // site-admin consent stored server-side is separately required.

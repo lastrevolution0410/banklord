@@ -28,7 +28,7 @@ Goal: only people who are **really in the guild** get access – without invitat
 3. The addon of a **bank manager, officer or admin** checks the sender against the real guild roster. The sender of an addon message is set by Blizzard's server and cannot be forged.
 4. The manager's Companion uploads the confirmation with **their own** access. The website only accepts it from these roles, only for its own guild, and only if it is at most 14 days old.
 5. The member's Companion fetches a **one-time random number** (valid for 5 minutes) and signs it together with the **website address**. A signature for another website is worthless there; each random number is valid only once.
-6. Only then is there a personal access (order rights only, 180 days) and, for new accounts, a **one-time registration link** (7 days) with which the member sets their own e-mail and password.
+6. Only then is there a personal access (order rights, 180 days; for bank managers, officers and admins the website also accepts scans through it – the current role is checked on every upload) and, for new accounts, a **one-time registration link** (7 days) with which the member sets their own e-mail and password.
 
 The Companion never connects on its own: you see the website address and click “Connect”.
 

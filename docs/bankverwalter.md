@@ -33,6 +33,8 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 
 Das Fenster lässt sich verschieben und merkt sich seine Position.
 
+> **Bestand aktualisieren:** Beim Öffnen der Gildenbank scannt Banklord automatisch alle Fächer. Nach `/reload` oder Logout lädt der Companion den Scan hoch. Hat ein Admin unter **System** den automatischen Abgleich eingeschaltet, übernimmt die Website den Scan jedes Bankverwalters, Offiziers und Admins sofort; sonst wartet er unter **Inventur** auf Bestätigung.
+
 ## Am Briefkasten: versenden
 
 1. Öffne einen Briefkasten. Es erscheint **„Banklord – Bestellungen versenden“**.

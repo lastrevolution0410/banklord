@@ -33,6 +33,8 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 
 The window can be moved and remembers its position.
 
+> **Updating the stock:** When you open the guild bank, Banklord scans all tabs automatically. After `/reload` or logout the Companion uploads the scan. If an admin has turned on automatic reconciliation under **System**, the website takes over the scan of every bank manager, officer and admin right away; otherwise it waits under **Inventory** for confirmation.
+
 ## At the mailbox: send
 
 1. Open a mailbox. **“Banklord – send orders”** appears.

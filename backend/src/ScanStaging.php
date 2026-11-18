@@ -17,7 +17,7 @@ final class ScanStaging
             $record = $guild->fetch(PDO::FETCH_ASSOC);
             $auth = $this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active' FOR UPDATE");
             $auth->execute([$guildId, $actorId]);
-            if (!in_array($auth->fetchColumn(), ['admin','bank_manager'], true)) throw new DomainError('FORBIDDEN');
+            if (!in_array($auth->fetchColumn(), ['admin','bank_manager','officer'], true)) throw new DomainError('FORBIDDEN');
             if (!$record || $record['wow_flavor'] !== 'mop_classic' || $import['guild'] !== $record['name'] || $import['realm'] !== $record['realm']) {
                 throw new DomainError('IMPORT_GUILD_REALM_MISMATCH');
             }

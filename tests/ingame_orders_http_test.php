@@ -138,6 +138,31 @@ $jar='';$csrf='';$s('GET','/session');[$st]=$s('POST','/login',['email'=>"neu$g@
 $ok($st===200,'new member logs in with own password');
 $v=$db->prepare("SELECT verification_status FROM characters WHERE guild_id=? AND name='Neuling'");$v->execute([$g]);
 $ok($v->fetchColumn()==='verified','character confirmed in game is verified');
+// Scans of a bank manager connected by in-game unlock (personal token) are staged and reconciled automatically.
+$lua=function($v) use(&$lua){ if(is_array($v)){$o='{';foreach($v as $k=>$x)$o.=(is_int($k)?"[$k]":'["'.$k.'"]').'='.$lua($x).',';return $o.'}';}
+  if(is_bool($v))return $v?'true':'false'; if(is_int($v))return (string)$v; return '"'.addcslashes((string)$v,"\"\\").'"'; };
+$scanFile=function(int $count) use($lua){ $t=time(); $key='item:2589:0:0:0:0:0:0:0:0';
+  $scan=['formatVersion'=>2,'source'=>'mop-classic-guildbank','guild'=>'Demo Guild','realm'=>'Everlook','mode'=>'all','quality'=>'unverified',
+   'serverConfirmed'=>false,'capturedAt'=>$t-5,'scanStartedAt'=>$t-20,'totalTabs'=>1,'eligibleTabs'=>1,'scannedTabs'=>1,'skippedTabs'=>0,'failedTabs'=>0,
+   'tabs'=>[1=>['tab'=>1,'tabName'=>'Eins','status'=>'captured','quality'=>'unverified','expectedSlots'=>98,'capturedAt'=>$t-10,
+     'items'=>[['slot'=>1,'itemID'=>2589,'count'=>$count,'itemKey'=>$key,'itemLink'=>'|cffffffff|H'.$key.'|h[Leinenstoff]|h|r']]]],
+   'errors'=>[],'occupiedSlots'=>1,'totalItemCount'=>$count,'items'=>[['itemKey'=>$key,'count'=>$count]]];
+  return "BanklordDB = ".$lua(['schemaVersion'=>2,'fullScans'=>[1=>$scan]])."\n"; };
+$mgr2=$mkUser('bank_manager'); $m2tok=(new BridgeTokens($db))->issueMemberOrders($g,$mgr2,'Bank-PC-2')['token'];
+[$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/status",$m2tok);
+$ok(in_array('scan_stage',$r['capabilities']??[],true),'manager personal token reports scan capability');
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(17));
+$ok(in_array($st,[200,201],true) && ($r['import']['status']??'')==='pending' && ($r['auto_reconcile']['status']??'')==='not_enabled',"manager scan staged without automation ($st) ".json_encode($r['auto_reconcile']??$r));
+$db->prepare("INSERT INTO guild_scan_automation (guild_id,enabled,enabled_by,enabled_at) VALUES (?,1,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE enabled=1")->execute([$g,$manager]);
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(16));
+$ok(($r['auto_reconcile']['status']??'')==='reconciled','manager scan reconciled automatically: '.json_encode($r['auto_reconcile']??$r));
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(16));
+$ok(($r['auto_reconcile']['status']??'')==='already_reconciled','same scan again is not booked twice: '.json_encode($r['auto_reconcile']??$r));
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,"BanklordDB = {[\"schemaVersion\"]=2,}\n");
+$ok($st===200 && isset($r['scan_skipped']) && !isset($r['import']),'upload without scan still succeeds');
+$db->prepare("UPDATE guild_memberships SET role='member' WHERE guild_id=? AND user_id=?")->execute([$g,$mgr2]);
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(1));
+$ok($st===200 && !isset($r['import']),'demoted manager scan ignored');
 $db->prepare("UPDATE guild_memberships SET status='disabled' WHERE guild_id=? AND user_id=?")->execute([$g,$member]);
 [$st,$r]=$http('GET',"$base/api/v1/bridge/guilds/$g/state",$tok);
 $ok($st===401,'disabled member token rejected');

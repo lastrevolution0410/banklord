@@ -28,7 +28,7 @@ Ziel: Nur wer **wirklich in der Gilde** ist, bekommt Zugang – ohne Einladungsc
 3. Das Addon eines **Bankverwalters, Offiziers oder Admins** prüft den Absender gegen die echte Gildenliste. Den Absender einer Addon-Nachricht setzt Blizzards Server; er kann nicht gefälscht werden.
 4. Der Companion des Verwalters lädt die Bestätigung mit **seinem** Zugang hoch. Die Website akzeptiert sie nur von diesen Rollen, nur für die eigene Gilde und nur, wenn sie höchstens 14 Tage alt ist.
 5. Der Companion des Mitglieds holt eine **einmalige Zufallszahl** (5 Minuten gültig) und unterschreibt sie zusammen mit der **Adresse der Website**. Eine Unterschrift für eine andere Website ist dort wertlos; jede Zufallszahl gilt nur einmal.
-6. Erst dann gibt es einen eigenen Zugang (nur Bestell-Rechte, 180 Tage) und für neue Konten einen **einmaligen Registrierungslink** (7 Tage), mit dem das Mitglied selbst E-Mail und Passwort festlegt.
+6. Erst dann gibt es einen eigenen Zugang (Bestell-Rechte, 180 Tage; bei Bankverwaltern, Offizieren und Admins nimmt die Website darüber auch Scans an – geprüft wird bei jedem Upload die aktuelle Rolle) und für neue Konten einen **einmaligen Registrierungslink** (7 Tage), mit dem das Mitglied selbst E-Mail und Passwort festlegt.
 
 Der Companion verbindet sich nicht von selbst: Du siehst die Website-Adresse und klickst „Verbinden“.
 

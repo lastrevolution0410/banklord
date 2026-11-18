@@ -40,9 +40,18 @@ $e=$snap(3000,[2589=>99]);
 $ok(($r->inspect($g,$e)['reason']??'')==='SCAN_OLDER_THAN_STOCK','inspect: older than stock');
 $x=$err(fn()=>$r->confirm($g,$u,$e));$ok($x==='SCAN_OLDER_THAN_STOCK','confirm: older than stock, got '.$x);
 // Manual confirmation accepts a scan from a long session, automation does not.
-$f=$snap(7200,[2589=>1]);
+// Automation accepts a scan from a long play session (logout hours later), but never older than 12 hours.
 $db->prepare("UPDATE guild_stock SET observed_at=? WHERE guild_id=?")->execute([gmdate('Y-m-d H:i:s',time()-90000),$g]);
 $db->prepare("INSERT INTO guild_scan_automation (guild_id,enabled,enabled_by,enabled_at) VALUES (?,1,?,UTC_TIMESTAMP())")->execute([$g,$u]);
-$ok($err(fn()=>$r->confirm($g,$u,$f,true))==='SNAPSHOT_TOO_OLD','automation: 2h old scan rejected');
-$ok($err(fn()=>$r->confirm($g,$u,$f))==='OK','manual: 2h old scan accepted');
+$f=$snap(46800,[2589=>1]);
+$ok($err(fn()=>$r->confirm($g,$u,$f,true))==='SNAPSHOT_TOO_OLD','automation: 13h old scan rejected');
+$f=$snap(7200,[2589=>1]);
+$ok($err(fn()=>$r->confirm($g,$u,$f,true))==='OK','automation: 2h old scan accepted');
+// Officers count as bank managers.
+$db->prepare("UPDATE guild_memberships SET role='officer' WHERE guild_id=? AND user_id=?")->execute([$g,$u]);
+$h=$snap(60,[2589=>4]);
+$ok($err(fn()=>$r->confirm($g,$u,$h,true))==='OK','officer scan reconciles');
+$db->prepare("UPDATE guild_memberships SET role='member' WHERE guild_id=? AND user_id=?")->execute([$g,$u]);
+$h=$snap(30,[2589=>3]);
+$ok($err(fn()=>$r->confirm($g,$u,$h,true))==='FORBIDDEN','member scan never reconciles');
 echo $fail?"FAILED ($fail)\n":"PASS: reconciliation scenarios\n"; exit($fail?1:0);
