@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.9.1"
+const companionVersion = "0.9.2"
 
 type controller struct {
 	mu           sync.Mutex
@@ -574,19 +574,23 @@ func (c *controller) handle(w http.ResponseWriter, r *http.Request) {
 					c.mu.Unlock()
 					result = "HTTPS, Gilde und Bridge-Token sind gültig. Jetzt Einstellungen speichern und starten."
 				}
-			} else if err := saveProfile(withExtra(p, c), token); err != nil {
-				result = "Speichern fehlgeschlagen: " + err.Error()
-				failure = true
 			} else {
-				c.mu.Lock()
-				c.profile = withExtra(p, c)
-				c.token = token
-				c.active = true
-				c.next = time.Time{}
-				c.lastHash = ""
-				c.status = "Überwachung gestartet"
-				c.mu.Unlock()
-				result = "Gespeichert. Automatischer Upload nach der nächsten Dateispeicherung gestartet."
+				// withExtra takes c.mu itself: merge before locking (a nested Lock deadlocked "save").
+				merged := withExtra(p, c)
+				if err := saveProfile(merged, token); err != nil {
+					result = "Speichern fehlgeschlagen: " + err.Error()
+					failure = true
+				} else {
+					c.mu.Lock()
+					c.profile = merged
+					c.token = token
+					c.active = true
+					c.next = time.Time{}
+					c.lastHash = ""
+					c.status = "Überwachung gestartet"
+					c.mu.Unlock()
+					result = "Gespeichert. Automatischer Upload nach der nächsten Dateispeicherung gestartet."
+				}
 			}
 			// No token is ever returned to the browser in rendered HTML.
 		case "addguild":

@@ -267,16 +267,37 @@ func remoteUpdateClient(ctx context.Context, release releasePayload, clientPath 
 		if cst.Present && cst.Recognized {
 			cmp, ok := compareVersions(cst.InstalledVersion, release.Companion.Version)
 			if ok && cmp < 0 {
-				if running, _ := companionIsRunning(); running {
-					return msg + "; Companion-Update wartet bis Programm beendet ist", nil
-				}
+				// Verify the download first, then replace a running companion: it runs
+				// permanently (autostart), so waiting for it to end would never update it.
 				b, err := cacheVerifiedUpdate(release.Companion, func() ([]byte, error) {
 					return fetchUpdateFile(ctx, updateHTTPClient(), release.Companion, 64<<20)
 				})
 				if err != nil {
 					return msg, err
 				}
-				if _, err := installCompanionVersion(b, release.Companion.Version, false, false); err != nil {
+				wasRunning, _ := companionIsRunning()
+				if wasRunning {
+					stopCompanion()
+					for i := 0; i < 20; i++ {
+						if running, _ := companionIsRunning(); !running {
+							break
+						}
+						time.Sleep(250 * time.Millisecond)
+					}
+					if running, _ := companionIsRunning(); running {
+						return msg + "; Companion-Update wartet bis Programm beendet ist", nil
+					}
+				}
+				_, err = installCompanionVersion(b, release.Companion.Version, false, false)
+				if dir, derr := companionDirectory(); wasRunning && derr == nil {
+					// New version, or the restored old one if the install failed.
+					path := filepath.Join(dir, "Banklord-Companion"+exeSuffix)
+					// Restart in the background, without opening a browser tab.
+					os.Setenv("BANKLORD_NO_BROWSER", "1")
+					_ = launchCompanion(path)
+					os.Unsetenv("BANKLORD_NO_BROWSER")
+				}
+				if err != nil {
 					return msg, err
 				}
 				msg += "; Companion aktualisiert"

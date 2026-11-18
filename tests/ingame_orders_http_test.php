@@ -154,9 +154,10 @@ $ok(in_array('scan_stage',$r['capabilities']??[],true),'manager personal token r
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(17));
 $ok(in_array($st,[200,201],true) && ($r['import']['status']??'')==='pending' && ($r['auto_reconcile']['status']??'')==='not_enabled',"manager scan staged without automation ($st) ".json_encode($r['auto_reconcile']??$r));
 $db->prepare("INSERT INTO guild_scan_automation (guild_id,enabled,enabled_by,enabled_at) VALUES (?,1,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE enabled=1")->execute([$g,$manager]);
-[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(16));
+$same=$scanFile(16);
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$same);
 $ok(($r['auto_reconcile']['status']??'')==='reconciled','manager scan reconciled automatically: '.json_encode($r['auto_reconcile']??$r));
-[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$scanFile(16));
+[$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,$same);
 $ok(($r['auto_reconcile']['status']??'')==='already_reconciled','same scan again is not booked twice: '.json_encode($r['auto_reconcile']??$r));
 [$st,$r]=$http('POST',"$base/api/v1/bridge/guilds/$g/imports",$m2tok,"BanklordDB = {[\"schemaVersion\"]=2,}\n");
 $ok($st===200 && isset($r['scan_skipped']) && !isset($r['import']),'upload without scan still succeeds');

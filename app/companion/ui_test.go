@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLocalUIHostOriginAndSecret(t *testing.T) {
@@ -84,5 +85,28 @@ func TestLocalUIHostOriginAndSecret(t *testing.T) {
 				t.Errorf("got HTTP %d; want HTTP %d", actual, test.expected)
 			}
 		})
+	}
+}
+
+// Saving the setup form must finish; a nested lock once made it hang forever.
+func TestSaveSetupDoesNotHang(t *testing.T) {
+	isolateConfig(t)
+	c := &controller{base: "http://127.0.0.1:18888", uiKey: "unit-test-route-key", csrfToken: "independent-unit-test-csrf-token", status: "Einrichtung erforderlich"}
+	p := testProfile()
+	vals := url.Values{"action": {"save"}, "csrf": {c.csrfToken}, "server": {p.Server}, "guild": {"7"}, "source": {p.Source}, "interval": {"15"}, "token": {testToken()}}
+	req := httptest.NewRequest(http.MethodPost, c.base+"/ui/"+c.uiKey, strings.NewReader(vals.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() { rec := httptest.NewRecorder(); c.handle(rec, req); done <- rec }()
+	select {
+	case rec := <-done:
+		if !strings.Contains(rec.Body.String(), "Gespeichert") {
+			t.Fatalf("save failed: %s", rec.Body.String())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("save request hangs (deadlock)")
+	}
+	if !c.active || c.token != testToken() || c.profile.GuildID != 7 {
+		t.Fatal("profile not applied")
 	}
 }
