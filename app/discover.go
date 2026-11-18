@@ -21,7 +21,7 @@ type Install struct {
 }
 
 var clients = map[string]string{
-	"_retail_": "Retail", "_classic_": "Classic Progression / MoP", "_classic_era_": "Classic Era / Hardcore", "_anniversary_": "Classic Anniversary", "_ptr_": "Public Test Realm", "_xptr_": "Experimental PTR", "_beta_": "Beta",
+	"_retail_": "Retail", "_classic_": "Classic Progression / MoP", "_classic_era_": "Classic Era / Hardcore", "_anniversary_": "Classic Anniversary", "_forever_": "WoW Forever", "_ptr_": "Public Test Realm", "_xptr_": "Experimental PTR", "_beta_": "Beta",
 }
 
 // macOS clients are app bundles such as "World of Warcraft Classic.app".
@@ -332,7 +332,7 @@ func resolveChoice(input string) (string, error) {
 // clientVersion reads the game version ("5.5.4") of a client folder from the
 // shared .build.info file, or returns "".
 func clientVersion(clientPath string) string {
-	products := map[string][]string{"_retail_": {"wow"}, "_classic_": {"wow_classic"}, "_classic_era_": {"wow_classic_era"}, "_anniversary_": {"wow_anniversary", "wow_classic_anniversary"}, "_ptr_": {"wowt"}, "_xptr_": {"wowxptr"}, "_beta_": {"wow_beta"}}
+	products := map[string][]string{"_retail_": {"wow"}, "_classic_": {"wow_classic"}, "_classic_era_": {"wow_classic_era"}, "_anniversary_": {"wow_anniversary", "wow_classic_anniversary"}, "_forever_": {"wow_forever", "wow_camelot"}, "_ptr_": {"wowt"}, "_xptr_": {"wowxptr"}, "_beta_": {"wow_beta"}}
 	want := products[strings.ToLower(filepath.Base(clientPath))]
 	for _, dir := range []string{filepath.Dir(clientPath), clientPath} {
 		data, err := os.ReadFile(filepath.Join(dir, ".build.info"))

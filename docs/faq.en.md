@@ -43,11 +43,15 @@ Addons are not allowed to access the internet in game. WoW only saves addon data
 
 An addon can only read the guild bank's contents while someone has it open. The stock is therefore the state of the last scan; the website shows when that was.
 
+### Does Banklord work with WoW Forever?
+
+Yes, since 1.9. The setup finds the `_forever_` folder and installs the addon there too. On the website choose the game version **WoW Forever** when setting up the guild (or under **System**). Forever has no realms – that is no problem for Banklord, guilds are then recognised by name. Forever is still new: if you notice anything, please report it via **Help & feedback**.
+
 ### Several characters and guilds
 
 Yes. Every character is recognised on login and assigned to its guild. Each guild with its own Banklord website gets its own connection in the Companion.
 
-Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`).
+Different game versions work with one account too, for example one guild in MoP Classic and one in Retail. Every guild has exactly one game version; items and scans are never mixed. When adding the guild in the Companion, choose the Banklord.lua of the matching WoW installation (`_retail_`, `_classic_`, `_anniversary_`, `_forever_`).
 
 **Example MoP Classic, one realm:** characters A and B in the same guild, character C in another guild – that works. On every login Banklord notices which guild the character is in and only shows that guild's stock and orders. An in-game order always goes to the guild of the character you order with.
 

@@ -83,7 +83,7 @@ if (is_string($updatePath) && preg_match('~/api/v1/docs(?:/([A-Za-z.-]{0,40}))?$
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: public, max-age=300');
     header('Vary: Accept-Language');
-    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     if ($md===null) {http_response_code(404);echo '<!doctype html><meta charset="utf-8"><title>404</title><p>Seite nicht gefunden. <a href="README">Übersicht</a></p>';exit;}
     \Banklord\DocsPage::$root=dirname(__DIR__);
     echo \Banklord\DocsPage::render($md,$page,\Banklord\Version::WEB);exit;

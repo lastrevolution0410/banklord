@@ -20,6 +20,10 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 
 ## Fertig
 
+### 1.9 – WoW Forever (18.11.2026)
+- **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
+- Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+
 ### 1.8 – Einfacher geht's nicht (18.11.2026)
 - **Kein `/reload` mehr tippen:** An den wichtigen Stellen fragt Banklord im Spiel mit einem Fenster und dem Knopf **„Jetzt übertragen“** – nach der Bestätigung als neues Mitglied, nach einer Bestellung, für Verwalter nach dem Bestätigen eines Mitglieds und beim Schließen des Briefkastens nach dem Versenden. Nie im Kampf.
 - **Startseite mit „In 3 Schritten startklar“** und großem Download-Knopf statt eines kleinen Links unten.

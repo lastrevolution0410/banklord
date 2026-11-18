@@ -1,7 +1,7 @@
 <?php
 // Game versions: one guild per version, items and scans never mixed across versions.
 declare(strict_types=1);
-foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation','ScanStaging','ItemMetadata'] as $c) require_once __DIR__."/../backend/src/$c.php";
+foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation','ScanStaging','ItemMetadata','SavedVariablesParser','PeerRelay','IngameOrders'] as $c) require_once __DIR__."/../backend/src/$c.php";
 use Banklord\{Database,GameFlavor,StockReconciliation,ScanStaging,DomainError};
 $db=Database::connect();$fail=0;
 $ok=function(bool $c,string $m) use(&$fail){ if(!$c){$fail++; echo "FAIL: $m\n";} };
@@ -17,6 +17,10 @@ $ok($err(fn()=>GameFlavor::change($db,$g,$admin,'wotlk'))==='INVALID_GAME_VERSIO
 $ok(GameFlavor::change($db,$g,$admin,'retail')==='retail' && GameFlavor::of($db,$g)==='retail','admin switches an empty guild');
 $ok(GameFlavor::ofFile("BanklordDB = {\n[\"gameFlavor\"] = \"retail\",\n}")==='retail' && GameFlavor::ofFile('BanklordDB = {}')===null,'file version read');
 $ok(GameFlavor::wowheadItem('retail',19019)==='https://www.wowhead.com/item=19019' && GameFlavor::wowheadItem('classic_era',19019)==='https://www.wowhead.com/classic/item=19019','wowhead links per version');
+$ok(GameFlavor::valid('forever') && GameFlavor::wowheadItem('forever',19019)==='https://www.wowhead.com/forever/item=19019','WoW Forever is a game version');
+$ok(\Banklord\IngameOrders::forGuild(['Ewig','Normal'],['name'=>'Ewig','realm'=>'','wow_flavor'=>'forever'])
+  && !\Banklord\IngameOrders::forGuild(['Ewig','Normal'],['name'=>'Ewig','realm'=>'Everlook','wow_flavor'=>'mop_classic'])
+  && !\Banklord\IngameOrders::forGuild(['Andere','Normal'],['name'=>'Ewig','realm'=>'','wow_flavor'=>'forever']),'Forever guilds match by name, other versions by name and realm');
 
 // A scan from another version is refused before anything is stored.
 $import=['guild'=>'Twins','realm'=>'Everlook','flavor'=>'mop_classic','source'=>'banklord-savedvariables-v2','source_key'=>'x'];

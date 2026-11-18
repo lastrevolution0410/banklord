@@ -16,6 +16,8 @@ final class GameFlavor
         'mop_classic'=>['Mists of Pandaria Classic','mop-classic',8],
         'anniversary'=>['Classic Anniversary (TBC)','tbc',5],
         'classic_era'=>['Classic Era / Hardcore','classic',4],
+        // Classic-based, realmless; icons fall back to the Classic data set.
+        'forever'=>['WoW Forever','forever',4],
     ];
 
     public static function valid(mixed $flavor): bool { return is_string($flavor) && isset(self::ALL[$flavor]); }

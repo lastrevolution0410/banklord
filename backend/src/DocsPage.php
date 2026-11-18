@@ -66,11 +66,20 @@ final class DocsPage
         $links='';
         foreach ($nav as [$f,$label]) $links.='<a href="'.self::e($f).'"'.($f===$page['file']?' aria-current="page"':'').'>'.self::e($label).'</a>';
         return '<!doctype html><html lang="'.($en?'en':'de').'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-            .'<meta name="referrer" content="no-referrer"><title>'.self::e($title).'</title><link rel="stylesheet" href="../../../app.css"></head>'
+            .'<meta name="referrer" content="no-referrer">'.self::favicon().'<title>'.self::e($title).'</title><link rel="stylesheet" href="../../../app.css"></head>'
             .'<body class="doc-page"><header class="doc-head"><a class="doc-back" href="../../../">← '.($en?'Back to the website':'Zur Website').'</a>'
             .'<nav class="doc-nav">'.$links.'</nav><a class="doc-lang" href="'.self::e($other).'" hreflang="'.($en?'de':'en').'">'.($en?'Deutsch':'English').'</a></header>'
             .'<main class="doc">'.$body.'</main><footer class="doc-foot">Banklord '.self::e($version).' · '
             .'<a href="'.self::REPO.'docs/'.self::e($page['file']).'.md" rel="noopener" target="_blank">GitHub</a></footer></body></html>';
+    }
+
+    /** Same icon as the website (taken from app.html, a PNG data URI). */
+    private static function favicon(): string
+    {
+        if (self::$root===null) return '';
+        $html=@file_get_contents(self::$root.'/public/app.html');
+        if (is_string($html) && preg_match('~<link rel="icon" href="(data:image/png;base64,[A-Za-z0-9+/=]{20,60000})"~',$html,$m)) return '<link rel="icon" href="'.$m[1].'">';
+        return '';
     }
 
     public static function markdown(string $md): string

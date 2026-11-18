@@ -107,6 +107,8 @@ func clientLabel(path string) string {
 			return "MoP Classic"
 		case "_anniversary_":
 			return "Classic Anniversary"
+		case "_forever_":
+			return "WoW Forever"
 		case "_classic_era_":
 			return "Classic Era"
 		}

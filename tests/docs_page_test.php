@@ -16,6 +16,7 @@ foreach (DocsPage::PAGES as $p) foreach (['','.en'] as $sfx) {
     preg_match_all('/href="#([^"]+)"/',$html,$a);preg_match_all('/ id="([^"]+)"/',$html,$ids);
     foreach ($a[1] as $x) $ok(in_array($x,$ids[1],true),"anchor #$x exists in $p$sfx");
 }
+DocsPage::$root=$root;$ok(str_contains(DocsPage::render('# x',DocsPage::resolve('faq'),'1'),'<link rel="icon" href="data:image/png;base64,'),'favicon on guide pages');
 $ok(DocsPage::resolve('../config')===null && DocsPage::resolve('nope')===null && DocsPage::resolve('mitglieder.de')===null,'unknown pages rejected');
 $ok(DocsPage::resolve('faq','en-US,en;q=0.9')['file']==='faq.en' && DocsPage::resolve('faq','de-DE,en;q=0.5')['file']==='faq' && DocsPage::resolve('faq.en','de')['file']==='faq.en','language choice');
 $x=DocsPage::markdown("# T <b>\n\n[x](javascript:alert(1)) [y\"](faq.md#Häufig) <script>alert(1)</script> `<i>` **<u>**\n\n| a | `b|c` |\n|---|---|\n| <img src=x onerror=1> | 2 |");

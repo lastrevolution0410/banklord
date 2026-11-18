@@ -106,7 +106,7 @@ func discover() []string {
 		if root == "" {
 			continue
 		}
-		for _, client := range []string{"_classic_", "_retail_", "_classic_era_", "_anniversary_"} {
+		for _, client := range []string{"_classic_", "_retail_", "_classic_era_", "_anniversary_", "_forever_"} {
 			accounts := filepath.Join(root, client, "WTF", "Account")
 			list, err := os.ReadDir(accounts)
 			if err != nil {

@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.15.1"
+A.version = "0.16.0"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -125,13 +125,15 @@ function A:EndAutomaticBankSession()
   self.autoOpenRetries = 0
 end
 
--- retail, mop_classic, anniversary (TBC) or classic_era, from the client's interface number.
+-- retail, mop_classic, anniversary (TBC), forever or classic_era, from the client's interface number.
 function A:GameFlavor()
   local toc = type(GetBuildInfo) == "function" and select(4, GetBuildInfo()) or 0
   toc = tonumber(toc) or 0
   if toc >= 100000 then return "retail" end
   if toc >= 50000 and toc < 60000 then return "mop_classic" end
   if toc >= 20000 and toc < 30000 then return "anniversary" end
+  -- WoW Forever (since Nov 2026): own project id where the client defines it, interface 1.6x.
+  if (WOW_PROJECT_CAMELOT and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT) or (toc >= 16000 and toc < 17000) then return "forever" end
   if toc > 0 and toc < 20000 then return "classic_era" end
   return nil
 end

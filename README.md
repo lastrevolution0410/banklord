@@ -89,6 +89,7 @@ Das Addon darf im Spiel nicht ins Internet. Deshalb gibt es den **Companion**, e
 | Mists of Pandaria Classic | ja | im täglichen Einsatz |
 | Burning Crusade Anniversary / Classic | ja | unterstützt |
 | Retail (The War Within / Midnight) | ja | unterstützt |
+| WoW Forever | ja | unterstützt seit 1.9 (ohne Realms; bitte Fehler melden) |
 | Classic Era / Hardcore | nein | Addon lädt, Bestellungen ohne Gildenbank-Funktionen |
 
 Jede Gilde hat eine Spielversion. Ein Konto kann Gilden in mehreren Versionen haben; Daten werden dabei nie vermischt.

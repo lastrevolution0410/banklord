@@ -467,6 +467,19 @@ do
   A.db.localCartDraft={};A.db.fullScans=nil;Banklord_ServerState={};for _,k in ipairs({'manageOutbox','manageDone','orderShipped','orderCancelPending'}) do A.db[k]={} end
 end
 assert(A:GameFlavor()=='mop_classic' and BanklordDB.gameFlavor=='mop_classic','game version recorded for the server')
+do -- WoW Forever: interface 1.6x or its own project id; Classic Era stays Classic Era.
+  local old=GetBuildInfo
+  GetBuildInfo=function() return '1.60.1','1','','16001' end;assert(A:GameFlavor()=='forever','Forever by interface')
+  GetBuildInfo=function() return '1.15.8','1','','11508' end;assert(A:GameFlavor()=='classic_era','Classic Era unchanged')
+  WOW_PROJECT_CAMELOT,WOW_PROJECT_ID=18,18;assert(A:GameFlavor()=='forever','Forever by project id')
+  -- Forever: guild found by name even if the website stored a realm.
+  local oldGI,oldIn,oldState=GetGuildInfo,IsInGuild,Banklord_ServerState
+  GetGuildInfo=function() return 'Ewig','Rang',1,nil end;IsInGuild=function() return true end
+  Banklord_ServerState={connections={{server='https://x.example',guildId=4,guild='Ewig',guildRealm='Everlook'}}}
+  local g,r=A:CurrentGuild();assert(g=='Ewig' and r=='' and A:ConnectionFor(g,r) and A.SameGuild({guild='Ewig',guildRealm='Everlook'}),'Forever guild matched by name')
+  GetGuildInfo,IsInGuild,Banklord_ServerState=oldGI,oldIn,oldState
+  WOW_PROJECT_CAMELOT,WOW_PROJECT_ID=nil,nil;GetBuildInfo=old
+end
 -- Bank ledger: item and gold log, bank gold and TSM prices end up in BanklordDB.bankLog.
 do
   local oldOpen=A.bankOpen;A.bankOpen=true

@@ -43,11 +43,15 @@ Addons dürfen im Spiel nicht ins Internet. WoW speichert Addon-Daten nur bei `/
 
 Den Inhalt der Gildenbank kann ein Addon nur lesen, wenn jemand sie geöffnet hat. Der Bestand ist deshalb der Stand vom letzten Scan; die Website zeigt, wann das war.
 
+### Funktioniert Banklord mit WoW Forever?
+
+Ja, seit 1.9. Das Setup findet den Ordner `_forever_` und installiert das Addon dort mit. Auf der Website wählst du beim Einrichten der Gilde (oder unter **System**) die Spielversion **WoW Forever**. Forever hat keine Realms – das ist für Banklord kein Problem, Gilden werden dann am Namen erkannt. Forever ist noch neu: Fällt dir etwas auf, melde es bitte über **Hilfe & Feedback**.
+
 ### Mehrere Charaktere und Gilden
 
 Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Für jede Gilde mit eigener Banklord-Website gibt es eine eigene Verbindung im Companion.
 
-Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde in MoP Classic und eine in Retail. Jede Gilde hat genau eine Spielversion; Gegenstände und Scans werden nie vermischt. Im Companion wählst du beim Hinzufügen der Gilde die Banklord.lua der passenden WoW-Installation (`_retail_`, `_classic_`, `_anniversary_`).
+Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde in MoP Classic und eine in Retail. Jede Gilde hat genau eine Spielversion; Gegenstände und Scans werden nie vermischt. Im Companion wählst du beim Hinzufügen der Gilde die Banklord.lua der passenden WoW-Installation (`_retail_`, `_classic_`, `_anniversary_`, `_forever_`).
 
 **Beispiel MoP Classic, ein Realm:** Charakter A und B in derselben Gilde, Charakter C in einer anderen Gilde – das geht. Banklord merkt bei jedem Einloggen, in welcher Gilde der Charakter ist, und zeigt nur deren Bestand und Bestellungen. Eine Bestellung im Spiel landet immer bei der Gilde des Charakters, mit dem du bestellst.
 

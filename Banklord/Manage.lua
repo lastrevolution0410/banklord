@@ -60,6 +60,8 @@ function A:CurrentGuild()
   if not (GetGuildInfo and IsInGuild and IsInGuild()) then return nil end
   local name,_,_,realm=GetGuildInfo('player')
   if not name or name=='' then return nil end
+  -- WoW Forever has no realms: the guild name alone identifies the guild.
+  if A.GameFlavor and A:GameFlavor()=='forever' then return name,'' end
   return name,(realm and realm~='' and realm) or (GetRealmName and GetRealmName()) or ''
 end
 
@@ -79,7 +81,7 @@ local function sameGuild(entry)
   local g,r=A:CurrentGuild()
   if not g or type(entry)~='table' or not entry.guild then return true end
   local n=function(s) return tostring(s or ''):gsub("[%s'%-]",''):lower() end
-  return n(entry.guild)==n(g) and (not entry.guildRealm or entry.guildRealm=='' or n(entry.guildRealm)==n(r))
+  return n(entry.guild)==n(g) and (not entry.guildRealm or entry.guildRealm=='' or r=='' or n(entry.guildRealm)==n(r))
 end
 A.SameGuild=sameGuild
 
@@ -1056,7 +1058,7 @@ end
 -- Website connection (server address, guild id) the companion has for a guild.
 function A:ConnectionFor(guild,realm)
   for _,c in ipairs(state().connections or {}) do
-    if norm(c.guild)==norm(guild) and (not realm or c.guildRealm=='' or norm(c.guildRealm)==norm(realm)) then return c end
+    if norm(c.guild)==norm(guild) and (not realm or realm=='' or c.guildRealm=='' or norm(c.guildRealm)==norm(realm)) then return c end
   end
 end
 

@@ -89,6 +89,7 @@ Addons cannot access the internet in game. That is why there is the **Companion*
 | Mists of Pandaria Classic | yes | in daily use |
 | Burning Crusade Anniversary / Classic | yes | supported |
 | Retail (The War Within / Midnight) | yes | supported |
+| WoW Forever | yes | supported since 1.9 (realmless; please report problems) |
 | Classic Era / Hardcore | no | addon loads, orders without guild bank features |
 
 Every guild has one game version. One account can have guilds in several versions; their data is never mixed.

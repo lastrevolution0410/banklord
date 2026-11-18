@@ -24,7 +24,7 @@ async function api(path,opts={}){
   return result;
 }
 // Game versions a guild can belong to: label, Wowhead path, Wowhead tooltip data environment.
-const GAME={retail:['Retail','',1],mop_classic:['MoP Classic','mop-classic',8],anniversary:['Classic Anniversary','tbc',5],classic_era:['Classic Era','classic',4]};
+const GAME={retail:['Retail','',1],mop_classic:['MoP Classic','mop-classic',8],anniversary:['Classic Anniversary','tbc',5],classic_era:['Classic Era','classic',4],forever:['WoW Forever','forever',4]};
 function game(flavor){return GAME[flavor||state.guild?.wow_flavor]||GAME.mop_classic;}
 function wowheadItem(id){const p=game()[1];return 'https://www.wowhead.com/'+(p?p+'/':'')+'item='+encodeURIComponent(id);}
 const post=(p,body,extra={})=>api(p,{method:'POST',headers:{'Content-Type':'application/json',...extra},body:JSON.stringify(body)});

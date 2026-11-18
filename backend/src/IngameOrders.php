@@ -48,7 +48,9 @@ final class IngameOrders {
     /** True when a row belongs to this guild; rows for another guild wait for that guild's connection. */
     public static function forGuild(?array $tag, ?array $record): bool {
         if ($tag===null || $record===null) return true;
-        return self::norm($tag[0])===self::norm((string)$record['name']) && ($tag[1]==='' || self::norm($tag[1])===self::norm((string)$record['realm']));
+        // WoW Forever has no realms: the guild name alone identifies the guild.
+        $anyRealm=$tag[1]==='' || ($record['wow_flavor']??'')==='forever';
+        return self::norm($tag[0])===self::norm((string)$record['name']) && ($anyRealm || self::norm($tag[1])===self::norm((string)$record['realm']));
     }
 
     /** Characters seen in game (BanklordDB.characters) that are in this guild get linked to the uploader. */

@@ -20,6 +20,10 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 
 ## Done
 
+### 1.9 – WoW Forever (18 Nov 2026)
+- **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
+- Guide pages now show the Banklord icon in the browser tab too.
+
 ### 1.8 – As simple as it gets (18 Nov 2026)
 - **No more typing `/reload`:** at the important moments Banklord shows a window in game with a **“Transfer now”** button – after you are confirmed as a new member, after an order, for managers after confirming a member and when closing the mailbox after sending. Never in combat.
 - **Start page with “Ready in 3 steps”** and a big download button instead of a small link at the bottom.
