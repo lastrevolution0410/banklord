@@ -284,6 +284,7 @@ exact:{
 "Nächste 100":"Next 100",
 "Offizier":"Officer",
 "Optionale Nachricht an die Bankverwaltung":"Optional message to the bank managers",
+"Windows warnt beim ersten Start vor einer unbekannten App: auf „Weitere Informationen“ und dann „Trotzdem ausführen“ klicken. Updates laufen danach ohne Warnung.":"Windows warns about an unknown app on first start: click “More info”, then “Run anyway”. Updates install without this warning afterwards.",
 "Empfänger-Charakter (bekommt die Post im Spiel)":"Recipient character (receives the in-game mail)",
 "Noch kein Charakter verknüpft. Melde dich einmal im Spiel mit Banklord an und führe /reload aus, während der Companion verbunden ist. Danach erscheint dein Charakter hier.":"No character linked yet. Log in once in game with Banklord and run /reload while the companion is connected. Your character will then appear here.",
 "Bitte einen Empfänger-Charakter wählen.":"Please choose a recipient character.",

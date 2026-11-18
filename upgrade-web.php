@@ -6,18 +6,18 @@ declare(strict_types=1);
  * requires an unmodified release archive and backs up SQL + files outside webroot.
  * This is NOT a remotely self-updating endpoint.
  */
-const BANKLORD_VERSION='1.1.0';
-const BANKLORD_PAYLOAD_SHA256 = '7e1002eb90126a77d58299ab97e9b14e83657a7337abf4fb00e1651d22996b4d';
+const BANKLORD_VERSION='1.1.1';
+const BANKLORD_PAYLOAD_SHA256 = '0576c3418bd11f6bce944e565b3e2f854d5b7967458579a5aec1380218ec23c9';
 const BANKLORD_FILE_DIGESTS = [
     'backend/bin/bootstrap.php' => '575d1bc301031fd0063bad52811058c0e5e190d2d0a8abd39fb667ab247446ff',
     'backend/public/app.css' => '783d2e673e641f6c38db833b401fd0d9707c6747fedd1be117ea63aecbc30959',
-    'backend/public/app.html' => '00e3035523d3093be4a333c2c2b4bb7e5fe97374d8c0928f580ff2e178ef56e4',
+    'backend/public/app.html' => 'f15ab77c1aaf4e802ea29db5577291a38c11f107ae5c1b2ade592956a607b733',
     'backend/public/app.js' => '1312603d20d7235e72d18d9d8511a7503ac69df313f7b9a112205968cfacf7e6',
     'backend/public/import.css' => '102ab8535ade1eb3e2f2dff92c1a2b5288e011527b00094d08a5aafc2b35e83c',
     'backend/public/import.html' => 'b341552864389972fe22969101aae983ed5e92622c64eb4e730736e32e74fcdb',
     'backend/public/import.js' => 'ad7b389f19845a459403cf6ef170293fb39879f17fda6ab3c429c97249e0fc09',
     'backend/public/index.php' => 'b6eb72559b9724087bd228b921602caa75518ca39367d74ed182186cc9cbbac3',
-    'backend/public/locales.js' => '67ae78b32ba873691f54593239d4d998284ab08f7443f9011f5b746ed75605cf',
+    'backend/public/locales.js' => 'c2aba9086552250fabcdcbb9db85969141366f707b68e064d9255cece4db2343',
     'backend/sql/001_initial.sql' => '75d065bfcebe8fd62922ee71940cd459c12c2de72f3b485a293902231af53d24',
     'backend/sql/002_scan_staging.sql' => '01c7d6319c3c4ec355dded759e719d1070e0d3b690f0301aa8b965d7db612d23',
     'backend/sql/003_bridge_tokens.sql' => 'b5338b23cd43f1ff89ce001315fc58eb27f6774e0009dac03b19640377f6e65f',
@@ -53,7 +53,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/ScanStaging.php' => '1892303aa41183bc1f61aed56ad2ce0d5b8e845d0ebeda597d6c8f3786c8da63',
     'backend/src/StockReconciliation.php' => 'dee5a7dfa39525949104ea0be948071cb9e43c530c2560dd71066e7dfc37c5dc',
     'backend/src/UpstreamUpdater.php' => '7af1aa325687c972101781b7b1b83cd8545563bdec0a7c084266a6d6e37dae80',
-    'backend/src/Version.php' => '02524997eccf80673ba7311e8b60a36e2ed9f2b94c6cd481e4c2a5a67fb65f9c',
+    'backend/src/Version.php' => 'd1880b1e063f52cd080602cb16b607b981cdf293467ef4158de237263d9056f7',
     'backend/src/WebUpdater.php' => '60c07a88cffc83b1670a249d012a07f67db7841025c8a124d2811087d3e8632d',
     'backend/src/icon-filedata.tsv.gz' => '668d50315200dccb7e5728da372d90d136118ecb33474513792e81d5ab9c1832',
 ];
