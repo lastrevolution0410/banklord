@@ -746,11 +746,25 @@ backgroundOption:SetScript('OnClick',function(self)
   updateWindowBackdrop()
   A:RefreshUI()
 end)
+-- Second option in the same row: guild bank count in item tooltips.
+local tooltipOption=CreateFrame('CheckButton','BanklordTooltipCheckbox',advanced,'UICheckButtonTemplate')
+tooltipOption:SetPoint('TOPLEFT',advanced,'TOPLEFT',520,-114)
+tooltipOption:SetSize(28,28)
+local tooltipText=advanced:CreateFontString(nil,'OVERLAY','GameFontHighlight')
+tooltipText:SetPoint('LEFT',tooltipOption,'RIGHT',11,0)
+tooltipText:SetText(A:Tr('Gildenbank-Bestand in Tooltips'))
+track(tooltipText,'Gildenbank-Bestand in Tooltips')
+tooltipOption:SetScript('OnShow',function(self) self:SetChecked(not (A.db and A.db.settings and A.db.settings.tooltipStock==false)) end)
+tooltipOption:SetScript('OnClick',function(self)
+  if not A.db then return end
+  A.db.settings=A.db.settings or {}
+  A.db.settings.tooltipStock=self:GetChecked()==true
+end)
 text(advanced,'GameFontHighlightSmall',29,-152,920,
-  'Aus: durchsichtig, die Spielwelt bleibt sichtbar. An: dunkle Fläche, besser lesbar in hellen Gegenden.',COLORS.muted)
+  'Hintergrund – aus: durchsichtig, an: dunkle Fläche (besser lesbar).   Tooltips – zeigt „Gildenbank: 20“ beim Überfahren eines Gegenstands.',COLORS.muted)
 text(advanced,'GameFontNormal',26,-200,900,'Sprache und Minikarte',COLORS.gold)
 text(advanced,'GameFontHighlightSmall',26,-222,924,
-  'Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap.   Bestand in Tooltips ein/aus: /banklord tooltip',COLORS.muted)
+  'Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap',COLORS.muted)
 text(advanced,'GameFontNormal',26,-270,900,'Warenkorb ohne Companion übergeben',COLORS.gold)
 text(advanced,'GameFontHighlightSmall',26,-292,924,
   'Wer keinen Companion hat, kann seinen Warenkorb im Reiter „Warenkorb“ an einen Mitspieler schicken, der ihn hochlädt. Hier siehst du, was angekommen oder unterwegs ist.',COLORS.muted)

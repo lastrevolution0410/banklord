@@ -47,7 +47,8 @@ function setTab(tab){
   if(tab==='favorites')loadPersonal().catch(e=>notice(e.message,true));
   if(tab==='account'){loadCharacters().catch(e=>notice(e.message,true));loadOrderTokens().catch(e=>notice(e.message,true));}
   if(tab==='help')loadFeedback().catch(e=>notice(e.message,true));
-  if(tab==='members'){loadMembers().catch(e=>notice(e.message,true));loadWeeklyLimit();}
+  if(tab==='members')loadMembers().catch(e=>notice(e.message,true));
+  if(tab==='admin')loadWeeklyLimit();
   if(tab==='activity')loadActivity().catch(e=>notice(e.message,true));
   if(tab==='procurement')loadProcurement().catch(e=>notice(e.message,true));
 }
@@ -470,8 +471,8 @@ $('orderRulesForm')?.addEventListener('submit',async e=>{
   try{const r=await api(path('order-rules'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});fillOrderRules(r.rules);notice('Bestellregeln gespeichert.');}catch(err){notice(err.message,true);}
 });
 function renderCart(){loadOrderCharacters();loadWeeklyLimit();
-  const root=$('cartItems');root.replaceChildren();if(state.cart.size===0){root.append(el('p','muted','Dein Warenkorb ist leer. Im Bankbestand kannst du Gegenstände auswählen.'));$('checkoutForm').classList.add('hidden');return;}
-  $('checkoutForm').classList.remove('hidden');
+  const root=$('cartItems');root.replaceChildren();if(state.cart.size===0){root.append(el('p','empty-state','Dein Warenkorb ist leer. Unter „Gildenbank“ kannst du Gegenstände auswählen.'));$('checkoutForm').classList.add('hidden');$('templateTools').classList.add('hidden');return;}
+  $('checkoutForm').classList.remove('hidden');$('templateTools').classList.remove('hidden');
   for(const [id,item] of state.cart){
     const card=el('article','cart-card');card.append(add(el('div'),el('div','item-title',item.name),el('div','muted','Bestellte Stückzahl: '+qty(item.quantity))));
     const actions=el('div','actions');const amount=el('input');amount.type='number';amount.min='1';amount.max=String(item.max);amount.value=String(item.quantity);amount.setAttribute('aria-label','Bestellmenge für '+item.name);
@@ -505,7 +506,7 @@ function orderGroup(status){return status==='submitted'?'review':['reserved','pa
 function orderCard(order,adminMode){
   const card=el('article','order-card2');const head=el('div','order-head');const title=el('div');
   title.append(el('div','item-title',(adminMode&&order.display_name?order.display_name+' · ':'')+'Bestellung #'+order.id),el('div','muted',when(order.created_at)+(order.note?' · „'+order.note+'“':'')));
-  head.append(title,statusBadge(order.status));if(Number(order.needs_approval)===1)head.append(el('span','badge badge-wait','Freigabe nötig'));card.append(head);
+  head.append(title,statusBadge(order.status));if(Number(order.needs_approval)===1&&orderGroup(order.status)!=='done')head.append(el('span','badge badge-wait','Freigabe nötig'));card.append(head);
   if(order.summary)card.append(el('p','order-summary',order.summary));
   card.append(orderProgress(order.status));
   const group=orderGroup(order.status);const box=el('div','order-detail hidden');
@@ -531,17 +532,19 @@ async function showOrder(id,adminMode,target){
   const lines=el('div','stack');for(const line of response.lines){
     lines.append(add(el('div','row'),el('div','item-title',line.name),el('div','muted',`Angefordert: ${qty(line.requested_qty)} · Genehmigt: ${qty(line.approved_qty)} · Ausgegeben: ${qty(line.fulfilled_qty)}${line.decision==='rejected'?' · abgelehnt':''}`)));
   }box.append(lines);
-  if(Number(response.order.needs_approval)===1){
+  const open=['submitted','reserved','partial','partially_fulfilled'].includes(response.order.status);
+  if(open&&Number(response.order.needs_approval)===1){
     const canApprove=['officer','admin'].includes(state.guild.role);
     const wait=el('div','panel attention');wait.append(el('p','','Diese Bestellung liegt über dem Wochenlimit. Sie wird erst nach Freigabe durch einen Offizier oder Administrator ausgegeben.'));
     if(adminMode&&canApprove){const ok=el('button','','Über Limit freigeben');ok.type='button';ok.onclick=async()=>{ok.disabled=true;try{await post(path('orders/'+id+'/approve'),{});notice('Bestellung freigegeben.');await loadOrders();}catch(err){notice(err.message,true);}finally{ok.disabled=false;}};wait.append(ok);}
     box.append(wait);
   }
-  if(adminMode&&administrator()&&response.order.status==='submitted'){
+  const undecided=response.order.status==='submitted'||(response.order.status==='partially_fulfilled'&&response.lines.every(l=>l.decision==='pending'));
+  if(adminMode&&administrator()&&undecided){
     const form=el('form','panel');form.append(el('h3','','Genehmigen oder ablehnen'));
-    for(const line of response.lines){const label=el('label','',line.name+' · maximal '+line.requested_qty);const input=el('input');input.type='number';input.min='0';input.max=String(line.requested_qty);input.value=String(line.requested_qty);input.dataset.lineId=line.id;label.append(input);form.append(label);}
+    for(const line of response.lines){const label=el('label','',line.name+' · maximal '+line.requested_qty);const input=el('input');input.type='number';input.min=String(line.fulfilled_qty||0);input.max=String(line.requested_qty);input.value=String(line.requested_qty);input.dataset.lineId=line.id;label.append(input);form.append(label);}
     const button=el('button','','Entscheidungen verbindlich speichern');form.append(button);
-    form.onsubmit=async e=>{e.preventDefault();const decisions={};for(const input of form.querySelectorAll('[data-line-id]')){const v=Number(input.value);if(!Number.isSafeInteger(v)||v<0||v>Number(input.max)){notice('Ungültige Freigabemenge.',true);return;}decisions[input.dataset.lineId]=v;}
+    form.onsubmit=async e=>{e.preventDefault();const decisions={};for(const input of form.querySelectorAll('[data-line-id]')){const v=Number(input.value);if(!Number.isSafeInteger(v)||v<Number(input.min)||v>Number(input.max)){notice('Ungültige Freigabemenge.',true);return;}decisions[input.dataset.lineId]=v;}
       button.disabled=true;try{const r=await post(path('orders/'+id+'/decide'),{decisions});notice('Gespeichert: '+(ORDER_STATUS[r.status]||[r.status])[0]);await loadOrders();}catch(err){notice(err.message,true);}finally{button.disabled=false;}};
     box.append(form);
   }
@@ -752,21 +755,21 @@ async function createOrderToken(){
 }
 const UPSTREAM_ERR={UPSTREAM_UNREACHABLE:'Update-Server nicht erreichbar',UPSTREAM_HASH_MISMATCH:'Download beschädigt (Prüfsumme falsch)',MANIFEST_SIGNATURE_INVALID:'Signatur ungültig – Update abgelehnt',MANIFEST_INVALID:'Update-Beschreibung ungültig',SODIUM_MISSING:'PHP-Erweiterung sodium fehlt',UPSTREAM_TOO_LARGE:'Download zu groß'};
 async function loadUpstream(){
-  let box=$('upstreamBox');if(!box){box=el('div','card');box.id='upstreamBox';$('deviceList').parentElement.before(box);}
+  let box=$('upstreamBox');if(!box){box=el('div','panel');box.id='upstreamBox';$('systemCols').append(box);}
   box.replaceChildren(el('h3','','Website-Updates'));
   let st;try{st=await api(path('upstream-update'));}catch(e){box.append(el('p','muted','Status nicht verfügbar.'));return;}
   if(st.publisher){box.append(el('p','muted',`Diese Website ist der offizielle Update-Server (Version ${st.installed}). Neue Versionen kommen per Veröffentlichung vom Entwickler-Rechner.`));return;}
   box.append(el('p','muted',`Installiert: ${st.installed}${st.latest?' · neueste offizielle Version: '+st.latest:''} · Automatische Prüfung alle 6 Stunden: ${st.auto?'an':'aus'}`));
   if(st.checked_at)box.append(el('p',st.error?'error':'muted',st.error?`Letzte Prüfung ${when(st.checked_at)}: ${UPSTREAM_ERR[st.error]||st.error}`:`Letzte Prüfung ${when(st.checked_at)}: ${st.result==='installed'?'Version '+st.installed_now+' eingespielt (mit Backup)':st.result==='running'?'läuft gerade':'aktuell'}`));
-  const b=el('button','button-sm','Jetzt nach Updates suchen');b.onclick=async()=>{b.disabled=true;b.textContent='Prüfe …';try{const r=await post(path('upstream-update'),{});if(r.result==='installed'){alert('Version '+r.installed_now+' wurde eingespielt. Die Seite lädt neu.');location.reload();return;}}finally{await loadUpstream();}};
+  const b=el('button','secondary','Jetzt nach Updates suchen');b.onclick=async()=>{b.disabled=true;b.textContent='Prüfe …';try{const r=await post(path('upstream-update'),{});if(r.result==='installed'){alert('Version '+r.installed_now+' wurde eingespielt. Die Seite lädt neu.');location.reload();return;}}finally{await loadUpstream();}};
   box.append(b);
 }
 async function loadDemoSetting(){
-  let box=$('demoSettingBox');if(!box){box=el('div','card');box.id='demoSettingBox';$('deviceList').parentElement.before(box);}
+  let box=$('demoSettingBox');if(!box){box=el('div','panel');box.id='demoSettingBox';$('releasePanel').before(box);}
   box.replaceChildren(el('h3','','Öffentliche Demo'));
   let st;try{st=await api(path('demo-setting'));}catch(e){box.append(el('p','muted','Nicht verfügbar.'));return;}
   box.append(el('p','muted','Besucher ohne Konto können sich Banklord mit einer eigenen Beispiel-Gilde ansehen. Deine echten Gildendaten sind dort nicht sichtbar, und Änderungen sind gesperrt.'));
-  const b=el('button','button-sm',st.enabled?'Demo ausschalten':'Demo einschalten');
+  const b=el('button','secondary',st.enabled?'Demo ausschalten':'Demo einschalten');
   b.onclick=async()=>{b.disabled=true;try{await post(path('demo-setting'),{enabled:!st.enabled});notice(st.enabled?'Demo ausgeschaltet.':'Demo eingeschaltet. Der Knopf erscheint auf der Anmeldeseite.');}catch(e){notice(e.message,true);}await loadDemoSetting();};
   box.append(el('p','',st.enabled?'Status: eingeschaltet':'Status: ausgeschaltet'),b);
 }
@@ -1049,6 +1052,7 @@ $('demoBtn').onclick=async()=>{const b=$('demoBtn');b.disabled=true;try{await po
 $('demoEndBtn').onclick=async()=>{try{await post('/logout',{});}finally{location.reload();}};
 
 (()=>{const ua=navigator.userAgent||'',a=$('downloadMain');if(!a)return;
+  if(!/Windows/.test(ua))$('windowsHint')?.classList.add('hidden');
   if(/Mac OS X|Macintosh/.test(ua)){a.href='/api/v1/download/setup?os=mac-arm64';a.textContent='⬇ Banklord für macOS herunterladen';}
   else if(/Linux/.test(ua)&&!/Android/.test(ua)){a.href='/api/v1/download/setup?os=linux-x64';a.textContent='⬇ Banklord für Linux herunterladen';}})();
 

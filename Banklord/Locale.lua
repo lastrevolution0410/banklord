@@ -314,7 +314,7 @@ local EN={
   ['Darstellung']='Appearance',
   ['Aus: durchsichtig, die Spielwelt bleibt sichtbar. An: dunkle Fläche, besser lesbar in hellen Gegenden.']='Off: see-through, the game world stays visible. On: dark surface, easier to read in bright areas.',
   ['Sprache und Minikarte']='Language and minimap',
-  ['Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap.   Bestand in Tooltips ein/aus: /banklord tooltip']='Language: /banklord lang de, /banklord lang en or /banklord lang auto.   Minimap button on/off: /banklord minimap.   Bank count in tooltips on/off: /banklord tooltip',
+  ['Sprache: /banklord lang de, /banklord lang en oder /banklord lang auto.   Minikarten-Knopf ein/aus: /banklord minimap']='Language: /banklord lang de, /banklord lang en or /banklord lang auto.   Minimap button on/off: /banklord minimap',
   ['Warenkorb ohne Companion übergeben']='Hand over a cart without the Companion',
   ['Wer keinen Companion hat, kann seinen Warenkorb im Reiter „Warenkorb“ an einen Mitspieler schicken, der ihn hochlädt. Hier siehst du, was angekommen oder unterwegs ist.']='Without the Companion you can send your cart to a guildmate in the “Cart” tab, who uploads it. Here you see what has arrived or is on its way.',
   ['Bestand vom letzten Scan · Neues wird beim /reload übertragen · Addon %s']='Stock from the last scan · changes are transferred on /reload · Addon %s',
@@ -456,6 +456,7 @@ local EN={
   ['Inventur: %s Stück (%s nur ansehen)']='Scanned: %s pcs. (%s view only)',
   ['Nur ansehen']='View only',
   ['Gildenbank-Bestand in Tooltips']='Guild bank count in tooltips',
+  ['Hintergrund – aus: durchsichtig, an: dunkle Fläche (besser lesbar).   Tooltips – zeigt „Gildenbank: 20“ beim Überfahren eines Gegenstands.']='Background – off: transparent, on: dark surface (easier to read).   Tooltips – shows “Guild bank: 20” when you hover an item.',
 }
 A._localeEN=EN -- exposed for the locale smoke test
 

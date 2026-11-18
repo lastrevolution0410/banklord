@@ -377,6 +377,10 @@ do
   Banklord_ServerState.manage[1].lines[1].qty=1
   open=nil;for _,x in ipairs(A:OpenManageOrders()) do if x.id==31 then open=x end end
   assert(open and open.lines[1].qty==1,'server already booked it: nothing subtracted twice')
+  A:RecordPartialDelivery(31,{[2589]=1})
+  open=nil;for _,x in ipairs(A:OpenManageOrders()) do if x.id==31 then open=x end end
+  assert(open==nil,'second part after a booked first part counts from the server state')
+  A.db.manageDelivered={}
   sent={}
   A:MarkOrderPartlySent(31,{[2589]=1})
   local box=A.db.manageOutbox[#A.db.manageOutbox]

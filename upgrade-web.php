@@ -6,18 +6,18 @@ declare(strict_types=1);
  * requires an unmodified release archive and backs up SQL + files outside webroot.
  * This is NOT a remotely self-updating endpoint.
  */
-const BANKLORD_VERSION='1.4.0';
-const BANKLORD_PAYLOAD_SHA256 = '66bbd86d5119cbb17b8eb191fee4a1f216876e2b0c50e74b25f3c7c5d3d7be06';
+const BANKLORD_VERSION='1.4.1';
+const BANKLORD_PAYLOAD_SHA256 = '02c4265cb016c0a2a080c188935dea97890b048104fb1c73de40896c13e30f5e';
 const BANKLORD_FILE_DIGESTS = [
     'backend/bin/bootstrap.php' => '575d1bc301031fd0063bad52811058c0e5e190d2d0a8abd39fb667ab247446ff',
-    'backend/public/app.css' => '78793ec2f08d532a1a6f031c9dfc0cc1c08301063dc38e16108e507189f73ed2',
-    'backend/public/app.html' => '260edb0d500adf1ca628faf05f4ec67ca91f6021902db3abf1810d27781ab7a2',
-    'backend/public/app.js' => 'cdd21481de78aab008f5d073d3a536897d133419857686686834fe62b870051d',
+    'backend/public/app.css' => '79e68a0b131ad071ec87bec44ed341ee13e9dba5e2f63261a488cfb21dbb730c',
+    'backend/public/app.html' => 'b4856dbe4358b8cb5ff94e28a9603b9e00a9aa4dd34f47ad4b60595217f7761e',
+    'backend/public/app.js' => 'c914aa7bb363c3bfd783c76126cd652a3cbe3c0e5b7b8ffb5cfa6edef4cec405',
     'backend/public/import.css' => '102ab8535ade1eb3e2f2dff92c1a2b5288e011527b00094d08a5aafc2b35e83c',
     'backend/public/import.html' => 'f98c790170cd69d00295ea1050da6b3e3d67958dfd0b63e81059081f822c3c76',
     'backend/public/import.js' => 'ad7b389f19845a459403cf6ef170293fb39879f17fda6ab3c429c97249e0fc09',
     'backend/public/index.php' => '05f657a5a1272e18fa1ef23439309df3559dc4651bbf6e0cbc192433f8505111',
-    'backend/public/locales.js' => 'e323d2e9aba62653ffc56eca7c529b8caf04d9623bb613f2cdd9b556f477ccba',
+    'backend/public/locales.js' => '392ce07be3932814f896e4098b6fa9975a9f1de3f2735a2b65011322e0f289ea',
     'backend/sql/001_initial.sql' => '75d065bfcebe8fd62922ee71940cd459c12c2de72f3b485a293902231af53d24',
     'backend/sql/002_scan_staging.sql' => '01c7d6319c3c4ec355dded759e719d1070e0d3b690f0301aa8b965d7db612d23',
     'backend/sql/003_bridge_tokens.sql' => 'b5338b23cd43f1ff89ce001315fc58eb27f6774e0009dac03b19640377f6e65f',
@@ -49,7 +49,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/ItemAppearance.php' => '264777d9f602380124e2576fde50c3ec3dbb80d6d4a31b8908189ba5865d0482',
     'backend/src/ItemMetadata.php' => '2f76c89b1ab9ddd0bc02787485c89517a1c9e65187d96f073ce17fefb36363c9',
     'backend/src/OrderRules.php' => '9528281240b1f79bf71f7e1207832e48d42560ce7feb01c08b2f51b48b29122f',
-    'backend/src/Orders.php' => '6ba0ec79b62d7a8ce214f9e708485bd76261f4032b9d1e9bf9cef5b8a9655112',
+    'backend/src/Orders.php' => 'ee4b014e0bdfc50f629a7d4a74d7c43721d0c8695e397ef3cef47bf5be8dbde4',
     'backend/src/PeerRelay.php' => '5d23b7d9c537ec55ba9cbc5353352feed255e390409483d9b19b55bb89204cf3',
     'backend/src/Preferences.php' => 'fbb9030c3c6e2150e7e9ef32568f2f2b7e3aa6bc498ace2f1d7b999ecc403d33',
     'backend/src/Procurement.php' => '7b4eb0e1f41042ecfcef89ac17f178fbdee9c78eeb95d5396934fdbbc4bf64ac',
@@ -59,7 +59,7 @@ const BANKLORD_FILE_DIGESTS = [
     'backend/src/ScanStaging.php' => '7d5e5a28647332548300e062e2c0171936f656cc3f01ad157d578c64dd3dbe24',
     'backend/src/StockReconciliation.php' => 'd92c387fa69348e4029c2b96b5fdea84440e6c31768881bbd4c84f590626d8bb',
     'backend/src/UpstreamUpdater.php' => '7af1aa325687c972101781b7b1b83cd8545563bdec0a7c084266a6d6e37dae80',
-    'backend/src/Version.php' => 'c0dcdf7b2efab311398267a7016b72d313729994293aa751dc60ff1a750c1b31',
+    'backend/src/Version.php' => 'fe62e503a850827fc56c4f8f904ec7523679fed137c85ba20df80de0e96ad3be',
     'backend/src/WebUpdater.php' => '60c07a88cffc83b1670a249d012a07f67db7841025c8a124d2811087d3e8632d',
     'backend/src/icon-filedata.tsv.gz' => '668d50315200dccb7e5728da372d90d136118ecb33474513792e81d5ab9c1832',
 ];

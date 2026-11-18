@@ -69,6 +69,20 @@ $ok(in_array($o4,$expired,true) && $st($o4)==='cancelled','old order expired');
 $ok($st($o5)==='fulfilled' && $f($o5)===1,'partly delivered order keeps its delivered part');
 $ok($st($o3)==='submitted','young order untouched');
 
+// Review fixes: decide the rest of a partly mailed order, book mails for expired orders, flag cleanup.
+$o6=$orders->create($g,$officer,'rules-ore-000006',[['stock_id'=>(int)$ore['id'],'quantity'=>5]]);
+$orders->deliver($g,$bm,$o6,'ma-100005-ffffff',[2589=>2]);
+$line6=(int)$db->query("SELECT id FROM order_lines WHERE order_id=$o6")->fetchColumn();
+$ok($err(fn()=>$orders->decide($g,$bm,$o6,[$line6=>1]))==='BAD_APPROVAL','cannot approve less than already mailed');
+$ok($err(fn()=>$orders->decide($g,$bm,$o6,[$line6=>5]))==='OK' && $st($o6)==='partially_fulfilled','rest of a partly mailed order can be decided');
+$o7=$orders->create($g,$officer,'rules-ore-000007',[['stock_id'=>(int)$ore['id'],'quantity'=>2]]);
+$db->exec("UPDATE orders SET created_at=UTC_TIMESTAMP()-INTERVAL 20 DAY WHERE id=$o7");$rules->expire($g);
+$ok($st($o7)==='cancelled','expired before the mail was booked');
+$ok($orders->deliver($g,$bm,$o7,'ma-100006-gggggg')==='fulfilled' && $f($o7)===2,'mail sent for an expired order is still booked');
+$o8=$orders->create($g,$member,'rules-ore-000008',[['stock_id'=>(int)$ore['id'],'quantity'=>25]]);
+$orders->cancel($g,$member,$o8);
+$ok($na($o8)===0 && $err(fn()=>$orders->approve($g,$officer,$o8))==='ORDER_NOT_FULFILLABLE','closed orders lose the approval flag');
+
 // The in-game state carries rules and the restock list for managers.
 $db->prepare("INSERT INTO guild_restock_rules (guild_id,stock_id,minimum_qty,target_qty,updated_by) VALUES (?,?,50,80,?)")->execute([$g,(int)$ore['id'],$bm]);
 $state=(new IngameOrders($db))->state($g,$bm);

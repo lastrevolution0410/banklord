@@ -1,7 +1,7 @@
 <?php
 // Public read-only demo over the real HTTP API (dev/docker-compose.yml).
 declare(strict_types=1);
-foreach (['Config','Domain','Database','StockReconciliation','Orders','Community','Demo'] as $c) require_once __DIR__."/../backend/src/$c.php";
+foreach (['Config','Domain','Database','StockReconciliation','Orders','OrderRules','Community','Demo'] as $c) require_once __DIR__."/../backend/src/$c.php";
 $db=Banklord\Database::connect(); $fail=0; $base=getenv('BANKLORD_TEST_BASE')?:'http://127.0.0.1:8080';
 $ok=function(bool $c,string $m) use(&$fail){ if(!$c){$fail++; echo "FAIL: $m\n";} };
 $client=function() use($base){ $jar=''; $csrf='';

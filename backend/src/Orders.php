@@ -49,10 +49,10 @@ final class Orders
             $s->execute(array_merge([$guild],array_keys($combined)));
             if (count($s->fetchAll()) !== count($combined)) throw new DomainError('FOREIGN_OR_UNKNOWN_STOCK');
             // View-only bank tabs: their share of an item is shown but cannot be ordered.
-            $v=$this->db->prepare("SELECT id,physical_qty,viewonly_qty FROM guild_stock WHERE guild_id=? AND id IN ($in)");
+            $v=$this->db->prepare("SELECT id,physical_qty,reserved_qty,viewonly_qty FROM guild_stock WHERE guild_id=? AND id IN ($in)");
             $v->execute(array_merge([$guild],array_keys($combined)));
             foreach ($v->fetchAll() as $row) {
-                if ((int)$row['viewonly_qty']>0 && $combined[(int)$row['id']]>(int)$row['physical_qty']-(int)$row['viewonly_qty']) throw new DomainError('VIEW_ONLY_STOCK');
+                if ((int)$row['viewonly_qty']>0 && $combined[(int)$row['id']]>(int)$row['physical_qty']-(int)$row['reserved_qty']-(int)$row['viewonly_qty']) throw new DomainError('VIEW_ONLY_STOCK');
             }
             $rules=new OrderRules($this->db);
             $limit=OrderRules::limitFor($rules->get($guild),$this->activeRole($guild,$user,'order.submit'));
@@ -88,27 +88,32 @@ final class Orders
         try {
             $role=$this->activeRole($guild,$actor,'order.approve');
             $o=$this->lockOrder($guild,$orderId);
-            if ($o['status'] !== 'submitted') throw new DomainError('ORDER_ALREADY_DECIDED');
+            // A partly mailed order whose lines are still undecided can be decided for the rest.
+            $partlyMailed=$o['status']==='partially_fulfilled';
+            if ($o['status'] !== 'submitted' && !$partlyMailed) throw new DomainError('ORDER_ALREADY_DECIDED');
             $this->clearApproval($guild,$actor,$role,$o,$decisions);
-            $s=$this->db->prepare('SELECT id,stock_id,requested_qty FROM order_lines WHERE order_id=? ORDER BY stock_id,id FOR UPDATE');
+            $s=$this->db->prepare('SELECT id,stock_id,requested_qty,fulfilled_qty,decision FROM order_lines WHERE order_id=? ORDER BY stock_id,id FOR UPDATE');
             $s->execute([$orderId]); $rows=$s->fetchAll();
+            if ($partlyMailed) foreach ($rows as $r) if ($r['decision']!=='pending') throw new DomainError('ORDER_ALREADY_DECIDED');
             if (count($rows) !== count($decisions)) throw new DomainError('DECISION_MISMATCH');
             $counts=[];
             foreach ($rows as $r) {
                 $id=(int)$r['id'];
                 if (!array_key_exists($id,$decisions)) throw new DomainError('MISSING_DECISION');
                 $amount=$decisions[$id];
-                if (!is_int($amount) || $amount < 0 || $amount > (int)$r['requested_qty']) throw new DomainError('BAD_APPROVAL');
+                if (!is_int($amount) || $amount < (int)$r['fulfilled_qty'] || $amount > (int)$r['requested_qty']) throw new DomainError('BAD_APPROVAL');
                 $counts[$id]=$amount;
             }
-            $st=$this->db->prepare("UPDATE guild_stock SET reserved_qty=reserved_qty+?,stock_version=stock_version+1 WHERE id=? AND guild_id=? AND confidence='verified' AND observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE AND physical_qty >= reserved_qty + ?");
+            $st=$this->db->prepare("UPDATE guild_stock SET reserved_qty=reserved_qty+?,stock_version=stock_version+1 WHERE id=? AND guild_id=? AND confidence='verified' AND observed_at >= UTC_TIMESTAMP() - INTERVAL 30 MINUTE AND physical_qty >= reserved_qty + viewonly_qty + ?");
             $ul=$this->db->prepare("UPDATE order_lines SET approved_qty=?,decision=? WHERE id=? AND order_id=?");
             foreach ($rows as $r) {
                 $id=(int)$r['id']; $quantity=$counts[$id];
-                if ($quantity > 0) {
-                    $st->execute([$quantity,(int)$r['stock_id'],$guild,$quantity]);
+                // Already mailed pieces need no reservation.
+                $reserve=$quantity-(int)$r['fulfilled_qty'];
+                if ($reserve > 0) {
+                    $st->execute([$reserve,(int)$r['stock_id'],$guild,$reserve]);
                     if ($st->rowCount() !== 1) throw new DomainError('INSUFFICIENT_OR_UNVERIFIED_STOCK');
-                    $this->ledger($guild,(int)$r['stock_id'],$id,'reserve',0,$quantity,$actor,'reserve-line-'.$id);
+                    $this->ledger($guild,(int)$r['stock_id'],$id,'reserve',0,$reserve,$actor,'reserve-line-'.$id);
                 }
                 $ul->execute([$quantity,$quantity ? 'approved':'rejected',$id,$orderId]);
             }
@@ -197,7 +202,7 @@ final class Orders
             if ($final==='fulfilled') {
                 $this->db->prepare("UPDATE order_lines SET approved_qty=fulfilled_qty,decision=IF(fulfilled_qty>0,'approved','rejected') WHERE order_id=?")->execute([$orderId]);
             }
-            $s=$this->db->prepare('UPDATE orders SET status=? WHERE id=? AND guild_id=?');$s->execute([$final,$orderId,$guild]);
+            $s=$this->db->prepare('UPDATE orders SET status=?,needs_approval=0 WHERE id=? AND guild_id=?');$s->execute([$final,$orderId,$guild]);
             $this->audit($guild,$actor,$system?'order.expired':'order.cancel','order',$orderId,$system?['reason'=>'expired']:[]);
             $this->notifyOwner($guild,$orderId,'order.cancelled');
             $this->db->commit();return $final;
@@ -220,7 +225,11 @@ final class Orders
             $this->activeRole($guild,$actor,'order.fulfill');
             $order=$this->lockOrder($guild,$orderId);
             if ($order['status']==='fulfilled') {$this->db->commit();return 'fulfilled';}
-            if (!in_array($order['status'],['submitted','reserved','partial','partially_fulfilled'],true)) throw new DomainError('ORDER_NOT_FULFILLABLE');
+            // Expiry may have run while a manager was already on the way to the
+            // mailbox: the mail went out, so it is still booked. Its reservations
+            // were released by the expiry and must not be released twice.
+            $expired=$order['status']==='cancelled' && $this->wasExpired($guild,$orderId);
+            if (!$expired && !in_array($order['status'],['submitted','reserved','partial','partially_fulfilled'],true)) throw new DomainError('ORDER_NOT_FULFILLABLE');
             if ((int)$order['needs_approval']===1) throw new DomainError('APPROVAL_REQUIRED');
             // The same in-game handover can be uploaded more than once: book it once.
             $seen=$this->db->prepare('SELECT COUNT(*) FROM stock_ledger WHERE guild_id=? AND operation_key LIKE ?');
@@ -243,7 +252,7 @@ final class Orders
                     if ($give<=0) continue;
                     $only[$item]-=$give;
                 }
-                $reserved=$line['decision']==='approved'?min($give,(int)$line['approved_qty']-$done):0;
+                $reserved=$line['decision']==='approved' && !$expired?min($give,(int)$line['approved_qty']-$done):0;
                 if ($reserved>0) $rel->execute([$reserved,(int)$line['stock_id'],$guild]);
                 if ($line['decision']!=='approved' && $done+$give<$target) {
                     // Partly sent, not decided yet: the line stays open for the rest.
@@ -252,7 +261,13 @@ final class Orders
                 $this->ledger($guild,(int)$line['stock_id'],(int)$line['id'],'fulfill',0,-$reserved,$actor,$key.'-'.$line['id']);
                 $sent[(int)$line['id']]=$give;
             }
+            if (!$sent) {$this->db->commit();return (string)$order['status'];}
             $state=$this->updateState($orderId);
+            if ($expired && $state!=='fulfilled') {
+                // The rest of an expired order stays closed.
+                $this->db->prepare("UPDATE order_lines SET approved_qty=fulfilled_qty,decision=IF(fulfilled_qty>0,'approved','rejected') WHERE order_id=?")->execute([$orderId]);
+                $state=$this->updateState($orderId);
+            }
             $this->audit($guild,$actor,'order.deliver','order',$orderId,['via'=>'ingame-mail','partial'=>$only!==null,'lines'=>$sent]);
             $this->notifyOwner($guild,$orderId,'order.fulfilled');
             $this->db->commit();return $state;
@@ -275,6 +290,12 @@ final class Orders
         return $this->decide($guild,$actor,$orderId,$decisions);
     }
 
+    private function wasExpired(int $guild,int $orderId): bool
+    {
+        $s=$this->db->prepare("SELECT COUNT(*) FROM audit_events WHERE guild_id=? AND entity_type='order' AND entity_id=? AND action='order.expired' AND created_at>=UTC_TIMESTAMP()-INTERVAL 14 DAY");
+        $s->execute([$guild,$orderId]);return (int)$s->fetchColumn()>0;
+    }
+
     /** Officers and admins release an order that is above the weekly limit of its member. */
     public function approve(int $guild,int $actor,int $orderId): string
     {
@@ -283,6 +304,7 @@ final class Orders
             $role=$this->activeRole($guild,$actor,'order.approve');
             if (!in_array($role,['officer','admin'],true)) throw new DomainError('FORBIDDEN');
             $order=$this->lockOrder($guild,$orderId);
+            if (!in_array($order['status'],['submitted','reserved','partial','partially_fulfilled'],true)) throw new DomainError('ORDER_NOT_FULFILLABLE');
             if ((int)$order['needs_approval']===1) {
                 $this->db->prepare('UPDATE orders SET needs_approval=0 WHERE id=?')->execute([$orderId]);
                 $this->audit($guild,$actor,'order.limit_approved','order',$orderId,[]);
@@ -295,7 +317,7 @@ final class Orders
     private function clearApproval(int $guild,int $actor,string $role,array $order,array $decisions): void
     {
         if ((int)$order['needs_approval']!==1) return;
-        if (array_sum($decisions)===0) return;
+        if (array_sum($decisions)===0) {$this->db->prepare('UPDATE orders SET needs_approval=0 WHERE id=?')->execute([(int)$order['id']]);return;}
         if (!in_array($role,['officer','admin'],true)) throw new DomainError('APPROVAL_REQUIRED');
         $this->db->prepare('UPDATE orders SET needs_approval=0 WHERE id=?')->execute([(int)$order['id']]);
         $this->audit($guild,$actor,'order.limit_approved','order',(int)$order['id'],[]);

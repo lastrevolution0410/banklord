@@ -1,7 +1,7 @@
 <?php
 // Local demo data: admin@demo.invalid / demo-password-123 (bank admin), member@demo.invalid / demo-password-123.
 declare(strict_types=1);
-foreach (['Config','Domain','Database','StockReconciliation','Orders'] as $c) require __DIR__."/../backend/src/$c.php";
+foreach (['Config','Domain','Database','Orders','OrderRules','StockReconciliation'] as $c) require __DIR__."/../backend/src/$c.php";
 use Banklord\{Database,StockReconciliation,Orders};
 $db=Database::connect();
 if ($db->query("SELECT COUNT(*) FROM users WHERE email='admin@demo.invalid'")->fetchColumn()) { echo "already seeded\n"; exit; }
@@ -27,7 +27,7 @@ foreach ($items as [$id,$name,$qty,$type,$sub,$icon]) {
   try { $meta->execute([$g,$id,hash('sha256',$key),$key,$name,$type,$sub,$icon]); } catch (\Throwable $e) { echo "meta skipped: ".$e->getMessage()."\n"; break; }
 }
 (new StockReconciliation($db))->confirm($g,$u['admin'],$sid);
-$stock=fn($id)=>(int)$db->query("SELECT gs.id FROM guild_stock gs JOIN items i ON i.id=gs.item_id WHERE i.wow_item_id=$id")->fetchColumn();
+$stock=fn($id)=>(int)$db->query("SELECT gs.id FROM guild_stock gs JOIN items i ON i.id=gs.item_id WHERE gs.guild_id=$g AND i.wow_item_id=$id")->fetchColumn();
 $o=new Orders($db);
 $o->create($g,$u['member'],'seed-order-0001',[['stock_id'=>$stock(76084),'quantity'=>5],['stock_id'=>$stock(74650),'quantity'=>20]],'Für den Raid am Donnerstag');
 $o->create($g,$u['member'],'seed-order-0002',[['stock_id'=>$stock(72988),'quantity'=>40]],'');

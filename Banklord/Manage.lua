@@ -106,7 +106,9 @@ function A:RecordPartialDelivery(id,items)
   d[id]=type(d[id])=='table' and d[id] or {items={},base={}}
   d[id].at=time()
   for item,n in pairs(items) do
-    if not d[id].base[item] then d[id].base[item]=o and rawQty(o,item) or 0 end
+    local now=o and rawQty(o,item) or 0
+    -- Earlier parts already booked by the server: start counting again from its state.
+    if not d[id].base[item] or now<d[id].base[item] then d[id].base[item]=now;d[id].items[item]=0 end
     d[id].items[item]=(d[id].items[item] or 0)+n
   end
 end
@@ -857,8 +859,8 @@ local function buildPanel()
   for i=1,MAX_ROWS do
     local r=CreateFrame('Frame',nil,panel);r:SetSize(316,24);r:SetPoint('TOPLEFT',12,-64-(i-1)*26)
     r.text=r:CreateFontString(nil,'OVERLAY','GameFontHighlightSmall')
-    r.text:SetPoint('LEFT',0,0);r.text:SetWidth(226);r.text:SetJustifyH('LEFT')
-    r.go=button(r,86,'',function() A:ManageOne(r.order,r.action) end);r.go:SetPoint('RIGHT',0,0)
+    r.text:SetPoint('LEFT',0,0);r.text:SetWidth(206);r.text:SetJustifyH('LEFT')
+    r.go=button(r,106,'',function() A:ManageOne(r.order,r.action) end);r.go:SetPoint('RIGHT',0,0)
     panel.rows[i]=r
   end
   panel.note=panel:CreateFontString(nil,'OVERLAY','GameFontDisableSmall')
