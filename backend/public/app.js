@@ -19,6 +19,7 @@ async function api(path,opts={}){
     if(fresh&&fresh.csrf){state.csrf=fresh.csrf;return api(path,{...opts,_retried:true});}
   }
   if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
+  if(result.error==='GUILD_LOCKED')throw Error('Diese Gilde ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
   return result;
@@ -83,7 +84,7 @@ async function onGuildSelect(){
 const OP_PAGE=20;
 async function loadOperator(){
   if(!state.operator)return;
-  const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;
+  const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;$('opSelfSignup').checked=r.settings.self_signup.value===1;$('opSignupsPerDay').value=r.settings.signups_per_day.value;
   const fl=$('opFlavor');if(fl.options.length<2)for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;fl.append(o);}
   state.opPage=0;renderOperatorGuilds();
   // The feedback inbox exists only on the site that receives reports (official site).
@@ -99,8 +100,11 @@ function renderOperatorGuilds(){
   for(const g of list.slice(state.opPage*OP_PAGE,(state.opPage+1)*OP_PAGE)){const tr=el('tr');
     const mine=g.my_role==='admin';const b=el('button',mine?'secondary button-sm':'button-sm',mine?'Wechseln':'Öffnen');
     b.onclick=()=>{if(mine){$('guildSelector').value=String(g.id);switchGuild();}else{$('guildSelector').value='op:'+g.id;onGuildSelect();}};
-    tr.append(add(el('td'),el('strong','',g.name),el('div','muted',`${g.realm} · ${g.region}`)),el('td','',game(g.wow_flavor)[0]),el('td','',String(g.members)),el('td','',g.admins||'–'),
-      el('td','',g.last_order?new Date(g.last_order*1000).toLocaleDateString():'–'),add(el('td'),b));body.append(tr);}
+    const lk=el('button','secondary button-sm',g.locked?'Entsperren':'Sperren');
+    lk.onclick=async()=>{if(!g.locked&&!confirm(`Gilde ${g.name} sperren? Ihre Mitglieder kommen dann nicht mehr hinein, der Companion lädt nichts mehr hoch. Die Daten bleiben erhalten.`))return;
+      try{await api('/operator/guilds/'+g.id+'/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locked:!g.locked})});g.locked=!g.locked;renderOperatorGuilds();notice(g.locked?'Gilde gesperrt.':'Gilde entsperrt.');}catch(err){notice(err.message,true);}};
+    tr.append(add(el('td'),el('strong','',g.name),...(g.locked?[el('span','badge badge-bad','gesperrt')]:[]),el('div','muted',`${g.realm} · ${g.region}`)),el('td','',game(g.wow_flavor)[0]),el('td','',String(g.members)),el('td','',g.admins||'–'),
+      el('td','',g.last_order?new Date(g.last_order*1000).toLocaleDateString():'–'),add(el('td'),b,lk));body.append(tr);}
   t.append(body);$('operatorGuilds').replaceChildren(list.length?t:el('p','empty-state','Keine Gilde passt zur Suche.'));
   $('opPage').textContent=`Seite ${state.opPage+1} von ${pages}`;$('opPrev').disabled=state.opPage===0;$('opNext').disabled=state.opPage>=pages-1;
 }
@@ -135,6 +139,7 @@ async function initialize(){
         history.replaceState(null,'',location.pathname);location.reload();}
       catch(err){notice('Registrierung fehlgeschlagen: '+err.message,true);}};
     return;}
+  if(!logged)$('signupBox').classList.toggle('hidden',!session.self_signup);
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;state.operator=!!data.operator;state.createLimit=data.create_limit;state.created=data.created||0;
   await fillGuildSelector();
@@ -882,7 +887,7 @@ $('guildSelector').addEventListener('change',onGuildSelect);
 document.querySelectorAll('#operatorNav .chip').forEach(c=>c.onclick=()=>showOperatorPane(c.dataset.op));
 $('opSearch').oninput=()=>{state.opPage=0;renderOperatorGuilds();};$('opFlavor').onchange=()=>{state.opPage=0;renderOperatorGuilds();};
 $('opPrev').onclick=()=>{state.opPage--;renderOperatorGuilds();};$('opNext').onclick=()=>{state.opPage++;renderOperatorGuilds();};
-$('operatorSettings').onsubmit=async e=>{e.preventDefault();try{await api('/operator/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({guilds_per_account:Number($('opGuildLimit').value)})});notice('Gespeichert.');}catch(err){notice(err.message==='INVALID_SETTING'?'Bitte eine Zahl von 0 bis 50.':err.message,true);}};
+$('operatorSettings').onsubmit=async e=>{e.preventDefault();try{await api('/operator/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({guilds_per_account:Number($('opGuildLimit').value),self_signup:$('opSelfSignup').checked?1:0,signups_per_day:Number($('opSignupsPerDay').value)})});notice('Gespeichert.');}catch(err){notice(err.message==='INVALID_SETTING'?'Bitte eine Zahl von 0 bis 50.':err.message,true);}};
 let searchTimer;$('searchInput').addEventListener('input',()=>{state.itemPage=1;state.categoryKey='all';state.inventoryFilter='all';clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadItems().catch(e=>notice(e.message,true)),280);});
 $('checkoutForm').addEventListener('submit',submitOrder);
 $('prevItems').onclick=()=>{if(state.itemPage>1){state.itemPage--;loadItems().catch(e=>notice(e.message,true));}};
@@ -964,6 +969,9 @@ const ACTIVITY={
   'member.claim.redeemed':['people','🤝',e=>`${e.actor||'Jemand'} ist per Bestätigung im Spiel beigetreten`],
   'member.invite.joined':['people','🤝',e=>`${e.actor||'Jemand'} ist per Einladung beigetreten`],
   'operator.opened':['people','🛠️',e=>`${e.actor||'Der Betreiber'} hat die Gilde als Betreiber geöffnet`],
+  'operator.locked':['people','🔒',e=>`${e.actor||'Der Betreiber'} hat die Gilde gesperrt`],
+  'operator.unlocked':['people','🔓',e=>`${e.actor||'Der Betreiber'} hat die Gilde entsperrt`],
+  'account.signup':['people','✨',e=>`${e.actor||'Jemand'} hat die Gilde selbst bei Banklord angemeldet`],
   'guild.order_rules':['people','📋',e=>`${e.actor||'Ein Admin'} hat die Bestellregeln geändert`],
   'order.cancel':['order','✖️',e=>`${e.actor||'Jemand'} hat Bestellung #${e.entity_id}${e.owner&&e.owner!==e.actor?' von '+e.owner:''} storniert`],
   'scan.staged':['scan','🔍',e=>`Neuer Bankscan #${e.entity_id} hochgeladen${e.actor?' von '+e.actor:''}`],
@@ -1012,6 +1020,22 @@ async function loadActivity(){
   }else ledger.append(el('p','muted','Nur für Bankverwalter sichtbar.'));
 }
 $('registerForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/register',{invitation:$('registerCode').value,email:$('registerEmail').value,display_name:$('registerName').value,password:$('registerPass').value});state.csrf=r.csrf;$('registerPass').value='';await initialize();notice('Konto eingerichtet.');}catch(err){notice(err.message==='EMAIL_ALREADY_REGISTERED'?'Du hast schon ein Konto. Melde dich an und löse den Code unter „Mehr → Konto & Gilden“ mit „Einladung einlösen“ ein.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':'Registrierung: '+err.message,true);}};
+// Self sign-up of a guild leader: account + guild in one step (operator switch).
+for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;$('signupFlavor').append(o);}
+function syncSignupRealm(){const forever=$('signupFlavor').value==='forever';$('signupRealmLabel').classList.toggle('hidden',forever);$('signupRealm').required=!forever;}
+$('signupFlavor').onchange=syncSignupRealm;syncSignupRealm();
+$('signupForm').onsubmit=async e=>{e.preventDefault();
+  const forever=$('signupFlavor').value==='forever';
+  try{const r=await post('/signup',{guild_name:$('signupGuild').value.trim(),wow_flavor:$('signupFlavor').value,realm:forever?'':$('signupRealm').value.trim(),region:$('signupRegion').value,
+      display_name:$('signupName').value.trim(),email:$('signupEmail').value.trim(),password:$('signupPass').value});
+    state.csrf=r.csrf;$('signupPass').value='';await initialize();setTab('account');
+    $('newGuildPanel').classList.remove('hidden');$('newGuildForm').classList.add('hidden');$('newGuildNext').classList.remove('hidden');
+    notice(`Willkommen! Deine Gilde ${r.guild.name} ist angelegt. Die nächsten Schritte stehen unter „Konto & Gilden“.`);}
+  catch(err){const m={EMAIL_ALREADY_REGISTERED:'Mit dieser E-Mail gibt es schon ein Konto. Melde dich an und lege die Gilde unter „Mehr → Konto & Gilden“ an.',
+      GUILD_EXISTS:'Diese Gilde gibt es hier schon. Bitte einen Admin dieser Gilde um eine Einladung.',INVALID_GUILD:'Bitte Gildenname und Realm prüfen (mindestens 2 Zeichen).',
+      INVALID_REGISTRATION:'Bitte Anzeigename, E-Mail und Passwort prüfen (mindestens 14 Zeichen).',SIGNUP_CLOSED:'Neue Gilden können sich hier gerade nicht selbst anmelden.',
+      SIGNUP_DAILY_LIMIT:'Heute haben sich schon sehr viele Gilden angemeldet. Bitte versuche es morgen noch einmal.',REGISTRATION_RATE_LIMIT:'Zu viele Versuche. Bitte in einer Stunde noch einmal.'};
+    notice(m[err.message]||err.message,true);}};
 $('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';$('joinGuildPanel').classList.add('hidden');await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){

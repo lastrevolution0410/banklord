@@ -208,9 +208,12 @@ function catalogIcons(PDO $db,int $guild,array &$rows,string $locale): void {
     unset($row);
 }
 
-function hasMember(PDO $db,int $guild,int $user): string {
+function hasMember(PDO $db,int $guild,int $user,bool $operator=false): string {
     $s=$db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");$s->execute([$guild,$user]);
-    $role=$s->fetchColumn(); if(!$role) reply(403,['error'=>'FORBIDDEN']); return (string)$role;
+    $role=$s->fetchColumn(); if(!$role) reply(403,['error'=>'FORBIDDEN']);
+    // A guild locked by the operator: only the operator still gets in.
+    if (!$operator && Operator::guildLocked($db,$guild)) reply(423,['error'=>'GUILD_LOCKED']);
+    return (string)$role;
 }
 
 try {
@@ -234,7 +237,8 @@ try {
         session_regenerate_id(true);$_SESSION['uid']=$demoUser;$_SESSION['demo']=true;$_SESSION['csrf']=bin2hex(random_bytes(32));
         reply(200,['ok'=>true]);
     }
-    if ($method==='GET' && $path==='/session') reply(200,['demo'=>$isDemo,'csrf'=>$_SESSION['csrf'],'user_id'=>$_SESSION['uid']??null]);
+    if ($method==='GET' && $path==='/session') reply(200,['demo'=>$isDemo,'csrf'=>$_SESSION['csrf'],'user_id'=>$_SESSION['uid']??null,
+        'self_signup'=>(new Operator($db))->setting('self_signup')===1]);
     // Probe companion credentials without uploading any inventory. GET is still
     // bearer-only and the token grants no authority beyond scan staging.
     if ($method==='GET' && preg_match('~^/bridge/guilds/([1-9][0-9]{0,17})/status$~D',$path,$bm)) {
@@ -423,6 +427,17 @@ try {
         session_regenerate_id(true);$_SESSION['uid']=$result['user_id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
         reply(201,['user_id'=>$result['user_id'],'csrf'=>$_SESSION['csrf']]);
     }
+    // Guild leaders sign up alone (account + guild), only when the operator switched it on.
+    if ($method==='POST' && $path==='/signup') {
+        $key=hash('sha256','signup|'.($_SERVER['REMOTE_ADDR']??'unknown'));
+        $db->prepare('INSERT INTO login_attempts (key_hash,attempts,window_started_at) VALUES (?,0,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE key_hash=key_hash')->execute([$key]);
+        $l=$db->prepare('SELECT attempts,window_started_at FROM login_attempts WHERE key_hash=?');$l->execute([$key]);$rl=$l->fetch();
+        if($rl && time()-strtotime($rl['window_started_at'].' UTC')<3600 && (int)$rl['attempts']>=10)reply(429,['error'=>'REGISTRATION_RATE_LIMIT']);
+        $db->prepare('UPDATE login_attempts SET attempts=IF(TIMESTAMPDIFF(SECOND,window_started_at,UTC_TIMESTAMP()) >= 3600,1,attempts+1),window_started_at=IF(TIMESTAMPDIFF(SECOND,window_started_at,UTC_TIMESTAMP()) >= 3600,UTC_TIMESTAMP(),window_started_at) WHERE key_hash=?')->execute([$key]);
+        $result=(new Community($db))->signup(body());
+        session_regenerate_id(true);unset($_SESSION['demo']);$_SESSION['uid']=$result['user_id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
+        reply(201,['user_id'=>$result['user_id'],'guild'=>$result['guild'],'csrf'=>$_SESSION['csrf']]);
+    }
     if ($method==='POST' && $path==='/login') {
         $b=body(); $email=mb_strtolower(trim((string)($b['email']??''))); $password=(string)($b['password']??'');
         if (strlen($email)>254 || strlen($password)>1024 || $email==='' || $password==='') reply(400,['error'=>'INVALID_LOGIN']);
@@ -457,6 +472,9 @@ try {
     if ($method==='GET' && $path==='/operator/guilds') reply(200,['guilds'=>$operator->guilds($user),'settings'=>$operator->settings()]);
     if ($method==='PUT' && $path==='/operator/settings') reply(200,['settings'=>$operator->save($user,body())]);
     if ($method==='POST' && preg_match('~^/operator/guilds/([1-9][0-9]{0,17})/open$~D',$path,$om)) reply(200,['guild'=>$operator->open($user,id($om[1]))]);
+    if ($method==='POST' && preg_match('~^/operator/guilds/([1-9][0-9]{0,17})/lock$~D',$path,$om)) {$b=body();
+        if (!is_bool($b['locked']??null)) reply(400,['error'=>'BAD_REQUEST']);
+        reply(200,['locked'=>$operator->lock($user,id($om[1]),$b['locked'])]);}
     if ($method==='POST' && $path==='/invitations/redeem') reply(200,['guild'=>(new Community($db))->join((string)(body()['invitation']??''),$user)]);
     if ($method==='POST' && $path==='/guilds') reply(201,['guild'=>(new Guilds($db))->create($user,body())]);
     if ($method==='GET' && $path==='/guilds') {
@@ -465,7 +483,7 @@ try {
         reply(200,['guilds'=>$s->fetchAll(),'operator'=>$isOperator,'create_limit'=>$isOperator?null:$limit,'created'=>(new Guilds($db))->createdBy($user)]);
     }
     if (!preg_match('~^/guilds/([1-9][0-9]{0,17})/(.+)$~D',$path,$m)) reply(404,['error'=>'NOT_FOUND']);
-    $guild=id($m[1]);$tail=$m[2];$role=hasMember($db,$guild,$user);
+    $guild=id($m[1]);$tail=$m[2];$role=hasMember($db,$guild,$user,$isOperator);
     // Help & feedback: every member reports; the inbox exists only where reports arrive.
     if ($tail==='feedback' || str_starts_with($tail,'feedback/')) {
         $fb=new Feedback($db);

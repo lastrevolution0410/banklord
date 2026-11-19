@@ -670,3 +670,4 @@ details.more-box[open]>summary{margin-bottom:6px}
 .tech-details{margin-top:12px;font-size:.92em}
 .tech-details>summary{cursor:pointer;color:var(--muted)}
 .empty-explain{padding:10px 0}
+.check-line{display:flex!important;align-items:center;gap:8px;flex-direction:row!important}.check-line input{width:auto!important}

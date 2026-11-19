@@ -63,4 +63,29 @@ $ok(($r['error']??'')==='MEMBERSHIP_DISABLED','a disabled member cannot re-enabl
 $ok(($r['error']??'')==='INVITE_EXPIRED_OR_USED','bad code rejected ('.$st.')');
 $anon=$client();$anon('GET','/session');[$st]=$anon('POST','/invitations/redeem',['invitation'=>$t2]);
 $ok($st===401,'not signed in: no joining ('.$st.')');
+// Self sign-up of guild leaders: off by default, then account + guild in one step.
+$db->exec("DELETE FROM login_attempts");
+$db->exec("INSERT INTO site_settings (name,value) VALUES ('self_signup','0') ON DUPLICATE KEY UPDATE value='0'");
+$su=$client();[$st,$r]=$su('GET','/session');$ok(($r['self_signup']??null)===false,'sign-up hidden by default');
+$suf=bin2hex(random_bytes(4));$form=['guild_name'=>"Selbst$suf",'wow_flavor'=>'forever','realm'=>'','region'=>'EU','display_name'=>'Leiterin','email'=>"lead$suf@x.invalid",'password'=>'lang-genug-1234'];
+[$st,$r]=$su('POST','/signup',$form);$ok(($r['error']??'')==='SIGNUP_CLOSED',"sign-up closed by default ($st)");
+$db->exec("UPDATE site_settings SET value='1' WHERE name='self_signup'");
+$db->exec("INSERT INTO site_settings (name,value) VALUES ('signups_per_day','500') ON DUPLICATE KEY UPDATE value='500'");
+[$st,$r]=$su('GET','/session');$ok(($r['self_signup']??null)===true,'sign-up shown when switched on');
+[$st,$r]=$su('POST','/signup',['password'=>'kurz']+$form);$ok(($r['error']??'')==='INVALID_REGISTRATION',"short password rejected ($st)");
+[$st,$r]=$su('POST','/signup',$form);$sg=(int)($r['guild']['id']??0);
+$ok($st===201 && ($r['guild']['realm']??'')==='Forever' && ($r['guild']['role']??'')==='admin',"forever guild signed up without realm ($st)");
+[$st,$r]=$su('GET','/guilds');$ok(in_array($sg,array_map('intval',array_column($r['guilds']??[],'id')),true),'signed in and admin of the new guild');
+$su2=$client();$su2('GET','/session');
+[$st,$r]=$su2('POST','/signup',['email'=>"other$suf@x.invalid"]+$form);$ok(($r['error']??'')==='GUILD_EXISTS',"same guild twice rejected ($st)");
+[$st,$r]=$su2('POST','/signup',['guild_name'=>"Andere$suf"]+$form);$ok(($r['error']??'')==='EMAIL_ALREADY_REGISTERED',"same e-mail twice rejected ($st)");
+$db->exec("UPDATE site_settings SET value='0' WHERE name='signups_per_day'");
+[$st,$r]=$su2('POST','/signup',['guild_name'=>"Dritte$suf",'email'=>"third$suf@x.invalid"]+$form);$ok(($r['error']??'')==='SIGNUP_DAILY_LIMIT',"daily limit ($st)");
+// Locked guild: members are kept out, the Companion cannot upload, a non-operator cannot lock.
+[$st]=$su('POST',"/operator/guilds/$sg/lock",['locked'=>true]);$ok($st===403,"guild admin cannot lock ($st)");
+$db->prepare('UPDATE guilds SET locked_at=UTC_TIMESTAMP() WHERE id=?')->execute([$sg]);
+[$st,$r]=$su('GET',"/guilds/$sg/bridge-tokens");$ok($st===423 && ($r['error']??'')==='GUILD_LOCKED',"locked guild closed ($st)");
+$db->prepare('UPDATE guilds SET locked_at=NULL WHERE id=?')->execute([$sg]);
+[$st]=$su('GET',"/guilds/$sg/bridge-tokens");$ok($st===200,"unlocked guild open again ($st)");
+$db->exec("UPDATE site_settings SET value='0' WHERE name='self_signup'");$db->exec("UPDATE site_settings SET value='20' WHERE name='signups_per_day'");$db->exec("DELETE FROM login_attempts");
 echo $fail?"FAILED ($fail)\n":"PASS: token rights over HTTP session\n"; exit($fail?1:0);

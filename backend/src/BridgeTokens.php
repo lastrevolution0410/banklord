@@ -65,7 +65,7 @@ final class BridgeTokens
     {
         if (!self::tokenIsWellFormed($token)) throw new DomainError('BRIDGE_TOKEN_INVALID');
         $s=$this->db->prepare("SELECT t.id,t.created_by FROM bridge_tokens t
-          JOIN guild_memberships m ON m.guild_id=t.guild_id AND m.user_id=t.created_by
+          JOIN guild_memberships m ON m.guild_id=t.guild_id AND m.user_id=t.created_by JOIN guilds g ON g.id=t.guild_id AND g.locked_at IS NULL
           WHERE t.guild_id=? AND t.token_hash=? AND t.scope='scan.stage'
           AND t.revoked_at IS NULL AND t.expires_at>UTC_TIMESTAMP()
           AND m.status='active' AND m.role IN ('admin','bank_manager') LIMIT 1");
@@ -119,7 +119,7 @@ final class BridgeTokens
     {
         if (!self::tokenIsWellFormed($token)) throw new DomainError('BRIDGE_TOKEN_INVALID');
         $s=$this->db->prepare("SELECT t.id,t.created_by,t.scope FROM bridge_tokens t
-          JOIN guild_memberships m ON m.guild_id=t.guild_id AND m.user_id=t.created_by
+          JOIN guild_memberships m ON m.guild_id=t.guild_id AND m.user_id=t.created_by JOIN guilds g ON g.id=t.guild_id AND g.locked_at IS NULL
           WHERE t.guild_id=? AND t.token_hash=?
           AND t.revoked_at IS NULL AND t.expires_at>UTC_TIMESTAMP() AND m.status='active'
           AND ((t.scope IN ('scan.stage','scan.auto') AND m.role IN ('admin','bank_manager')) OR t.scope='member.orders') LIMIT 1");

@@ -40,6 +40,30 @@ final class Community {
             $this->db->commit();return ['user_id'=>$uid,'guild_id'=>(int)$row['guild_id']];
         }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
+    /** Guild leader signs up alone: account and guild in one step (only if the operator allows it). */
+    public function signup(array $in): array {
+        $op=new Operator($this->db);
+        if($op->setting('self_signup')!==1)throw new DomainError('SIGNUP_CLOSED');
+        $email=mb_strtolower(trim((string)($in['email']??'')));$name=trim((string)($in['display_name']??''));$password=(string)($in['password']??'');
+        if(!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>254 || mb_strlen($name)<2 || mb_strlen($name)>100
+           || preg_match('/[\x00-\x1f\x7f<>]/',$name) || !self::passwordAllowed($password))throw new DomainError('INVALID_REGISTRATION');
+        $guilds=new Guilds($this->db);
+        $g=$guilds->validate(['name'=>$in['guild_name']??null,'realm'=>$in['realm']??'','region'=>$in['region']??'EU','wow_flavor'=>$in['wow_flavor']??null]);
+        $this->db->beginTransaction();
+        try{
+            // Site-wide brake: at most N self sign-ups per 24 hours.
+            $c=$this->db->query("SELECT COUNT(*) FROM audit_events WHERE action='account.signup' AND created_at>NOW()-INTERVAL 1 DAY");
+            if((int)$c->fetchColumn()>=$op->setting('signups_per_day'))throw new DomainError('SIGNUP_DAILY_LIMIT');
+            $s=$this->db->prepare('SELECT id FROM users WHERE email=?');$s->execute([$email]);
+            if($s->fetchColumn())throw new DomainError('EMAIL_ALREADY_REGISTERED');
+            $s=$this->db->prepare('INSERT INTO users (email,password_hash,display_name) VALUES (?,?,?)');
+            $s->execute([$email,password_hash($password,PASSWORD_DEFAULT),$name]);$uid=(int)$this->db->lastInsertId();
+            $guild=$guilds->insert($uid,$g);
+            $this->db->prepare("INSERT INTO audit_events (guild_id,actor_user_id,action,entity_type,entity_id) VALUES (?,?,'account.signup','user',?)")
+                ->execute([$guild['id'],$uid,$uid]);
+            $this->db->commit();return ['user_id'=>$uid,'guild'=>$guild];
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
     /** Signed-in user joins one more guild with an invitation (one account for several guilds). */
     public function join(string $token,int $user): array {
         if(!self::inviteFormat($token))throw new DomainError('INVITE_EXPIRED_OR_USED');

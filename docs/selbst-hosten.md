@@ -32,6 +32,7 @@ Die Einrichtungsseite existiert nur, bis Banklord konfiguriert ist. Die Einstell
 Die Website aktualisiert sich selbst aus dem offiziellen, signierten Release-Kanal:
 
 - Prüfung höchstens alle 6 Stunden, Signaturprüfung, danach **Backup von Datenbank und Dateien**, dann Installation inklusive Datenbank-Änderungen.
+- Unter **Betreiber → Einstellungen**: wie viele Gilden ein Konto anlegen darf, ob sich **Gildenleiter selbst anmelden** dürfen (Konto und Gilde ohne Einladung, standardmäßig aus) und wie viele solcher Anmeldungen pro Tag höchstens erlaubt sind. Unter **Betreiber → Gilden** kannst du eine Gilde **sperren** (z. B. bei Missbrauch); ihre Daten bleiben erhalten.
 - Status und „Jetzt prüfen“ unter **Betreiber → Updates & Releases**.
 - In `config.local.php`:
   - `'UPDATE_AUTO' => 'off'` – nicht automatisch installieren (Knopf unter Betreiber → Updates & Releases geht weiter).

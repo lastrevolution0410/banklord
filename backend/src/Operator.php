@@ -11,7 +11,11 @@ use PDO;
  */
 final class Operator
 {
-    public const SETTINGS=['guilds_per_account'=>[3,0,50]];
+    public const SETTINGS=['guilds_per_account'=>[3,0,50],
+        // Guild leaders may sign up on their own (account + guild in one step); off by default.
+        'self_signup'=>[0,0,1],
+        // At most this many self sign-ups per 24 hours on the whole website.
+        'signups_per_day'=>[20,0,500]];
 
     public function __construct(private PDO $db) {}
 
@@ -55,12 +59,30 @@ final class Operator
             (SELECT GROUP_CONCAT(u.display_name ORDER BY u.display_name SEPARATOR ', ') FROM guild_memberships m JOIN users u ON u.id=m.user_id
                WHERE m.guild_id=g.id AND m.role='admin' AND m.status='active') AS admins,
             (SELECT UNIX_TIMESTAMP(MAX(o.created_at)) FROM orders o WHERE o.guild_id=g.id) AS last_order,
-            (SELECT role FROM guild_memberships m WHERE m.guild_id=g.id AND m.user_id=? AND m.status='active') AS my_role
+            (SELECT role FROM guild_memberships m WHERE m.guild_id=g.id AND m.user_id=? AND m.status='active') AS my_role,
+            g.locked_at IS NOT NULL AS locked
             FROM guilds g ORDER BY g.name,g.realm,g.id");
         $s->execute([$actor]);
         return array_map(fn($r)=>['id'=>(int)$r['id'],'name'=>(string)$r['name'],'realm'=>(string)$r['realm'],'region'=>(string)$r['region'],
             'wow_flavor'=>(string)$r['wow_flavor'],'created_at'=>(int)$r['created'],'members'=>(int)$r['members'],'admins'=>(string)($r['admins']??''),
-            'last_order'=>$r['last_order']===null?null:(int)$r['last_order'],'my_role'=>$r['my_role']===null?null:(string)$r['my_role']],$s->fetchAll(PDO::FETCH_ASSOC));
+            'last_order'=>$r['last_order']===null?null:(int)$r['last_order'],'my_role'=>$r['my_role']===null?null:(string)$r['my_role'],'locked'=>(int)$r['locked']===1],$s->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /** Operator locks a guild (e.g. abuse) or unlocks it again. Members keep their data. */
+    public function lock(int $actor,int $guild,bool $locked): bool
+    {
+        if (!$this->is($actor)) throw new DomainError('FORBIDDEN');
+        $g=$this->db->prepare('SELECT id FROM guilds WHERE id=?');$g->execute([$guild]);
+        if (!$g->fetchColumn()) throw new DomainError('GUILD_NOT_FOUND');
+        $this->db->prepare('UPDATE guilds SET locked_at='.($locked?'UTC_TIMESTAMP()':'NULL').' WHERE id=?')->execute([$guild]);
+        $this->db->prepare("INSERT INTO audit_events (guild_id,actor_user_id,action,entity_type,entity_id) VALUES (?,?,?,'guild',?)")
+            ->execute([$guild,$actor,$locked?'operator.locked':'operator.unlocked',$guild]);
+        return $locked;
+    }
+
+    public static function guildLocked(PDO $db,int $guild): bool
+    {
+        $s=$db->prepare('SELECT locked_at IS NOT NULL FROM guilds WHERE id=?');$s->execute([$guild]);return (int)$s->fetchColumn()===1;
     }
 
     /** Operator opens a guild: becomes its admin (visible to the guild, written to its log). */

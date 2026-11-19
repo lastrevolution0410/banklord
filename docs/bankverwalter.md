@@ -119,7 +119,7 @@ Mehr zum Ablauf und warum er sicher ist: [Sicherheit](sicherheit.md#freischaltun
 
 Deine Gilde nutzt Banklord noch nicht? Dann legst du sie selbst an:
 
-1. Auf der Website anmelden (oder dir von irgendeiner Banklord-Gilde eine Einladung geben lassen und ein Konto erstellen).
+1. Noch kein Konto? Auf der Startseite **„Gildenleiter? Eigene Gilde kostenlos anmelden“** aufklappen: Gildenname, Spielversion, Realm (bei WoW Forever entfällt er), E-Mail und Passwort eintragen – Konto und Gilde sind in einem Schritt fertig, weiter bei Schritt 3. (Diesen Kasten gibt es nur, wenn der Betreiber der Website ihn eingeschaltet hat.) Hast du schon ein Konto, melde dich an.
 2. **Mehr → Konto & Gilden → „Eigene Gilde anlegen“:** Gildenname und Realm **genau wie im Spiel**, Region und Spielversion wählen, „Gilde anlegen“. Du bist jetzt Administrator der Gilde.
 3. Gleich darunter **„Persönlichen Schlüssel erzeugen“** und den Code im **Banklord Companion** einfügen – als erste Verbindung oder unter „Weitere Gilden auf diesem PC“.
 4. Im Spiel mit einem Charakter dieser Gilde die **Gildenbank öffnen** und `/reload`.
