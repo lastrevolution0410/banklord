@@ -141,7 +141,7 @@ async function initialize(){
         history.replaceState(null,'',location.pathname);location.reload();}
       catch(err){notice('Registrierung fehlgeschlagen: '+err.message,true);}};
     return;}
-  if(!logged){$('signupBox').classList.toggle('hidden',!session.self_signup);$('forgotBox').classList.toggle('hidden',!session.password_reset);showResetForm();}
+  if(!logged){$('signupTab').classList.toggle('hidden',!session.self_signup);if(!session.self_signup&&!$('signupBox').classList.contains('hidden'))loginTab('login');$('forgotBox').classList.toggle('hidden',!session.password_reset);showResetForm();}
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;state.operator=!!data.operator;state.createLimit=data.create_limit;state.created=data.created||0;
   await fillGuildSelector();
@@ -1073,7 +1073,9 @@ $('signupForm').onsubmit=async e=>{e.preventDefault();
     notice(m[err.message]||err.message,true);}};
 // Forgot password: link by e-mail; the page opens with #reset=<token>.
 function resetToken(){const m=location.hash.match(/^#reset=(bpr1_[a-f0-9]{64})$/);return m?m[1]:null;}
-function showResetForm(){const t=resetToken();$('resetForm').classList.toggle('hidden',!t);if(t)$('resetForm').scrollIntoView({block:'center'});}
+function loginTab(t){document.querySelectorAll('[data-login-tab]').forEach(b=>{const on=b.dataset.loginTab===t;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});document.querySelectorAll('[data-login-pane]').forEach(p=>p.classList.toggle('hidden',p.dataset.loginPane!==t));}
+document.querySelectorAll('[data-login-tab]').forEach(b=>b.addEventListener('click',()=>loginTab(b.dataset.loginTab)));
+function showResetForm(){const t=resetToken();if(t)loginTab('login');$('resetForm').classList.toggle('hidden',!t);if(t)$('resetForm').scrollIntoView({block:'center'});}
 $('forgotForm').onsubmit=async e=>{e.preventDefault();
   try{await post('/password/forgot',{email:$('forgotEmail').value.trim(),lang:webLocale().startsWith('en')?'en':'de'});
     notice('Wenn es zu dieser E-Mail ein Konto gibt, ist jetzt ein Link unterwegs. Schau auch im Spam-Ordner nach.');$('forgotBox').open=false;}

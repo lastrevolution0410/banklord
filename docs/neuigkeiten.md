@@ -23,6 +23,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.12.4: Aufgeräumte Startseite: Anmelden, „Neu hier?“ und „Gilde anmelden“ sind jetzt Reiter statt einer langen Liste. Passwort vergessen und Einladungscode sitzen direkt unter dem Anmelden-Formular.
 - 1.12.3: E-Mail-Versand: versehentliche Leerzeichen vor oder nach dem eingefügten Passwort werden entfernt, und das Formular gibt Tipps, wenn die Anmeldung am Mailserver scheitert.
 - 1.12.2: Klappt die Test-E-Mail nicht, sagt die Website jetzt genau, woran es liegt (Server nicht erreichbar, Verschlüsselung, Benutzer/Passwort falsch, Absender abgelehnt) – mit dem Code des Mailservers.
 - 1.12.1: **Betreiber → Konten** findet Konten jetzt auch über den Charakternamen und zeigt die Charaktere an; das Suchfeld wird nicht mehr vom Browser vorausgefüllt.

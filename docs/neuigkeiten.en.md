@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.12.4: Tidier start page: sign in, “New here?” and “Register guild” are now tabs instead of one long list. Forgot password and invite code sit right below the sign-in form.
 - 1.12.3: sending e-mail: accidental spaces before or after a pasted password are removed, and the form gives tips when signing in at the mail server fails.
 - 1.12.2: if the test e-mail fails, the website now says exactly why (server unreachable, encryption, wrong user/password, sender rejected) – with the mail server's code.
 - 1.12.1: **Operator → Accounts** now also finds accounts by character name and shows the characters; the browser no longer pre-fills the search box.
