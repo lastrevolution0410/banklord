@@ -8,7 +8,7 @@ end
 -- Read-only bank interaction detection; no protected actions or network requests.
 Banklord = Banklord or {}
 local A = Banklord
-A.version = "0.16.4"
+A.version = "0.16.5"
 A.bankOpen = false
 A.lastBankEvent = "noch keines" -- display-only default, translated in Debug()
 A.frame = CreateFrame("Frame")
@@ -108,9 +108,13 @@ function A:QueueAutomaticBankScan()
     A.autoOpenQueued = false
     if A.autoOpenTriggered or not A.db or not A:IsGuildBankOpen() then return end
     if A.scanRun then A.autoOpenTriggered = true; return end
-    A:StartScan('all')
+    A:StartScan('all', true)
     if A.scanRun then
       A.autoOpenTriggered = true
+    elseif A.noBankTabs and (A.autoOpenRetries or 0) >= 2 then
+      -- Tab data has arrived and there really is no tab: say it once, quietly stop.
+      A.autoOpenTriggered = true
+      A:Message(A:Tr("Diese Gildenbank hat noch kein Bankfach - es gibt nichts zu zählen. Gold wird trotzdem im Kassenbuch erfasst."))
     elseif (A.autoOpenRetries or 0) < 4 then
       -- The first event can precede the bank-tab metadata arriving.
       A.autoOpenRetries = (A.autoOpenRetries or 0) + 1

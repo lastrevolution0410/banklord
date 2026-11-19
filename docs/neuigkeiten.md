@@ -23,6 +23,10 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.11: **Gildenbank ohne Bankfach** (z. B. neue Gilde in Forever): statt fünfmal „Anzahl der Bankfächer ist ungültig“ kommt kein Spam mehr; ein Scan von Hand erklärt es in einem Satz. Gold zählt trotzdem.
+- 1.9.11: **Mehr bestellen als da ist:** Spiel und Website sagen jetzt sofort „Nur X in der Bank – der Rest bleibt offen, bis nachgefüllt wird“.
+- 1.9.11: **Versionshinweis:** Sieht das Addon in der Gilde eine neuere Banklord-Version, sagt es einmal Bescheid (Companion starten, dann `/reload`).
+- 1.9.11: **Testkonten:** WoW erlaubt Testkonten keine Addon-Nachrichten. Statt endlos auf die Freischaltung zu warten, verweist das Addon auf eine Einladung für die Website.
 - 1.9.10: Die Zierecke oben links überdeckt den Knopf „Gildenbank“ nicht mehr.
 - 1.9.9: **Inventur aufgeräumt:** oben steht sofort, ob ein neuer Scan auf Freigabe wartet („Jetzt prüfen“) oder alles aktuell ist. Darunter Prüfen und automatische Freigabe; Companion verbinden, Scan von Hand hochladen und Entwürfe aus dem Spiel stecken unter **„Erweitert“** (öffnet sich von selbst, solange noch kein Companion verbunden ist).
 - 1.9.9: **Gildenbank verständlicher:** „Du kannst bestellen: X Stück“ statt Fachbegriffen, ein großer Knopf **„In den Warenkorb“**, Merken und Wunschliste klein darunter, technische Nummern unter „Details“. Noch nicht freigegebene Bestände heißen jetzt auch so.

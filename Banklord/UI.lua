@@ -629,8 +629,19 @@ local addButton=push(catalog,'Zum Warenkorb',761,-307,225,33,function()
   A:AddCartDraftByKey(chosen.key,number)
   A:RefreshUI()
 end)
-text(catalog,'GameFontNormalSmall',763,-355,226,
-  'Im Reiter Warenkorb mit „Bestellung absenden“\nverbindlich beim Server anfragen.',COLORS.warn)
+local CART_HINT='Im Reiter Warenkorb mit „Bestellung absenden“\nverbindlich beim Server anfragen.'
+local qtyHint=text(catalog,'GameFontNormalSmall',763,-355,226,CART_HINT,COLORS.warn)
+-- More than the bank holds is allowed (the rest stays open), but say so plainly.
+local function updateQtyHint()
+  local chosen
+  for _,item in ipairs(catalogItems) do if item.key==selectedKey then chosen=item;break end end
+  local number=tonumber(qty:GetText())
+  if chosen and number and tonumber(chosen.count) and number>tonumber(chosen.count) then
+    qtyHint:SetText(A:Tr('Nur %d in der Bank. Du bekommst erst diese,\nder Rest bleibt offen, bis nachgefüllt wird.'):format(tonumber(chosen.count)))
+  else qtyHint:SetText(A:Tr(CART_HINT)) end
+end
+A.UpdateQtyHint=updateQtyHint
+qty:SetScript('OnTextChanged',updateQtyHint)
 local detailSnapshot=text(catalog,'GameFontNormalSmall',763,-418,230,'',COLORS.muted)
 
 -- Cart: position list, individual removal, existing transfer and peer functions.
@@ -1069,6 +1080,7 @@ function A:RefreshUI()
       if free<(chosen.count or 0) then
         detailStock:SetText(A:Tr('Inventur: %s Stück (%s nur ansehen)'):format(tostring(chosen.count),tostring(chosen.count-free)))
       else detailStock:SetText(A:Tr('Inventur: %s Stück'):format(tostring(chosen.count))) end
+      if A.UpdateQtyHint then A.UpdateQtyHint() end
       if free>0 then addButton:Enable() else addButton:Disable() end
     else
       lastDetailKey=nil

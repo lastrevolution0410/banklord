@@ -460,7 +460,7 @@ function renderItemDetail(){
     const id=Number(item.stock_id);const previous=state.cart.get(id)?.quantity||0;
     if(n+previous>1000000){notice('Maximale Anfragemenge überschritten.',true);return;}
     state.cart.set(id,{id,name:item.name,quantity:n+previous,max:1000000,available:item.available_qty===null?null:Number(item.available_qty)});
-    state.pendingOrder=null;updateCartBadge();notice(item.name+' liegt im Warenkorb. Bestellt ist es erst, wenn du dort auf Absenden klickst.');
+    state.pendingOrder=null;updateCartBadge();notice(item.available_qty!==null&&n+previous>Number(item.available_qty)?item.name+': nur '+qty(item.available_qty)+' in der Bank. Du bekommst erst diese, der Rest bleibt offen, bis nachgefüllt wird.':item.name+' liegt im Warenkorb. Bestellt ist es erst, wenn du dort auf Absenden klickst.');
   };
   const fav=el('button','secondary button-sm',state.favorites.has(Number(item.stock_id))?'★ Favorit':'☆ Merken');
   fav.type='button';fav.onclick=async()=>{try{const id=Number(item.stock_id);const on=!state.favorites.has(id);

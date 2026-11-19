@@ -309,6 +309,32 @@ do
   A:ReceiveJoinMessage('BLJOIN1','S|https://bank.example|12','WHISPER','Borin')
   assert(A.db.joinOffers['https://bank.example|12'].by=='Borin-Everlook','offer stored')
   assert(not A:SendJoinRequest(),'no request once connected to this guild')
+  -- Version hint: newer version seen once, older guild mate gets our version.
+  do
+    local msgs={};local oldMsg=A.Message;A.Message=function(_,t) msgs[#msgs+1]=t end
+    assert(A:IsNewerVersion('0.16.10','0.16.9') and not A:IsNewerVersion('0.16.4','0.16.4') and A:IsNewerVersion('1.0.0','0.99.99'),'version compare')
+    A.versionHintShown=nil
+    A:ReceiveJoinMessage('BLJOIN1','V|99.0.0','GUILD','Borin')
+    A:ReceiveJoinMessage('BLJOIN1','V|99.0.1','GUILD','Borin')
+    assert(#msgs==1 and msgs[1]:find('99.0.0',1,true),'newer version hinted once')
+    local n=#sent;A.versionSentAt=nil
+    A:ReceiveJoinMessage('BLJOIN1','V|0.0.1','GUILD','Borin')
+    assert(#sent==n+1 and sent[#sent][2]=='V|'..A.version and sent[#sent][3]=='GUILD','older guild mate gets our version')
+    A:ReceiveJoinMessage('BLJOIN1','V|0.0.1','GUILD','Borin')
+    assert(#sent==n+1,'version answer is rate limited')
+    -- Trial accounts: no addon messages, a clear hint instead.
+    IsTrialAccount=function() return true end;A.joinHintShown=nil;Banklord_ServerState.connections={}
+    assert(A:SendJoinRequest()==false and msgs[#msgs]:find('Testkonto',1,true),'trial account told to use a website invitation')
+    IsTrialAccount=nil
+    -- Guild bank without any tab (new guild in WoW Forever): automatic scan stays quiet, manual scan explains once.
+    local oldTabs,oldRealm,oldOpen,oldRun=GetNumGuildBankTabs,GetRealmName,A.bankOpen,A.scanRun
+    GetNumGuildBankTabs=function() return 0 end;GetRealmName=GetRealmName or function() return 'Everlook' end;A.bankOpen=true;A.scanRun=nil
+    local m=#msgs;A:StartScan('all',true)
+    assert(#msgs==m and A.noBankTabs and not A.scanRun,'no spam for a bank without tabs')
+    A:StartScan('all');assert(#msgs==m+1 and msgs[#msgs]:find('kein Bankfach',1,true),'manual scan explains a bank without tabs')
+    GetNumGuildBankTabs,GetRealmName,A.bankOpen,A.scanRun=oldTabs,oldRealm,oldOpen,oldRun
+    A.Message=oldMsg
+  end
   C_ChatInfo.SendAddonMessage=oldSend;IsInGuild=nil;GetGuildInfo=nil;GetNumGuildMembers=nil;GetGuildRosterInfo=nil
   Banklord_ServerState.manage=nil;Banklord_ServerState.connections=nil;Banklord_Claim=nil
 end

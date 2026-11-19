@@ -58,6 +58,7 @@ local EN={
   ['Inventur wird geladen ...']='Loading scan ...',
   ['Lokale Daten • nicht live • Bestellungen werden erst durch den Server verbindlich.']=
     'Local data • not live • Orders only become binding once the server confirms them.',
+  ['Nur %d in der Bank. Du bekommst erst diese,\nder Rest bleibt offen, bis nachgefüllt wird.']='Only %d in the bank. You get these first,\nthe rest stays open until restocked.',
   ['Im Reiter Warenkorb mit „Bestellung absenden“\nverbindlich beim Server anfragen.']=
     'Use “Submit order” on the Cart tab\nto send a binding request to the server.',
   ['Noch keine Bestellungen.\n\nWarenkorb füllen und unten auf „Bestellung absenden“ klicken. Der Companion überträgt sie nach /reload oder Logout.']=
@@ -170,6 +171,7 @@ local EN={
   ['Bitte zuerst die Gildenbank öffnen. /banklord debug']='Please open the guild bank first. /banklord debug',
   ['Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet.']='Guild or realm unknown; scan not started.',
   ['Anzahl der Bankfächer ist ungültig/nicht verfügbar: %s']='Number of bank tabs is invalid/unavailable: %s',
+  ['Diese Gildenbank hat noch kein Bankfach - es gibt nichts zu zählen. Gold wird trotzdem im Kassenbuch erfasst.']='This guild bank has no bank tab yet - there is nothing to count. Gold is still recorded in the ledger.',
   ['Bitte ein gültiges Bankfach auswählen.']='Please select a valid bank tab.',
   ['Fach %s: Informationen fehlen (%s).']='Tab %s: information missing (%s).',
   ['Keine lesbaren Bankfächer gefunden.']='No readable bank tabs found.',
@@ -498,6 +500,8 @@ local EN={
   ['Betrag']='Amount',
   ['Gold in der Gildenbank:']='Gold in the guild bank:',
   ['Stand %s. Das Spiel zeigt nur die letzten Einträge – die ganze Geschichte steht auf der Website unter „Kassenbuch“.']='As of %s. The game only shows the latest entries – the full history is on the website under "Cash book".',
+  ['Mit einem Testkonto lässt WoW keine Addon-Nachrichten zu. Lass dir vom Bankverwalter eine Einladung für die Website geben.']='WoW does not allow addon messages on a trial account. Ask your bank manager for an invitation to the website.',
+  ['Neuere Banklord-Version in der Gilde gesehen (%s, du hast %s). Starte den Companion, er aktualisiert das Addon von selbst. Danach /reload.']='Newer Banklord version seen in your guild (%s, you have %s). Start the Companion, it updates the addon by itself. Then /reload.',
   ['Freischaltung angefragt. Sobald ein Bankverwalter online ist, geht es von selbst weiter – du musst nichts tun.']=
     'Unlock requested. As soon as a bank manager is online it continues by itself – you do not need to do anything.',
   ['Jetzt übertragen']='Transfer now',

@@ -1027,6 +1027,7 @@ for _,e in ipairs({'PLAYER_ENTERING_WORLD','PLAYER_GUILD_UPDATE','MAIL_SHOW','MA
 events:SetScript('OnEvent',function(_,event)
   if not A.db then return end
   if event=='PLAYER_ENTERING_WORLD' or event=='PLAYER_GUILD_UPDATE' then A:RememberCharacter();A:StartJoinRequests();A:OfferPickup()
+    if C_Timer then C_Timer.After(20,function() A:AnnounceVersion() end) end
   elseif event=='MAIL_SHOW' then A.mailOpen=true;A:ShowManagePanel('mail',MailFrame)
   elseif event=='MAIL_CLOSED' then
     A.mailOpen=nil;A.mailPrepared,A.mailAll=nil,false;A:HideManagePanel('mail')
@@ -1104,6 +1105,13 @@ function A:ConnectionFor(guild,realm)
   end
 end
 
+function A:IsTrialAccount()
+  for _,f in ipairs({IsTrialAccount,IsVeteranTrialAccount}) do
+    if type(f)=='function' then local ok,v=pcall(f);if ok and v then return true end end
+  end
+  return false
+end
+
 local function claimKey()
   local k=type(Banklord_Claim)=='table' and Banklord_Claim.key
   if type(k)=='string' and #k==64 and k:match('^%x+$') then return k:lower() end
@@ -1112,6 +1120,14 @@ end
 function A:SendJoinRequest()
   local key,g,r=claimKey(),self:CurrentGuild()
   if not key or not g or self:ConnectionFor(g,r) then return false end
+  -- Trial accounts may not send addon messages (WoW Forever and retail): say so instead of waiting forever.
+  if A:IsTrialAccount() then
+    if not self.joinHintShown then
+      self.joinHintShown=true
+      self:Message(A:Tr('Mit einem Testkonto lässt WoW keine Addon-Nachrichten zu. Lass dir vom Bankverwalter eine Einladung für die Website geben.'))
+    end
+    return false
+  end
   send('K|'..key,'GUILD')
   if not self.joinHintShown then
     self.joinHintShown=true
@@ -1151,8 +1167,41 @@ function A:StartJoinRequests()
   C_Timer.After(15,again)
 end
 
+-- Version hint: guild members tell each other their Banklord version (like other addons do).
+-- Normally the Companion updates the addon by itself; an older copy means it is not running.
+local function versionParts(v)
+  local a,b,c=tostring(v or ''):match('^(%d+)%.(%d+)%.(%d+)$')
+  if a then return tonumber(a),tonumber(b),tonumber(c) end
+end
+function A:IsNewerVersion(other,mine)
+  local a1,b1,c1=versionParts(other);local a2,b2,c2=versionParts(mine or A.version)
+  if not a1 or not a2 then return false end
+  if a1~=a2 then return a1>a2 end
+  if b1~=b2 then return b1>b2 end
+  return c1>c2
+end
+function A:AnnounceVersion()
+  if not (IsInGuild and IsInGuild()) or A:IsTrialAccount() then return end
+  local now=(GetTime and GetTime()) or 0
+  if self.versionSentAt and now-self.versionSentAt<600 then return end
+  self.versionSentAt=now
+  send('V|'..tostring(A.version),'GUILD')
+end
+function A:ReceiveVersion(other)
+  if A:IsNewerVersion(other) then
+    if not self.versionHintShown then
+      self.versionHintShown=true
+      self:Message(A:Tr('Neuere Banklord-Version in der Gilde gesehen (%s, du hast %s). Starte den Companion, er aktualisiert das Addon von selbst. Danach /reload.'):format(other,tostring(A.version)))
+    end
+  elseif A:IsNewerVersion(A.version,other) then
+    self:AnnounceVersion()
+  end
+end
+
 function A:ReceiveJoinMessage(prefix,payload,channel,sender)
   if prefix~=JOIN or type(payload)~='string' or #payload>250 or type(sender)~='string' then return end
+  local ver=payload:match('^V|(%d+%.%d+%.%d+)$')
+  if ver then if channel=='GUILD' then self:ReceiveVersion(ver) end return end
   local key=payload:match('^K|(%x+)$')
   if key and channel=='GUILD' and #key==64 and self:IsBankManager() then
     local g,r=self:CurrentGuild()

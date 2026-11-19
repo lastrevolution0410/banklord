@@ -299,7 +299,7 @@ function A:ScanEvent()
   end) then self:AbortScan("C_Timer.After nicht verfügbar") end
 end
 
-function A:StartScan(mode)
+function A:StartScan(mode, auto)
   mode = mode or "all"
   if self.scanRun then return self:Message(A:Tr("Ein Scan läuft bereits. /banklord stop zum Abbrechen.")) end
   if not self.db then return self:Message(A:Tr("Datenbank noch nicht bereit.")) end
@@ -310,7 +310,15 @@ function A:StartScan(mode)
     return self:Message(A:Tr("Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet."))
   end
   local count = GetNumGuildBankTabs and GetNumGuildBankTabs()
+  if count == 0 then
+    -- A guild without any bank tab (e.g. a new guild): nothing to count, gold still works.
+    self.noBankTabs = true
+    if auto then return end
+    return self:Message(A:Tr("Diese Gildenbank hat noch kein Bankfach - es gibt nichts zu zählen. Gold wird trotzdem im Kassenbuch erfasst."))
+  end
+  self.noBankTabs = nil
   if type(count) ~= "number" or count < 1 or count > 16 then
+    if auto then return end
     return self:Message(A:Tr("Anzahl der Bankfächer ist ungültig/nicht verfügbar: %s"):format(tostring(count)))
   end
   local selected = GetCurrentGuildBankTab and GetCurrentGuildBankTab()

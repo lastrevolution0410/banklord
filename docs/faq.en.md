@@ -47,6 +47,14 @@ An addon can only read the guild bank's contents while someone has it open. The 
 
 Yes, since 1.9. The setup finds the `_forever_` folder and installs the addon there too. On the website choose the game version **WoW Forever** when setting up the guild (or under **Settings**). Forever has no realms – that is no problem for Banklord, guilds are then recognised by name. Forever is still new: if you notice anything, please report it via **Help & feedback**.
 
+A new guild often has **no bank tab** yet. Then there is nothing to count – gold deposits and withdrawals are still recorded in the ledger. As soon as you buy the first tab, the addon counts by itself the next time the guild bank is opened.
+
+On a **trial account** WoW does not allow addon messages. Joining in game will not work then – ask your bank manager for an invitation to the website instead.
+
+### What happens if I order more than the bank holds?
+
+That is allowed. Banklord tells you how much is there right now. The bank manager first sends what the bank holds (“Take part”, “Send part”); the rest stays as an open order until restocked. You get a notice in game when a part is on its way. You can cancel the rest at any time, or the bank manager rejects it.
+
 ### Several characters and guilds
 
 Yes. Every character is recognised on login and assigned to its guild. Each guild with its own Banklord website gets its own connection in the Companion.

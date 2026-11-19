@@ -47,6 +47,14 @@ Den Inhalt der Gildenbank kann ein Addon nur lesen, wenn jemand sie geöffnet ha
 
 Ja, seit 1.9. Das Setup findet den Ordner `_forever_` und installiert das Addon dort mit. Auf der Website wählst du beim Einrichten der Gilde (oder unter **Einstellungen**) die Spielversion **WoW Forever**. Forever hat keine Realms – das ist für Banklord kein Problem, Gilden werden dann am Namen erkannt. Forever ist noch neu: Fällt dir etwas auf, melde es bitte über **Hilfe & Feedback**.
 
+Eine neue Gilde hat oft noch **kein Bankfach**. Dann gibt es nichts zu zählen – Gold ein- und auszahlen wird trotzdem im Kassenbuch erfasst. Sobald ihr das erste Fach kauft, zählt das Addon beim nächsten Öffnen der Gildenbank von selbst.
+
+Mit einem **Testkonto** (Trial) lässt WoW keine Addon-Nachrichten zu. Die Freischaltung im Spiel klappt dann nicht – lass dir vom Bankverwalter stattdessen eine Einladung für die Website geben.
+
+### Was passiert, wenn ich mehr bestelle, als in der Bank liegt?
+
+Das geht. Banklord sagt dir dabei, wie viel gerade da ist. Der Bankverwalter schickt dir zuerst, was in der Bank liegt („Teil entnehmen“, „Teil senden“), der Rest bleibt als offene Bestellung stehen, bis nachgefüllt wird. Du bekommst im Spiel Bescheid, wenn ein Teil unterwegs ist. Den Rest kannst du jederzeit stornieren, oder der Bankverwalter lehnt ihn ab.
+
 ### Mehrere Charaktere und Gilden
 
 Ja. Jeder Charakter wird beim Einloggen erkannt und seiner Gilde zugeordnet. Für jede Gilde mit eigener Banklord-Website gibt es eine eigene Verbindung im Companion.

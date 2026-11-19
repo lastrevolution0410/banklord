@@ -680,6 +680,7 @@ patterns:[
 ["Du kannst bestellen: {} Stück","You can order: {} pieces"],
 ["In der Bank: {} Stück · schon für andere vorgemerkt: {} Stück","In the bank: {} pieces · already set aside for others: {} pieces"],
 ["Bestellbar: {} Stück","Orderable: {} pieces"],
+["{}: nur {} in der Bank. Du bekommst erst diese, der Rest bleibt offen, bis nachgefüllt wird.","{}: only {} in the bank. You get these first, the rest stays open until restocked."],
 ["Gold in der Bank · Stand {}","Gold in the bank · as of {}"],
 ["Marktwert von {} Gegenständen (TSM/Auctionator)","Market value of {} items (TSM/Auctionator)"],
 ["Marktwert: {} pro Stück (TSM)","Market value: {} per piece (TSM)"],
