@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.12: when setting up a **WoW Forever guild** the website no longer asks for a realm (Forever has none).
 - 1.9.11: **Guild bank without a tab** (e.g. a new guild in Forever): no more five times “Number of bank tabs is invalid”; a manual scan explains it in one sentence. Gold still counts.
 - 1.9.11: **Ordering more than there is:** game and website now say right away “Only X in the bank – the rest stays open until restocked”.
 - 1.9.11: **Version hint:** if the addon sees a newer Banklord version in your guild, it tells you once (start the Companion, then `/reload`).

@@ -1310,6 +1310,11 @@ $('testDiscord').onclick=async()=>{try{await post(path('discord/test'),{});notic
 
 // Further guilds (System, admins): e.g. the same guild in another game version.
 for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;$('newGuildFlavor').append(o);}
+// WoW Forever has no realms: no realm field, the guild name alone identifies the guild.
+function syncNewGuildRealm(){const forever=$('newGuildFlavor').value==='forever';const r=$('newGuildRealm');
+  $('newGuildRealmLabel').classList.toggle('hidden',forever);
+  if(forever)r.value='Forever';else if(r.value==='Forever')r.value='';}
+$('newGuildFlavor').onchange=syncNewGuildRealm;
 $('newGuildForm').onsubmit=async e=>{e.preventDefault();
   try{const r=await post('/guilds',{name:$('newGuildName').value.trim(),realm:$('newGuildRealm').value.trim(),region:$('newGuildRegion').value,wow_flavor:$('newGuildFlavor').value});
     state.guilds.push(r.guild);state.created=(state.created||0)+1;await fillGuildSelector();
@@ -1334,4 +1339,5 @@ function renderNewGuildLimit(){
   $('newGuildLimit').textContent=lim==null?'':left>0?`Du kannst noch ${left} Gilde(n) anlegen.`:'Du kannst keine weitere Gilde anlegen. Wende dich an den Betreiber der Website.';
   $('newGuildForm').classList.toggle('hidden',left===0);
   if(state.guild&&!$('newGuildName').value)$('newGuildFlavor').value=state.guild.wow_flavor;
+  syncNewGuildRealm();
 }
