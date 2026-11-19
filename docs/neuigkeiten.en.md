@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.9.10: the decorative corner at the top left no longer covers the “Guild bank” button.
 - 1.9.9: **Tidier stock count:** the top tells you at once whether a new scan is waiting for approval (“Check now”) or everything is up to date. Below are checking and automatic approval; connecting the Companion, uploading a scan by hand and drafts from the game are under **“Advanced”** (it opens by itself while no Companion is connected yet).
 - 1.9.9: **Clearer guild bank:** “You can order: X pieces” instead of jargon, one big **“Add to cart”** button, wishlist buttons smaller below it, technical numbers under “Details”. Stock that is not approved yet is now called exactly that.
 - 1.9.9: **Restock:** as long as no minimum stock is set, the form is at the top.

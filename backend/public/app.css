@@ -640,7 +640,7 @@ details.panel>summary{cursor:pointer;font-weight:700;color:#f1d48f}
 .op-pager{justify-content:center;align-items:center;margin-top:12px}
 
 /* Navigation 1.9.8: three main ways, "Mehr" menu, calm admin row */
-#workspace nav.tabs.nav2{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;padding:6px 2px 10px!important;border-bottom:1px solid #4e4030!important}
+#workspace nav.tabs.nav2{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;padding:18px 2px 10px 10px!important;border-bottom:1px solid #4e4030!important}
 #workspace .nav2 .nav-main{display:flex;flex-wrap:wrap;gap:8px;align-items:center;overflow:visible!important}
 #workspace .nav2 .nav-main>button.nav-big,#workspace .nav2 #moreBtn{font-size:15px!important;min-height:42px!important;padding:8px 18px!important;font-family:Georgia,serif;font-weight:600}
 .nav-ico{margin-right:8px;font-size:17px;filter:saturate(.85)}
