@@ -114,6 +114,8 @@ $enc=(string)$db->query("SELECT value FROM site_settings WHERE name='mail_pass'"
 // Operator manages accounts: list, lock (session ends, login refused, Companion stops), reset link; never other operators.
 [$st,$r]=$nl('GET','/operator/accounts?q='.urlencode("lead$suf"));$acc=$r['accounts'][0]??[];
 $ok($st===200 && ($r['total']??0)===1 && ($acc['display_name']??'')==='Leiterin' && !isset($acc['password_hash']),"operator lists accounts ($st)");
+$db->prepare("INSERT INTO characters (user_id,guild_id,name,realm) VALUES (?,?,?,'Forever')")->execute([$lid=(int)$acc['id'],$sg,"Zwerg$suf"]);
+[$st,$r]=$nl('GET','/operator/accounts?q='.urlencode("Zwerg$suf"));$ok(($r['total']??0)===1 && ($r['accounts'][0]['characters']??'')==="Zwerg$suf","account found by character name ($st)");
 [$st]=$m('GET','/operator/accounts');$ok($st===403,"member cannot list accounts ($st)");
 $lid=(int)$acc['id'];
 [$st,$r]=$nl('POST',"/operator/accounts/$ru/lock",['locked'=>true]);$ok(($r['error']??'')==='ACCOUNT_PROTECTED',"operator cannot lock himself ($st)");

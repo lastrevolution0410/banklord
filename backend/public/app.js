@@ -891,13 +891,15 @@ $('opSearch').oninput=()=>{state.opPage=0;renderOperatorGuilds();};$('opFlavor')
 // Operator: accounts (lock, reset password). Passwords are never shown.
 let acTimer=null;state.acPage=0;
 async function loadAccounts(){
+  // Browsers sometimes autofill the search box with your own e-mail: never start filtered.
+  if(!state.acLoaded){state.acLoaded=true;$('acSearch').value='';}
   const r=await api('/operator/accounts?q='+encodeURIComponent($('acSearch').value.trim())+'&page='+state.acPage);
   const pages=Math.max(1,Math.ceil(r.total/50));$('acCount').textContent=`${r.total} Konten`;
   const t=el('table');const head=el('tr');for(const h of ['Konto','Gilden','Registriert','Zuletzt angemeldet',''])head.append(el('th','',h));t.append(add(el('thead'),head));
   const body=el('tbody');
   for(const a of r.accounts){const tr=el('tr');const actions=el('td');
     const who=add(el('td'),el('strong','',a.display_name),...(a.locked?[el('span','badge badge-bad','gesperrt')]:[]),...(a.operator?[el('span','badge badge-ok','Betreiber')]:[]),
-      el('div','muted',a.pending?'Registrierung noch nicht abgeschlossen':a.email));
+      el('div','muted',a.pending?'Registrierung noch nicht abgeschlossen':a.email),...(a.characters?[el('div','muted','Charaktere: '+a.characters)]:[]));
     if(!a.operator){
       const lk=el('button','secondary button-sm',a.locked?'Entsperren':'Sperren');
       lk.onclick=async()=>{if(!a.locked&&!confirm(`Konto ${a.display_name} sperren? Es kann sich dann nicht mehr anmelden.`))return;

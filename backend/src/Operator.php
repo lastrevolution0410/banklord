@@ -85,18 +85,20 @@ final class Operator
     {
         if (!$this->is($actor)) throw new DomainError('FORBIDDEN');
         $q=mb_substr(trim($q),0,100);$like='%'.addcslashes($q,'%_\\').'%';$page=max(0,min(10000,$page));
-        $where="WHERE (?='' OR u.email LIKE ? OR u.display_name LIKE ?)";
-        $c=$this->db->prepare("SELECT COUNT(*) FROM users u $where");$c->execute([$q,$like,$like]);$total=(int)$c->fetchColumn();
+        // Also by WoW character: members who joined in game are often known by their character.
+        $where="WHERE (?='' OR u.email LIKE ? OR u.display_name LIKE ? OR EXISTS (SELECT 1 FROM characters ch WHERE ch.user_id=u.id AND ch.name LIKE ?))";
+        $c=$this->db->prepare("SELECT COUNT(*) FROM users u $where");$c->execute([$q,$like,$like,$like]);$total=(int)$c->fetchColumn();
         $s=$this->db->prepare("SELECT u.id,u.email,u.display_name,u.is_operator,UNIX_TIMESTAMP(u.created_at) AS created,UNIX_TIMESTAMP(u.last_login_at) AS last_login,
             u.locked_at IS NOT NULL AS locked,
             (SELECT GROUP_CONCAT(CONCAT(g.name,' (',m.role,')') ORDER BY g.name SEPARATOR ', ') FROM guild_memberships m JOIN guilds g ON g.id=m.guild_id
-               WHERE m.user_id=u.id AND m.status='active') AS guilds
+               WHERE m.user_id=u.id AND m.status='active') AS guilds,
+            (SELECT GROUP_CONCAT(DISTINCT ch.name ORDER BY ch.name SEPARATOR ', ') FROM characters ch WHERE ch.user_id=u.id AND ch.verification_status<>'revoked') AS chars
             FROM users u $where ORDER BY u.created_at DESC,u.id DESC LIMIT 50 OFFSET ".($page*50));
-        $s->execute([$q,$like,$like]);
+        $s->execute([$q,$like,$like,$like]);
         $rows=array_map(fn($r)=>['id'=>(int)$r['id'],'email'=>str_ends_with((string)$r['email'],'@claim.invalid')?'':(string)$r['email'],
             'pending'=>str_ends_with((string)$r['email'],'@claim.invalid'),'display_name'=>(string)$r['display_name'],'operator'=>(int)$r['is_operator']===1,
             'created_at'=>(int)$r['created'],'last_login'=>$r['last_login']===null?null:(int)$r['last_login'],'locked'=>(int)$r['locked']===1,
-            'guilds'=>(string)($r['guilds']??'')],$s->fetchAll(PDO::FETCH_ASSOC));
+            'guilds'=>(string)($r['guilds']??''),'characters'=>(string)($r['chars']??'')],$s->fetchAll(PDO::FETCH_ASSOC));
         return ['accounts'=>$rows,'total'=>$total,'page'=>$page];
     }
 

@@ -23,6 +23,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ### 1.9 – WoW Forever (18 Nov 2026)
 - **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
 - Guide pages now show the Banklord icon in the browser tab too.
+- 1.12.1: **Operator → Accounts** now also finds accounts by character name and shows the characters; the browser no longer pre-fills the search box.
 - 1.12.0: **Manage accounts:** under **Operator → Accounts** the operator locks and unlocks single accounts and resets passwords (link by e-mail or to pass on). Locked accounts are signed out at once, their Companion uploads nothing. The operator settings are laid out more clearly.
 - 1.11.0: **Forgot password?** The website can now send e-mails: the start page offers a reset link (valid for one hour, usable once). The operator enters a mailbox under **Operator → Settings → Sending e-mail**; the password is stored encrypted.
 - 1.10.0: **Guild leaders sign up on their own:** if the operator switches it on, the start page offers “Sign up your own guild for free” – account and guild in one step, no invitation code. With a daily limit, a per-connection brake and the per-account limit. The operator can **lock** single guilds.
