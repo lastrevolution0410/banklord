@@ -8,7 +8,8 @@ Wähle aus, wer du bist:
 |---|---|
 | **Mitglied** und will bestellen | [Anleitung für Mitglieder](mitglieder.md) |
 | **Bankverwalter**, Offizier oder Admin | [Anleitung für Bankverwalter](bankverwalter.md) |
-| **Gildenleitung** und will Banklord einrichten | [Selbst hosten](selbst-hosten.md) |
+| **Gildenleitung** und will Banklord für die Gilde nutzen | [Anleitung für Gildenleiter](gildenleiter.md) |
+| **Betreiber** eines eigenen Servers | [Selbst hosten](selbst-hosten.md) |
 | **Entwickler** | [Entwicklung](entwicklung.md) |
 
 Für alle:

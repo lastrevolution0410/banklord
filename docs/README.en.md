@@ -8,7 +8,8 @@ Choose who you are:
 |---|---|
 | a **member** and want to order | [Guide for members](mitglieder.en.md) |
 | a **bank manager**, officer or admin | [Guide for bank managers](bankverwalter.en.md) |
-| **guild leadership** and want to set up Banklord | [Self-hosting](selbst-hosten.en.md) |
+| **guild leadership** and want to use Banklord for your guild | [Guide for guild leaders](gildenleiter.en.md) |
+| **operator** of your own server | [Self-hosting](selbst-hosten.en.md) |
 | a **developer** | [Development](entwicklung.en.md) |
 
 For everyone:

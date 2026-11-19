@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.7: **Neue [Anleitung für Gildenleiter](gildenleiter.md)** mit Bildern: Gilde kostenlos anmelden, PC verbinden, ersten Bankscan übernehmen, Mitglieder holen. Inventur zeigt bei einer neuen Gilde gleich den Knopf „Verbindungscode erzeugen“, und die Scan-Prüfung ist in einfacher Sprache. Beim Neuladen blitzt die Anmeldeseite nicht mehr kurz auf.
 - 1.12.6: Diese Seite ist wieder sauber nach Versionen sortiert.
 - 1.12.5: Keine rätselhafte Meldung „LOGIN_REQUIRED“ mehr: Ist die Anmeldung abgelaufen, erscheint einfach wieder die Anmeldeseite mit einem kurzen Hinweis.
 - 1.12.4: Aufgeräumte Startseite: Anmelden, „Neu hier?“ und „Gilde anmelden“ sind jetzt Reiter statt einer langen Liste. Passwort vergessen und Einladungscode sitzen direkt unter dem Anmelden-Formular.

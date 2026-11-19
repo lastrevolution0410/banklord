@@ -19,9 +19,9 @@ Dauert etwa 5 Minuten. Du brauchst nur deinen Windows-PC und WoW.
 
 ### Schritt 1: Setup herunterladen
 
-Öffne die Banklord-Website deiner Gilde. Gleich oben steht **„Neu hier? In 3 Schritten startklar“**. Klicke auf den großen Knopf **„Windows-Setup herunterladen“**.
+Öffne die Banklord-Website deiner Gilde. Klicke oben auf den Reiter **„Neu hier?“** und dann auf den großen Knopf **„Windows-Setup herunterladen“**.
 
-![Startkasten auf der Website mit dem großen Download-Knopf](assets/website-start.webp)
+![Reiter „Neu hier?“ mit dem großen Download-Knopf](assets/website-start.webp)
 
 ### Schritt 2: Setup starten
 

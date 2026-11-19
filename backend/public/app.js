@@ -657,7 +657,9 @@ async function loadNotifications(){
 async function loadImports(){
   const r=await api(path('imports'));const root=$('importList');root.replaceChildren();
   const open=r.imports.filter(x=>x.status==='pending').length;const banner=$('syncStatus');
-  if(banner){banner.className='status-banner '+(open?'warn':'ok');banner.replaceChildren(el('strong','',open?(open===1?'1 neuer Scan wartet auf Freigabe.':open+' neue Scans warten auf Freigabe.'):(r.imports.length?'✓ Alles aktuell – kein Scan wartet.':'Noch kein Scan da. Gildenbank im Spiel öffnen, dann /reload.')));
+  if(banner){banner.className='status-banner '+(open?'warn':'ok');banner.replaceChildren(el('strong','',open?(open===1?'1 neuer Scan wartet auf Freigabe.':open+' neue Scans warten auf Freigabe.'):(r.imports.length?'✓ Alles aktuell – kein Scan wartet.':(manager()?'Noch kein Scan da.':'Noch kein Scan da. Gildenbank im Spiel öffnen, dann /reload.'))));
+    if(!r.imports.length&&manager()){banner.append(el('p','muted','Erster Schritt: Verbindungscode erzeugen und im Banklord Companion einfügen. Danach im Spiel die Gildenbank öffnen und /reload eingeben.'));
+      const c=el('button','button-sm','Verbindungscode erzeugen');c.onclick=()=>{const d=$('tokenResult').closest('details');if(d)d.open=true;createToken().then(()=>$('tokenResult').scrollIntoView({behavior:'smooth',block:'center'})).catch(e=>notice(e.message,true));};banner.append(c);}
     if(open){const go=el('button','button-sm','Jetzt prüfen');go.onclick=()=>{const first=r.imports.find(x=>x.status==='pending');reviewImport(first.id).then(()=>$('importReview').scrollIntoView({behavior:'smooth'})).catch(e=>notice(e.message,true));};banner.append(go);}}
   if(!r.imports.length){root.append(el('p','muted','Noch keine Scans importiert.'));return;}
   const SCAN_STATUS={pending:'wartet auf Freigabe',reconciled:'übernommen',rejected:'verworfen',superseded:'ersetzt'};
@@ -672,9 +674,10 @@ async function reviewImport(id,page=1){
   if(scanPreviewObserver){scanPreviewObserver.disconnect();scanPreviewObserver=null;}
   const result=await api(path('imports/'+id+'/review')+'?locale='+encodeURIComponent(webLocale())+'&page='+page);
   const root=$('importReview');root.replaceChildren();root.classList.remove('hidden');
-  root.append(el('h3','','Scan #'+id+' · '+result.import.status));
+  root.append(el('h3','','Scan #'+id+' · '+(({pending:'wartet auf Freigabe',reconciled:'übernommen',rejected:'verworfen',superseded:'ersetzt'})[result.import.status]||result.import.status)));
+  root.append(el('p','muted','Vergleiche die Liste mit der Gildenbank im Spiel. Stimmt alles, bestätigst du ganz unten.'));
   const cover=result.icon_coverage;
-  if(cover)root.append(el('p','muted',`Icon-Vorschau (${result.icon_locale||'deDE'}, Seite ${page}): ${cover.icon_available} mit Iconnamen · ${cover.file_id_only} nur Grafik-ID · ${cover.missing} ohne Icondaten. Fehlende Icons werden für sichtbare Zeilen optional über die öffentliche MoP-Gegenstandsdatenbank ergänzt; Bestände ändern sich dabei nicht.`));
+  if(cover){const td=el('details','tech-details');td.append(el('summary','','Technische Details'));root.append(td);td.append(el('p','muted',`Icon-Vorschau (${result.icon_locale||'deDE'}, Seite ${page}): ${cover.icon_available} mit Iconnamen · ${cover.file_id_only} nur Grafik-ID · ${cover.missing} ohne Icondaten. Fehlende Icons werden für sichtbare Zeilen optional über die öffentliche MoP-Gegenstandsdatenbank ergänzt; Bestände ändern sich dabei nicht.`));}
   const missingIcons=[];
   const pendingIcons=[];
   let previewIconLoads=0;
@@ -703,7 +706,7 @@ async function reviewImport(id,page=1){
       missingIcons.push({box:iconBox,id:item.wow_item_id});
     }
     line.append(iconBox,el('div','item-title',`${item.item_name} · ${qty(item.scanned_qty)} Stück`),
-      el('div','muted',`Serverbestand: ${item.known_qty===null?'unbekannt':qty(item.known_qty)} · ${item.confidence||'nicht erfasst'}`));
+      el('div','muted',item.known_qty===null?'neu':`bisher ${qty(item.known_qty)}`));
     root.append(line);
   }
   // Lazy-load only icons the user scrolls into view: no hundred-request burst.
@@ -753,19 +756,19 @@ async function reviewImport(id,page=1){
       retry.onclick=()=>reviewImport(id,page).catch(e=>notice(e.message,true));
       warning.append(retry);root.append(warning);
     }else{
-      root.append(el('p','muted','Vorprüfung bestanden. Vor der tatsächlichen Bestätigung wird der Bestand unter Datenbanksperre erneut geprüft.'));
+      root.append(el('p','muted','✓ Vorprüfung bestanden.'));
     }
   }
   if(result.import.status==='pending'&&preflight.can_confirm){
-    const caution=el('p','danger-note','Nur bestätigen, nachdem die Gegenstände und Mengen im Spiel geprüft wurden. Ein falscher Scan kann andere Bestände überschreiben; Reservierungskonflikte werden serverseitig blockiert. Bestätigung nur bis 30 Minuten nach Scan.');
+    const caution=el('p','danger-note','Stimmen Gegenstände und Mengen mit der Gildenbank im Spiel überein? Dann dein Website-Passwort eingeben, den Haken setzen und auf „Bestand übernehmen“ klicken. Das geht bis 30 Minuten nach dem Scan.');
     const form=el('form','panel');
-    const confirmationLabel=el('label','','Erneut mit Website-Passwort bestätigen');
+    const confirmationLabel=el('label','','Dein Website-Passwort');
     const password=el('input');password.type='password';password.autocomplete='current-password';password.required=true;
     confirmationLabel.append(password);
     const checkboxLabel=el('label','split');
     const checkbox=el('input');checkbox.type='checkbox';checkbox.style.width='auto';checkbox.required=true;
-    checkboxLabel.append(checkbox,el('span','','Ich habe die Inventur persönlich überprüft und bestätige ihre Vollständigkeit.'));
-    const btn=el('button','danger','Bestand ausdrücklich abgleichen');btn.type='submit';
+    checkboxLabel.append(checkbox,el('span','','Ich habe die Liste geprüft. Sie stimmt mit der Gildenbank überein.'));
+    const btn=el('button','danger','Bestand übernehmen');btn.type='submit';
     form.append(caution,confirmationLabel,checkboxLabel,btn);
     form.onsubmit=async event=>{event.preventDefault();
       if(!checkbox.checked||!password.value)return;
@@ -995,7 +998,7 @@ async function loadMembers(){
 }
 $('inviteRole').onchange=()=>{$('inviteRoleInfo').textContent=roleText($('inviteRole').value)+' '+ROLE_INFO[$('inviteRole').value]+'.';};
 $('issueInvite').onclick=async()=>{try{const r=await post(path('invitations'),{role:$('inviteRole').value});const out=$('inviteResult');out.classList.remove('hidden');
-  const msg=`Hallo! Du bist zur Gildenbank von ${state.guild.name} eingeladen. Öffne ${location.origin}, klicke auf „Einladung erhalten? Konto erstellen“ und gib diesen Code ein: ${r.invitation.token} (48 Stunden gültig).`;
+  const msg=`Hallo! Du bist zur Gildenbank von ${state.guild.name} eingeladen. Öffne ${location.origin}, klicke unter „Anmelden“ auf „Einladungscode bekommen?“ und gib diesen Code ein: ${r.invitation.token} (48 Stunden gültig).`;
   const box=el('textarea');box.rows=3;box.readOnly=true;box.value=msg;const copy=el('button','button-sm','Nachricht kopieren');copy.type='button';
   copy.onclick=async()=>{try{await navigator.clipboard.writeText(msg);copy.textContent='Kopiert ✓';}catch(_e){box.select();}};
   out.replaceChildren(el('strong','','Fertige Nachricht – z. B. per Discord-Privatnachricht schicken:'),box,copy);}catch(e){notice(e.message,true);}};
@@ -1117,7 +1120,7 @@ function parseAddonTransfer(input){
 }
 $('importAddonCart').onclick=async()=>{try{const transfer=parseAddonTransfer($('addonTransfer').value.trim());let count=0;for(const part of transfer){const resp=await api(path('items')+'?q='+part.id);const matches=resp.items.filter(x=>Number(x.wow_item_id)===part.id&&x.variant_key===part.variant);if(matches.length!==1)throw Error('Item/Variante '+part.id+' ist auf dem Server nicht eindeutig vorhanden');const item=matches[0];/* Unverified requests remain pending approval. */state.cart.set(Number(item.stock_id),{id:Number(item.stock_id),name:item.name,quantity:part.quantity,max:1000000});state.pendingOrder=null;count++;}updateCartBadge();renderCart();notice(count+' Positionen in den Web-Warenkorb übernommen. Bitte vor Bestellung prüfen.');}catch(err){notice(err.message,true);}};
 
-initialize().then(()=>{if(manager())loadTokens().catch(()=>{});}).catch(err=>notice('Server derzeit nicht bereit: '+err.message,true));
+initialize().then(()=>{if(manager())loadTokens().catch(()=>{});}).catch(err=>{if(!state.user)$('loginPage').classList.remove('hidden');notice('Server derzeit nicht bereit: '+err.message,true);});
 
 // Extended bank management: manual worklists only; every mutation server-authorized.
 let restockOptions=new Map();

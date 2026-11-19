@@ -119,13 +119,14 @@ More about the process and why it is safe: [Security](sicherheit.en.md#unlocking
 
 ## Set up your own guild
 
-Your guild does not use Banklord yet? Set it up yourself:
+Your guild does not use Banklord yet? Step by step with pictures: **[Guide for guild leaders](gildenleiter.en.md)**.
 
-1. No account yet? On the start page open **“Guild leader? Sign up your own guild for free”**: enter guild name, game version, realm (not needed for WoW Forever), e-mail and password – account and guild are done in one step, continue with step 3. (This box only exists if the website operator switched it on.) If you already have an account, sign in.
-2. **More → Account & guilds → “Set up your own guild”:** guild name and realm **exactly as in game**, pick region and game version, “Set up guild”. You are now the guild's administrator.
-3. Right below, **“Create personal key”** and paste the code into the **Banklord Companion** – as the first connection or under “More guilds on this PC”.
-4. In game, open the **guild bank** with a character of this guild and `/reload`.
-5. On the website, approve the first scan under **Inventory**. From now on your members join in game and you confirm them.
+In short:
+
+1. No account yet? On the start page choose the **“Register guild”** tab and fill in the form. Already have an account: **More → Account & guilds → “Set up your own guild”**.
+2. **Inventory scan → “Create connect code”**, paste the code into the **Banklord Companion** (for another guild under “More guilds on this PC”).
+3. In game, **open the guild bank** and `/reload`.
+4. On the website, check the first scan under **Inventory scan** and click **“Accept stock”**.
 
 The website's operator decides how many guilds an account may set up. If the guild already exists, ask one of its admins for an invitation.
 

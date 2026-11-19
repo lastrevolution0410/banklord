@@ -10,7 +10,7 @@ namespace Banklord;
  */
 final class DocsPage
 {
-    public const PAGES=['README','mitglieder','bankverwalter','faq','neuigkeiten','installation','selbst-hosten','sicherheit','entwicklung'];
+    public const PAGES=['README','mitglieder','bankverwalter','gildenleiter','faq','neuigkeiten','installation','selbst-hosten','sicherheit','entwicklung'];
     /** Website root for picture sizes (set before rendering; null = no sizes). */
     public static ?string $root=null;
     private const REPO='https://github.com/lastrevolution0410/banklord/blob/main/';
@@ -61,8 +61,8 @@ final class DocsPage
         if (preg_match('/^#\s+(.+)$/m',$md,$t)) $title=trim($t[1]).' – Banklord';
         $en=$page['en'];$other=$page['base'].($en?'':'.en');
         $nav=$en
-            ? [['README.en','Overview'],['mitglieder.en','Members'],['bankverwalter.en','Bank managers'],['faq.en','FAQ'],['neuigkeiten.en','What\'s new']]
-            : [['README','Übersicht'],['mitglieder','Mitglieder'],['bankverwalter','Bankverwalter'],['faq','Fragen'],['neuigkeiten','Neuigkeiten']];
+            ? [['README.en','Overview'],['mitglieder.en','Members'],['bankverwalter.en','Bank managers'],['gildenleiter.en','Guild leaders'],['faq.en','FAQ'],['neuigkeiten.en','What\'s new']]
+            : [['README','Übersicht'],['mitglieder','Mitglieder'],['bankverwalter','Bankverwalter'],['gildenleiter','Gildenleiter'],['faq','Fragen'],['neuigkeiten','Neuigkeiten']];
         $links='';
         foreach ($nav as [$f,$label]) $links.='<a href="'.self::e($f).'"'.($f===$page['file']?' aria-current="page"':'').'>'.self::e($label).'</a>';
         return '<!doctype html><html lang="'.($en?'en':'de').'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'

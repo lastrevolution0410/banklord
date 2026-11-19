@@ -19,9 +19,9 @@ Takes about 5 minutes. All you need is your Windows PC and WoW. *(The pictures s
 
 ### Step 1: Download the setup
 
-Open your guild's Banklord website. Right at the top it says **“New here? Ready in 3 steps”**. Click the big **“Download Windows setup”** button.
+Open your guild's Banklord website. Click the **“New here?”** tab at the top and then the big **“Download Windows setup”** button.
 
-![Start box on the website with the big download button](assets/website-start.webp)
+![“New here?” tab with the big download button](assets/website-start.webp)
 
 ### Step 2: Start the setup
 

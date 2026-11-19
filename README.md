@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/neuigkeiten.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.6-green"></a>
+  <a href="docs/neuigkeiten.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.7-green"></a>
   <a href="LICENSE"><img alt="Lizenz" src="https://img.shields.io/badge/Lizenz-CC%20BY--NC--ND%204.0%20%2B%20Selbst--Hosting-blue"></a>
   <img alt="WoW" src="https://img.shields.io/badge/WoW-Classic%20%C2%B7%20Anniversary%20%C2%B7%20MoP%20%C2%B7%20Forever%20%C2%B7%20Retail-orange">
 </p>
@@ -80,7 +80,9 @@ Das Addon darf im Spiel nicht ins Internet. Deshalb gibt es den **Companion**, e
 
 **Ich bin Bankverwalter** ➜ [Anleitung für Bankverwalter](docs/bankverwalter.md)
 
-**Ich möchte Banklord für meine Gilde einrichten** ➜ [Selbst hosten](docs/selbst-hosten.md)
+**Ich bin Gildenleiter und möchte Banklord nutzen** ➜ [Anleitung für Gildenleiter](docs/gildenleiter.md) (kostenlos über banklord.mgc-nom.net)
+
+**Ich möchte einen eigenen Server betreiben** ➜ [Selbst hosten](docs/selbst-hosten.md)
 
 ## Unterstützte Versionen
 
@@ -104,6 +106,7 @@ Jede Gilde hat eine Spielversion. Ein Konto kann Gilden in mehreren Versionen ha
 | Thema | Inhalt |
 |---|---|
 | [Mitglieder](docs/mitglieder.md) | Installieren, freischalten, bestellen, Befehle im Spiel |
+| [Gildenleiter](docs/gildenleiter.md) | Eigene Gilde kostenlos anmelden, PC verbinden, erster Bankscan, Mitglieder holen, Helfer ernennen |
 | [Bankverwalter](docs/bankverwalter.md) | Benachrichtigungen, Entnehmen, Versenden, mehrere Verwalter, Mitglieder bestätigen |
 | [Installation](docs/installation.md) | Was installiert wird, Windows-Warnung, Updates, Deinstallation, Fehlerhilfe |
 | [Selbst hosten](docs/selbst-hosten.md) | Eigene Website einrichten, Updates, Backups |

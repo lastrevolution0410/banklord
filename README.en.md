@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/neuigkeiten.en.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.6-green"></a>
+  <a href="docs/neuigkeiten.en.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.7-green"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0%20%2B%20self--hosting-blue"></a>
   <img alt="WoW" src="https://img.shields.io/badge/WoW-Classic%20%C2%B7%20Anniversary%20%C2%B7%20MoP%20%C2%B7%20Forever%20%C2%B7%20Retail-orange">
 </p>
@@ -80,7 +80,9 @@ Addons cannot access the internet in game. That is why there is the **Companion*
 
 **I am a bank manager** ➜ [Guide for bank managers](docs/bankverwalter.en.md)
 
-**I want to set up Banklord for my guild** ➜ [Self-hosting](docs/selbst-hosten.en.md)
+**I am a guild leader and want to use Banklord** ➜ [Guide for guild leaders](docs/gildenleiter.en.md) (free via banklord.mgc-nom.net)
+
+**I want to run my own server** ➜ [Self-hosting](docs/selbst-hosten.en.md)
 
 ## Supported versions
 
@@ -104,6 +106,7 @@ Every guild has one game version. One account can have guilds in several version
 | Topic | Content |
 |---|---|
 | [Members](docs/mitglieder.en.md) | Install, unlock, order, in-game commands |
+| [Guild leaders](docs/gildenleiter.en.md) | Register your guild for free, connect your PC, first bank scan, bring in members, appoint helpers |
 | [Bank managers](docs/bankverwalter.en.md) | Notifications, withdraw, send, several managers, confirm members |
 | [Installation](docs/installation.en.md) | What gets installed, Windows warning, updates, uninstalling, troubleshooting |
 | [Self-hosting](docs/selbst-hosten.en.md) | Set up your own website, updates, backups |
