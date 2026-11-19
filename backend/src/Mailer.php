@@ -51,7 +51,7 @@ final class Mailer
     public function save(array $in,string $siteUrl): array
     {
         $host=trim((string)($in['host']??''));$port=$in['port']??465;$user=trim((string)($in['user']??''));
-        $from=trim((string)($in['from']??''))?:$user;$fromName=trim((string)($in['from_name']??''))?:'Banklord';$pass=(string)($in['password']??'');
+        $from=trim((string)($in['from']??''))?:$user;$fromName=trim((string)($in['from_name']??''))?:'Banklord';$pass=(string)preg_replace('/^[\s\x{00A0}]+|[\s\x{00A0}]+$/u','',(string)($in['password']??''));
         if (!preg_match('/^[A-Za-z0-9.-]{3,253}$/D',$host) || !in_array($port,[465,587],true)
             || !filter_var($user,FILTER_VALIDATE_EMAIL) && !preg_match('/^[A-Za-z0-9._@+-]{1,200}$/D',$user)
             || !filter_var($from,FILTER_VALIDATE_EMAIL) || mb_strlen($fromName)>60 || preg_match('/[\x00-\x1f\x7f"<>]/',$fromName)
