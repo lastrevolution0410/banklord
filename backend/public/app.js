@@ -19,6 +19,7 @@ async function api(path,opts={}){
     if(fresh&&fresh.csrf){state.csrf=fresh.csrf;return api(path,{...opts,_retried:true});}
   }
   if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
+  if(result.error==='ACCOUNT_LOCKED')throw Error('Dieses Konto ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='GUILD_LOCKED')throw Error('Diese Gilde ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
@@ -110,7 +111,8 @@ function renderOperatorGuilds(){
 }
 function showOperatorPane(name){
   document.querySelectorAll('#operatorNav .chip').forEach(c=>c.classList.toggle('active',c.dataset.op===name));
-  for(const [k,id] of [['guilds','opPaneGuilds'],['feedback','opPaneFeedback'],['settings','opPaneSettings'],['updates','opPaneUpdates']])$(id).classList.toggle('hidden',k!==name);
+  for(const [k,id] of [['accounts','opPaneAccounts'],['guilds','opPaneGuilds'],['feedback','opPaneFeedback'],['settings','opPaneSettings'],['updates','opPaneUpdates']])$(id).classList.toggle('hidden',k!==name);
+  if(name==='accounts')loadAccounts().catch(e=>notice(e.message,true));
   if(name==='settings')loadDemoSetting();
   if(name==='feedback')loadFeedbackInbox().catch(e=>notice(e.message,true));
   if(name==='updates'){loadUpstream();loadReleases().catch(e=>notice(e.message,true));}
@@ -886,6 +888,37 @@ $('logoutBtn').addEventListener('click',async()=>{try{await post('/logout',{});s
 $('guildSelector').addEventListener('change',onGuildSelect);
 document.querySelectorAll('#operatorNav .chip').forEach(c=>c.onclick=()=>showOperatorPane(c.dataset.op));
 $('opSearch').oninput=()=>{state.opPage=0;renderOperatorGuilds();};$('opFlavor').onchange=()=>{state.opPage=0;renderOperatorGuilds();};
+// Operator: accounts (lock, reset password). Passwords are never shown.
+let acTimer=null;state.acPage=0;
+async function loadAccounts(){
+  const r=await api('/operator/accounts?q='+encodeURIComponent($('acSearch').value.trim())+'&page='+state.acPage);
+  const pages=Math.max(1,Math.ceil(r.total/50));$('acCount').textContent=`${r.total} Konten`;
+  const t=el('table');const head=el('tr');for(const h of ['Konto','Gilden','Registriert','Zuletzt angemeldet',''])head.append(el('th','',h));t.append(add(el('thead'),head));
+  const body=el('tbody');
+  for(const a of r.accounts){const tr=el('tr');const actions=el('td');
+    const who=add(el('td'),el('strong','',a.display_name),...(a.locked?[el('span','badge badge-bad','gesperrt')]:[]),...(a.operator?[el('span','badge badge-ok','Betreiber')]:[]),
+      el('div','muted',a.pending?'Registrierung noch nicht abgeschlossen':a.email));
+    if(!a.operator){
+      const lk=el('button','secondary button-sm',a.locked?'Entsperren':'Sperren');
+      lk.onclick=async()=>{if(!a.locked&&!confirm(`Konto ${a.display_name} sperren? Es kann sich dann nicht mehr anmelden.`))return;
+        try{await api('/operator/accounts/'+a.id+'/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locked:!a.locked})});notice(a.locked?'Konto entsperrt.':'Konto gesperrt.');loadAccounts();}catch(err){notice(err.message,true);}};
+      actions.append(lk);}
+    if(!a.operator&&!a.pending){
+      const reset=async send=>{if(send&&!confirm(`Link zum Zurücksetzen an ${a.email} schicken?`))return;
+        try{const x=await api('/operator/accounts/'+a.id+'/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({send})});
+          if(x.sent){notice('Link per E-Mail verschickt.');return;}
+          const box=$('acLink');box.classList.remove('hidden');box.replaceChildren(el('strong','',`Link für ${a.display_name} (24 Stunden gültig, nur einmal nutzbar):`),el('code','',x.link));
+          const cp=el('button','button-sm','Kopieren');cp.onclick=()=>navigator.clipboard.writeText(x.link).then(()=>notice('Kopiert.'));box.append(cp);box.scrollIntoView({block:'center'});}
+        catch(err){notice(err.message==='MAIL_NOT_POSSIBLE'?'E-Mail geht hier nicht (kein E-Mail-Versand eingerichtet). Nimm „Reset-Link anzeigen“.':err.message==='MAIL_FAILED'?'Versand fehlgeschlagen. E-Mail-Einstellungen prüfen.':err.message,true);}};
+      const rm=el('button','secondary button-sm','Reset-Link per E-Mail');rm.onclick=()=>reset(true);
+      const rl=el('button','secondary button-sm','Reset-Link anzeigen');rl.onclick=()=>reset(false);
+      actions.append(rm,rl);}
+    tr.append(who,el('td','',a.guilds?a.guilds.replace(/\((admin|bank_manager|officer|member)\)/g,(_,r)=>'('+roleText(r)+')'):'–'),el('td','',new Date(a.created_at*1000).toLocaleDateString()),el('td','',a.last_login?new Date(a.last_login*1000).toLocaleDateString():'–'),actions);body.append(tr);}
+  t.append(body);$('operatorAccounts').replaceChildren(r.accounts.length?t:el('p','empty-state','Kein Konto passt zur Suche.'));
+  $('acPage').textContent=`Seite ${state.acPage+1} von ${pages}`;$('acPrev').disabled=state.acPage===0;$('acNext').disabled=state.acPage>=pages-1;
+}
+$('acSearch').oninput=()=>{clearTimeout(acTimer);acTimer=setTimeout(()=>{state.acPage=0;loadAccounts().catch(e=>notice(e.message,true));},300);};
+$('acPrev').onclick=()=>{state.acPage--;loadAccounts().catch(e=>notice(e.message,true));};$('acNext').onclick=()=>{state.acPage++;loadAccounts().catch(e=>notice(e.message,true));};
 $('opPrev').onclick=()=>{state.opPage--;renderOperatorGuilds();};$('opNext').onclick=()=>{state.opPage++;renderOperatorGuilds();};
 $('operatorSettings').onsubmit=async e=>{e.preventDefault();try{await api('/operator/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({guilds_per_account:Number($('opGuildLimit').value),self_signup:$('opSelfSignup').checked?1:0,signups_per_day:Number($('opSignupsPerDay').value)})});notice('Gespeichert.');}catch(err){notice(err.message==='INVALID_SETTING'?'Bitte eine Zahl von 0 bis 50.':err.message,true);}};
 let searchTimer;$('searchInput').addEventListener('input',()=>{state.itemPage=1;state.categoryKey='all';state.inventoryFilter='all';clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadItems().catch(e=>notice(e.message,true)),280);});

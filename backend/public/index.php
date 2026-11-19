@@ -158,6 +158,9 @@ function body(): array {
 }
 function mustLogin(): int {
     if (!isset($_SESSION['uid']) || !is_int($_SESSION['uid'])) reply(401,['error'=>'LOGIN_REQUIRED']);
+    // Locked by the operator: the running session ends too.
+    global $db;
+    if (Operator::accountLocked($db,$_SESSION['uid'])) {unset($_SESSION['uid']);reply(401,['error'=>'ACCOUNT_LOCKED']);}
     return $_SESSION['uid'];
 }
 function csrf(): void {
@@ -473,6 +476,8 @@ try {
             reply(401,['error'=>'LOGIN_FAILED']);
         }
         $s=$db->prepare('DELETE FROM login_attempts WHERE key_hash=?');$s->execute([$rateKey]);
+        if (Operator::accountLocked($db,(int)$user['id'])) reply(403,['error'=>'ACCOUNT_LOCKED']);
+        $db->prepare('UPDATE users SET last_login_at=UTC_TIMESTAMP() WHERE id=?')->execute([(int)$user['id']]);
         session_regenerate_id(true); unset($_SESSION['demo']); $_SESSION['uid']=(int)$user['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
         reply(200,['user_id'=>$_SESSION['uid'],'csrf'=>$_SESSION['csrf']]);
     }
@@ -492,6 +497,12 @@ try {
     // Site operator: every guild, site-wide limits.
     if ($method==='GET' && $path==='/operator/guilds') reply(200,['guilds'=>$operator->guilds($user),'settings'=>$operator->settings()]);
     if ($method==='PUT' && $path==='/operator/settings') reply(200,['settings'=>$operator->save($user,body())]);
+    if ($method==='GET' && $path==='/operator/accounts') reply(200,$operator->accounts($user,(string)($_GET['q']??''),(int)($_GET['page']??0)));
+    if ($method==='POST' && preg_match('~^/operator/accounts/([1-9][0-9]{0,17})/(lock|reset)$~D',$path,$am)) {$b=body();
+        if ($am[2]==='lock') {if (!is_bool($b['locked']??null)) reply(400,['error'=>'BAD_REQUEST']);reply(200,['locked'=>$operator->lockAccount($user,id($am[1]),$b['locked'])]);}
+        try {reply(200,$operator->resetAccount($user,id($am[1]),new Mailer($db,dirname(__DIR__)),siteOrigin(),($b['send']??false)===true));}
+        catch (DomainError $x) {if ($x->getMessage()==='MAIL_FAILED') reply(502,['error'=>'MAIL_FAILED']);throw $x;}
+    }
     if (str_starts_with($path,'/operator/mail')) {
         if (!$isOperator) reply(403,['error'=>'FORBIDDEN']);
         $mailer=new Mailer($db,dirname(__DIR__));
@@ -974,7 +985,7 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['INVALID_MAIL_SETTINGS','RESET_INVALID','INVALID_GAME_VERSION','INVALID_GUILD','INVALID_DISCORD','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
+    $bad=['INVALID_MAIL_SETTINGS','RESET_INVALID','ACCOUNT_PROTECTED','ACCOUNT_PENDING','MAIL_NOT_POSSIBLE','INVALID_GAME_VERSION','INVALID_GUILD','INVALID_DISCORD','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
     $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED','GAME_VERSION_LOCKED','GAME_VERSION_MISMATCH','GUILD_EXISTS','GUILD_LIMIT'];
     if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
     if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);
