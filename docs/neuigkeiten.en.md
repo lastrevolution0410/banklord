@@ -20,17 +20,24 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 
 ## Done
 
-### 1.9 – WoW Forever (18 Nov 2026)
-- **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
-- Guide pages now show the Banklord icon in the browser tab too.
+### 1.12 – Managing accounts (19 Nov 2026)
+- 1.12.6: this page is neatly sorted by version again.
 - 1.12.5: No more cryptic “LOGIN_REQUIRED” message: when your sign-in has expired, the sign-in page simply appears again with a short note.
 - 1.12.4: Tidier start page: sign in, “New here?” and “Register guild” are now tabs instead of one long list. Forgot password and invite code sit right below the sign-in form.
 - 1.12.3: sending e-mail: accidental spaces before or after a pasted password are removed, and the form gives tips when signing in at the mail server fails.
 - 1.12.2: if the test e-mail fails, the website now says exactly why (server unreachable, encryption, wrong user/password, sender rejected) – with the mail server's code.
 - 1.12.1: **Operator → Accounts** now also finds accounts by character name and shows the characters; the browser no longer pre-fills the search box.
 - 1.12.0: **Manage accounts:** under **Operator → Accounts** the operator locks and unlocks single accounts and resets passwords (link by e-mail or to pass on). Locked accounts are signed out at once, their Companion uploads nothing. The operator settings are laid out more clearly.
+
+### 1.11 – Forgot password (19 Nov 2026)
 - 1.11.0: **Forgot password?** The website can now send e-mails: the start page offers a reset link (valid for one hour, usable once). The operator enters a mailbox under **Operator → Settings → Sending e-mail**; the password is stored encrypted.
+
+### 1.10 – Guild leaders sign up on their own (19 Nov 2026)
 - 1.10.0: **Guild leaders sign up on their own:** if the operator switches it on, the start page offers “Sign up your own guild for free” – account and guild in one step, no invitation code. With a daily limit, a per-connection brake and the per-account limit. The operator can **lock** single guilds.
+
+### 1.9 – WoW Forever (18 Nov 2026)
+- **WoW Forever is supported:** its own game version on the website, the setup recognises the `_forever_` folder, addon, Companion and Wowhead links match. Forever has no realms; guilds are then recognised by name.
+- Guide pages now show the Banklord icon in the browser tab too.
 - 1.9.13: registering with an invitation now needs a password of at least 14 characters, like every other way (it said 12 before).
 - 1.9.12: when setting up a **WoW Forever guild** the website no longer asks for a realm (Forever has none).
 - 1.9.11: **Guild bank without a tab** (e.g. a new guild in Forever): no more five times “Number of bank tabs is invalid”; a manual scan explains it in one sentence. Gold still counts.

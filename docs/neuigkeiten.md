@@ -20,17 +20,24 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 
 ## Fertig
 
-### 1.9 – WoW Forever (18.11.2026)
-- **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
-- Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.6: Diese Seite ist wieder sauber nach Versionen sortiert.
 - 1.12.5: Keine rätselhafte Meldung „LOGIN_REQUIRED“ mehr: Ist die Anmeldung abgelaufen, erscheint einfach wieder die Anmeldeseite mit einem kurzen Hinweis.
 - 1.12.4: Aufgeräumte Startseite: Anmelden, „Neu hier?“ und „Gilde anmelden“ sind jetzt Reiter statt einer langen Liste. Passwort vergessen und Einladungscode sitzen direkt unter dem Anmelden-Formular.
 - 1.12.3: E-Mail-Versand: versehentliche Leerzeichen vor oder nach dem eingefügten Passwort werden entfernt, und das Formular gibt Tipps, wenn die Anmeldung am Mailserver scheitert.
 - 1.12.2: Klappt die Test-E-Mail nicht, sagt die Website jetzt genau, woran es liegt (Server nicht erreichbar, Verschlüsselung, Benutzer/Passwort falsch, Absender abgelehnt) – mit dem Code des Mailservers.
 - 1.12.1: **Betreiber → Konten** findet Konten jetzt auch über den Charakternamen und zeigt die Charaktere an; das Suchfeld wird nicht mehr vom Browser vorausgefüllt.
 - 1.12.0: **Konten verwalten:** Unter **Betreiber → Konten** sperrt und entsperrt der Betreiber einzelne Konten und setzt Passwörter zurück (Link per E-Mail oder zum Weitergeben). Gesperrte Konten fliegen sofort raus, ihr Companion lädt nichts mehr hoch. Die Betreiber-Einstellungen sind übersichtlicher angeordnet.
+
+### 1.11 – Passwort vergessen (19.11.2026)
 - 1.11.0: **Passwort vergessen?** Die Website kann jetzt E-Mails verschicken: Auf der Startseite gibt es einen Link zum Zurücksetzen (eine Stunde gültig, nur einmal nutzbar). Der Betreiber trägt dafür unter **Betreiber → Einstellungen → E-Mail-Versand** ein Postfach ein; das Passwort wird verschlüsselt gespeichert.
+
+### 1.10 – Gildenleiter melden sich selbst an (19.11.2026)
 - 1.10.0: **Gildenleiter melden sich selbst an:** Schaltet der Betreiber es ein, steht auf der Startseite „Eigene Gilde kostenlos anmelden“ – Konto und Gilde in einem Schritt, ohne Einladungscode. Mit Tageslimit, Bremse pro Anschluss und Konto-Limit. Der Betreiber kann einzelne Gilden **sperren**.
+
+### 1.9 – WoW Forever (18.11.2026)
+- **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
+- Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
 - 1.9.13: Registrieren mit Einladung verlangt jetzt wie alle anderen Wege ein Passwort mit mindestens 14 Zeichen (vorher stand dort 12).
 - 1.9.12: Beim Anlegen einer **WoW-Forever-Gilde** fragt die Website nicht mehr nach einem Realm (Forever hat keine).
 - 1.9.11: **Gildenbank ohne Bankfach** (z. B. neue Gilde in Forever): statt fünfmal „Anzahl der Bankfächer ist ungültig“ kommt kein Spam mehr; ein Scan von Hand erklärt es in einem Satz. Gold zählt trotzdem.
