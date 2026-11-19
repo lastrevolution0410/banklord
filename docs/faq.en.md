@@ -3,6 +3,7 @@
 [← Overview](README.en.md) · [Deutsch](faq.md) · **English**
 
 **General**
+- [How does my guild get Banklord?](#how-does-my-guild-get-banklord)
 - [Does Banklord cost anything?](#does-banklord-cost-anything)
 - [Is this allowed? Does it break Blizzard's rules?](#is-this-allowed)
 - [Do I need the Companion?](#do-i-need-the-companion)
@@ -11,13 +12,20 @@
 **Usage**
 - [Why do I have to `/reload` so often?](#why-do-i-have-to-reload-so-often)
 - [Why is the stock not live?](#why-is-the-stock-not-live)
+- [Does Banklord work with WoW Forever?](#does-banklord-work-with-wow-forever)
+- [What happens if I order more than the bank holds?](#what-happens-if-i-order-more-than-the-bank-holds)
 - [I have several characters and guilds – does that work?](#several-characters-and-guilds)
 
 **Help**
+- [I forgot my password](#i-forgot-my-password)
 - [How do I report a bug?](#how-do-i-report-a-bug)
 - [I would like Banklord in my language](#i-would-like-banklord-in-my-language)
 
 ---
+
+### How does my guild get Banklord?
+
+Simply through our website, free and without your own server: [Guide for guild leaders](gildenleiter.en.md). If you prefer to run everything yourself: [Self-hosting](selbst-hosten.en.md).
 
 ### Does Banklord cost anything?
 
@@ -71,7 +79,7 @@ Different game versions work with one account too, for example one guild in MoP 
 
 ### I forgot my password
 
-On the start page below sign-in open **“Forgot password?”** and enter your e-mail – you get a link that is valid for one hour. If the option is missing, the website has no e-mail set up; then the website operator can help.
+On the start page, in the **“Sign in”** tab, click **“Forgot password?”** and enter your e-mail – you get a link that is valid for one hour. If the option is missing, the website has no e-mail set up; then the website's operator can help. Step by step with a picture: [Forgot your password?](mitglieder.en.md#forgot-your-password)
 
 ### How do I report a bug?
 

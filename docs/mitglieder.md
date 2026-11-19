@@ -8,8 +8,9 @@
 2. [Bestellen im Spiel](#bestellen-im-spiel)
 3. [Bestellen auf der Website](#bestellen-auf-der-website)
 4. [Was passiert nach der Bestellung?](#was-passiert-nach-der-bestellung)
-5. [Hilfe & Feedback](#hilfe--feedback)
-6. [Befehle im Spiel](#befehle-im-spiel)
+5. [Passwort vergessen?](#passwort-vergessen)
+6. [Hilfe & Feedback](#hilfe--feedback)
+7. [Befehle im Spiel](#befehle-im-spiel)
 
 ---
 
@@ -69,12 +70,22 @@ Hilft das alles nicht, schreib uns über **Hilfe & Feedback → Fehler melden** 
 
 ### Ausweichweg: Einladung
 
-Ist längere Zeit kein Verwalter online, kann dir ein Admin auf der Website unter **Mitglieder** eine Einladung erstellen. Damit registrierst du dich auf der Website und verbindest danach den Companion unter **Konto**.
+Ist längere Zeit kein Verwalter online, kann dir ein Admin auf der Website unter **Mitglieder** einen Einladungscode erstellen. Damit geht es so:
+
+1. Website öffnen, Reiter **„Anmelden“**.
+2. Unten auf **„Einladungscode bekommen?“** klicken.
+3. Code, Anzeigename, E-Mail und Passwort eintragen und **„Konto mit Einladung anlegen“** klicken.
+
+![„Einladungscode bekommen?“ aufgeklappt mit ausgefülltem Formular](assets/website-einladung.webp)
+
+4. Danach unter **Mehr → Konto & Gilden** bei **„Banklord im Spiel“** auf **„Persönlichen Schlüssel erzeugen“** klicken und den Code im Companion ins Feld **„Verbindungscode“** einfügen.
 
 ### Mehrere Charaktere oder Gilden
 
-- **Mehrere Charaktere:** Einfach mit jedem einmal einloggen. Banklord merkt sich die Charaktere und ordnet sie der richtigen Gilde zu.
+- **Mehrere Charaktere:** Einfach mit jedem einmal einloggen. Banklord merkt sich die Charaktere und ordnet sie der richtigen Gilde zu. Du siehst sie auf der Website unter **Mehr → Konto & Gilden** und kannst dort auch einen Charakter von Hand eintragen.
 - **Mehrere Gilden** mit eigener Banklord-Website: Jede Gilde wird einzeln freigeschaltet. Im Companion stehen sie unter **„Weitere Gilden auf diesem PC“**.
+
+![Konto & Gilden: deine Gilden, deine Charaktere und Banklord im Spiel](assets/website-konto.webp)
 
 ---
 
@@ -123,7 +134,9 @@ Unter **Meine Bestellungen** siehst du jederzeit, wie weit deine Bestellung ist.
 | **Ausgegeben** | Die Post ist unterwegs. Schau in deinen Briefkasten. |
 | **Abgelehnt** / **Storniert** | Die Bestellung wird nicht ausgeliefert. Der Grund steht unter **Meine Bestellungen**. |
 
-Neuigkeiten siehst du auf der Website unter **Mitteilungen** und im Spiel nach dem nächsten `/reload`. Alle Zeiten werden in deiner Ortszeit angezeigt.
+Neuigkeiten siehst du auf der Website unter der **Glocke** oben rechts und im Spiel nach dem nächsten `/reload`. Alle Zeiten werden in deiner Ortszeit angezeigt.
+
+![Mitteilungen auf der Website](assets/website-mitteilungen.webp)
 
 - **Sofort-Hinweis:** Sobald ein Bankverwalter deine Post abschickt, meldet Banklord im Spiel „Deine Bestellung #… ist unterwegs“ – auch ohne `/reload`, wenn der Empfänger-Charakter online ist.
 - **Teillieferung:** Fehlt etwas in der Gildenbank, kann der Verwalter schon einen Teil schicken. Der Rest bleibt offen und kommt später.
@@ -132,6 +145,20 @@ Neuigkeiten siehst du auf der Website unter **Mitteilungen** und im Spiel nach d
 - **Alte Bestellungen:** Die Gilde kann offene Bestellungen nach einer festen Zahl von Tagen automatisch stornieren lassen.
 - **Nur ansehen:** Gegenstände aus gesperrten Gildenbank-Tabs siehst du, kannst sie aber nicht bestellen.
 - **Tooltip:** Fährst du über einen Gegenstand, zeigt Banklord „Gildenbank: 20“ (aus dem letzten Scan). Ein/aus: `/banklord tooltip`.
+
+---
+
+## Passwort vergessen?
+
+1. Website öffnen, Reiter **„Anmelden“**.
+2. Auf **„Passwort vergessen?“** klicken, deine E-Mail eintragen und **„Link zum Zurücksetzen schicken“** klicken.
+
+![„Passwort vergessen?“ aufgeklappt](assets/website-passwort-vergessen.webp)
+
+3. Du bekommst eine E-Mail mit einem Link. Er gilt **eine Stunde**. Nichts angekommen? Schau im **Spam-Ordner** nach.
+4. Link öffnen, neues Passwort eintippen (mindestens 14 Zeichen), speichern – du bist angemeldet.
+
+> Fehlt „Passwort vergessen?“, kann die Website keine E-Mails schicken. Dann hilft dir ein Admin deiner Gilde oder der Betreiber der Website.
 
 ---
 
@@ -147,6 +174,8 @@ Etwas klemmt, du hast eine Idee oder möchtest Banklord in deiner Sprache?
 1. Wähle **Fehler melden**, **Idee vorschlagen** oder **Sprache anfragen**.
 2. Fülle das kurze Formular aus und klicke **Absenden**.
 3. Unter **Meine Meldungen** siehst du, ob deine Meldung eingegangen, geplant oder erledigt ist – und die Antwort.
+
+![Hilfe & Feedback auf der Website](assets/website-hilfe.webp)
 
 Die Meldung geht direkt an das Banklord-Projekt. Mitgeschickt werden nur deine Angaben und die Versionsnummern, keine Konto- oder Charakterdaten. Eine E-Mail für Rückfragen ist freiwillig.
 

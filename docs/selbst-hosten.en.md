@@ -4,6 +4,8 @@
 
 Any guild may run Banklord free of charge on its own web space ([license](../LICENSE-ADDITIONAL-PERMISSIONS.md)).
 
+> You don't want to run your own server? Then simply use our website: [Guide for guild leaders](gildenleiter.en.md).
+
 ## Requirements
 
 | | Minimum |
@@ -32,15 +34,50 @@ The setup page only exists until Banklord is configured. Settings are stored in 
 The website updates itself from the official, signed release channel:
 
 - Check at most every 6 hours, signature verification, then a **backup of database and files**, then installation including database changes.
-- Under **Operator → Accounts** you see every account (name, e-mail, guilds, last sign-in). You can **lock** an account (sign-in and Companion stop, the data stays) and **unlock** it again, and **reset a password**: by e-mail or as a link you pass on yourself (valid for 24 hours). You never see passwords. Other operators and your own account are excluded.
-- **Sending e-mail** (for “Forgot password?”): under **Operator → Settings → Sending e-mail** enter SMTP server, port (465 SSL or 587 STARTTLS), user and password of a mailbox (best type the password by hand; with All-Inkl the user can also be the mailbox name like `m0123456`), save, “Test e-mail to me”. The password is stored encrypted in the database, the key in `private/mail.key` (include it in your backup). Without e-mail, “Forgot password?” is simply hidden.
-- Under **Operator → Settings**: how many guilds an account may set up, whether **guild leaders may sign up on their own** (account and guild without an invitation, off by default) and how many such sign-ups are allowed per day. Under **Operator → Guilds** you can **lock** a guild (e.g. on abuse); its data is kept.
 - Status and “Check now” under **Operator → Updates & releases**.
 - In `config.local.php`:
   - `'UPDATE_AUTO' => 'off'` – do not install automatically (the button under Operator → Updates & releases still works).
   - `'UPDATE_SOURCE' => 'off'` – never contact the official channel.
 
 Addon and desktop app fetch their updates themselves; you do not need to do anything.
+
+## Operator area
+
+As the operator you additionally see **Operator → All guilds & system** on the website.
+
+### Settings
+
+Under **Operator → Settings** you decide:
+
+- **Guilds per account:** how many guilds an account may set up itself.
+- **Guild leaders may sign up on their own:** when ticked, strangers get the **“Register guild”** tab on the start page and create account and guild without an invitation (off by default). What they do next is in the [guide for guild leaders](gildenleiter.en.md).
+- **Self sign-ups per day:** upper limit against abuse.
+
+![Operator → Settings: new guilds and sending e-mail](assets/website-betreiber-einstellungen.webp)
+
+### Sending e-mail
+
+Needed for **“Forgot password?”**. Without e-mail sending that option is simply hidden.
+
+1. Open **Operator → Settings → Sending e-mail**.
+2. Enter SMTP server, port (**465 SSL** or **587 STARTTLS**), user and password of a mailbox. Best **type the password by hand**. With All-Inkl the mailbox name such as `m0123456` also works as user.
+3. Click **“Save”**, then **“Test e-mail to me”**.
+
+The password is stored encrypted in the database, the key in `private/mail.key`. That file belongs in your backup.
+
+### Accounts
+
+Under **Operator → Accounts** you see every account with name, e-mail, guilds, characters and last sign-in. The search also finds character names.
+
+- **Lock:** sign-in and Companion stop working, the data stays. **Unlock** reverses it.
+- **Reset password:** by e-mail or as a link you pass on yourself (valid for 24 hours). You never see passwords.
+- Other operators and your own account are excluded.
+
+![Operator → Accounts with lock and reset links](assets/website-betreiber-konten.webp)
+
+### Guilds
+
+Under **Operator → Guilds** you see all guilds and can **lock** a guild (e.g. in case of abuse). Its data is kept.
 
 ## Help & Feedback
 

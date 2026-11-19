@@ -4,6 +4,8 @@
 
 Banklord darf jede Gilde kostenlos auf ihrem eigenen Webspace betreiben ([Lizenz](../LICENSE-ADDITIONAL-PERMISSIONS.md)).
 
+> Du willst keinen eigenen Server betreiben? Dann nutze einfach unsere Website: [Anleitung für Gildenleiter](gildenleiter.md).
+
 ## Voraussetzungen
 
 | | Mindestens |
@@ -32,15 +34,50 @@ Die Einrichtungsseite existiert nur, bis Banklord konfiguriert ist. Die Einstell
 Die Website aktualisiert sich selbst aus dem offiziellen, signierten Release-Kanal:
 
 - Prüfung höchstens alle 6 Stunden, Signaturprüfung, danach **Backup von Datenbank und Dateien**, dann Installation inklusive Datenbank-Änderungen.
-- Unter **Betreiber → Konten** siehst du alle Konten (Name, E-Mail, Gilden, letzte Anmeldung). Du kannst ein Konto **sperren** (Anmeldung und Companion gehen dann nicht mehr, die Daten bleiben) und wieder **entsperren**, und ein **Passwort zurücksetzen** lassen: per E-Mail oder als Link, den du selbst weitergibst (24 Stunden gültig). Passwörter siehst du nie. Andere Betreiber und dein eigenes Konto sind davon ausgenommen.
-- **E-Mail-Versand** (für „Passwort vergessen?“): unter **Betreiber → Einstellungen → E-Mail-Versand** SMTP-Server, Port (465 SSL oder 587 STARTTLS), Benutzer und Passwort eines Postfachs eintragen (Passwort am besten von Hand eintippen; bei All-Inkl geht als Benutzer auch der Postfach-Name wie `m0123456`), speichern, „Test-E-Mail an mich“. Das Passwort liegt verschlüsselt in der Datenbank, der Schlüssel in `private/mail.key` (gehört ins Backup). Ohne E-Mail-Versand ist „Passwort vergessen?“ einfach ausgeblendet.
-- Unter **Betreiber → Einstellungen**: wie viele Gilden ein Konto anlegen darf, ob sich **Gildenleiter selbst anmelden** dürfen (Konto und Gilde ohne Einladung, standardmäßig aus) und wie viele solcher Anmeldungen pro Tag höchstens erlaubt sind. Unter **Betreiber → Gilden** kannst du eine Gilde **sperren** (z. B. bei Missbrauch); ihre Daten bleiben erhalten.
 - Status und „Jetzt prüfen“ unter **Betreiber → Updates & Releases**.
 - In `config.local.php`:
   - `'UPDATE_AUTO' => 'off'` – nicht automatisch installieren (Knopf unter Betreiber → Updates & Releases geht weiter).
   - `'UPDATE_SOURCE' => 'off'` – nie den offiziellen Kanal kontaktieren.
 
 Addon und Desktop-App holen ihre Updates selbst; dafür musst du nichts tun.
+
+## Betreiber-Bereich
+
+Als Betreiber siehst du auf der Website zusätzlich **Betreiber → Alle Gilden & System**.
+
+### Einstellungen
+
+Unter **Betreiber → Einstellungen** legst du fest:
+
+- **Gilden je Konto:** wie viele Gilden ein Konto selbst anlegen darf.
+- **Gildenleiter dürfen sich selbst anmelden:** Mit Haken bekommen Fremde auf der Startseite den Reiter **„Gilde anmelden“** und legen Konto und Gilde ohne Einladung an (standardmäßig aus). Was sie dann tun, steht in der [Anleitung für Gildenleiter](gildenleiter.md).
+- **Selbst-Anmeldungen pro Tag:** Obergrenze gegen Missbrauch.
+
+![Betreiber → Einstellungen: Neue Gilden und E-Mail-Versand](assets/website-betreiber-einstellungen.webp)
+
+### E-Mail-Versand
+
+Nötig für **„Passwort vergessen?“**. Ohne E-Mail-Versand ist der Punkt einfach ausgeblendet.
+
+1. **Betreiber → Einstellungen → E-Mail-Versand** öffnen.
+2. SMTP-Server, Port (**465 SSL** oder **587 STARTTLS**), Benutzer und Passwort eines Postfachs eintragen. Das Passwort am besten **von Hand eintippen**. Bei All-Inkl geht als Benutzer auch der Postfach-Name wie `m0123456`.
+3. **„Speichern“**, dann **„Test-E-Mail an mich“**.
+
+Das Passwort liegt verschlüsselt in der Datenbank, der Schlüssel in `private/mail.key`. Diese Datei gehört ins Backup.
+
+### Konten
+
+Unter **Betreiber → Konten** siehst du alle Konten mit Name, E-Mail, Gilden, Charakteren und letzter Anmeldung. Die Suche findet auch Charakternamen.
+
+- **Sperren:** Anmeldung und Companion gehen nicht mehr, die Daten bleiben. **Entsperren** macht es rückgängig.
+- **Passwort zurücksetzen:** per E-Mail oder als Link, den du selbst weitergibst (24 Stunden gültig). Passwörter siehst du nie.
+- Andere Betreiber und dein eigenes Konto sind davon ausgenommen.
+
+![Betreiber → Konten mit Sperren und Reset-Links](assets/website-betreiber-konten.webp)
+
+### Gilden
+
+Unter **Betreiber → Gilden** siehst du alle Gilden und kannst eine Gilde **sperren** (z. B. bei Missbrauch). Ihre Daten bleiben erhalten.
 
 ## Hilfe & Feedback
 

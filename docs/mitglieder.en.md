@@ -8,8 +8,9 @@
 2. [Ordering in game](#ordering-in-game)
 3. [Ordering on the website](#ordering-on-the-website)
 4. [What happens after ordering?](#what-happens-after-ordering)
-5. [Help & Feedback](#help--feedback)
-6. [In-game commands](#in-game-commands)
+5. [Forgot your password?](#forgot-your-password)
+6. [Help & Feedback](#help--feedback)
+7. [In-game commands](#in-game-commands)
 
 ---
 
@@ -69,12 +70,22 @@ If none of this helps, write to us via **Help & feedback → Report a bug** on t
 
 ### Fallback: invitation
 
-If no manager is online for a longer time, an admin can create an invitation for you on the website under **Members**. Use it to register on the website, then connect the Companion under **Account**.
+If no manager is online for a longer time, an admin can create an invite code for you on the website under **Members**. Then:
+
+1. Open the website, **“Sign in”** tab.
+2. At the bottom click **“Got an invite code?”**.
+3. Enter the code, display name, e-mail and password and click **“Create account with invite”**.
+
+![“Got an invite code?” opened with the filled-in form](assets/website-einladung.webp)
+
+4. Then under **More → Account & guilds**, in **“Banklord in game”**, click **“Create personal key”** and paste the code into the Companion's **“Verbindungscode”** (connect code) field.
 
 ### Several characters or guilds
 
-- **Several characters:** Just log in with each one once. Banklord remembers the characters and assigns them to the right guild.
-- **Several guilds** with their own Banklord website: each guild is unlocked separately. In the Companion they are listed under **“Other guilds on this PC”**.
+- **Several characters:** Just log in with each one once. Banklord remembers the characters and assigns them to the right guild. You see them on the website under **More → Account & guilds** and can also add a character by hand there.
+- **Several guilds** with their own Banklord website: each guild is unlocked separately. In the Companion they are listed under **“Weitere Gilden auf diesem PC”** (more guilds on this PC).
+
+![Account & guilds: your guilds, your characters and Banklord in game](assets/website-konto.webp)
 
 ---
 
@@ -123,7 +134,9 @@ Under **My orders** you can always see how far your order has got.
 | **Issued** | The mail is on its way. Check your mailbox. |
 | **Rejected** / **Cancelled** | The order will not be delivered. The reason is shown under **My orders**. |
 
-You see news on the website under **Notifications** and in game after the next `/reload`. All times are shown in your local time.
+You see news on the website under the **bell** at the top right and in game after the next `/reload`. All times are shown in your local time.
+
+![Notifications on the website](assets/website-mitteilungen.webp)
 
 
 - **Instant notice:** As soon as a bank manager sends your mail, Banklord says “Your order #… is on its way” in game – without `/reload`, if the recipient character is online.
@@ -133,6 +146,20 @@ You see news on the website under **Notifications** and in game after the next `
 - **Old orders:** The guild can have open orders cancelled automatically after a set number of days.
 - **View only:** Items from locked guild bank tabs are visible but cannot be ordered.
 - **Tooltip:** Hovering an item shows “Guild bank: 20” (from the last scan). On/off: `/banklord tooltip`.
+
+---
+
+## Forgot your password?
+
+1. Open the website, **“Sign in”** tab.
+2. Click **“Forgot password?”**, enter your e-mail and click **“Send reset link”**.
+
+![“Forgot password?” opened](assets/website-passwort-vergessen.webp)
+
+3. You get an e-mail with a link. It is valid for **one hour**. Nothing arrived? Check your **spam folder**.
+4. Open the link, type a new password (at least 14 characters), save – you are signed in.
+
+> No “Forgot password?”? Then the website cannot send e-mails. An admin of your guild or the website's operator can help you.
 
 ---
 
@@ -148,6 +175,8 @@ Something is stuck, you have an idea, or you would like Banklord in your languag
 1. Choose **Report a bug**, **Suggest an idea** or **Request a language**.
 2. Fill in the short form and click **Send**.
 3. Under **My reports** you see whether your report was received, planned or done – and the answer.
+
+![Help & feedback on the website](assets/website-hilfe.webp)
 
 The report goes straight to the Banklord project. Only what you enter and the version numbers are sent, no account or character data. An e-mail address for follow-up questions is optional.
 

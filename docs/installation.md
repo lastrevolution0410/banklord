@@ -23,6 +23,8 @@
 
 Auf dem Desktop und im Startmenü liegt **eine** Verknüpfung: **Banklord Companion**. Sie öffnet die Companion-Seite im Browser (Verbindung, Status, weitere Gilden, Freischaltung). Der Companion läuft auch ohne geöffnetes Fenster weiter.
 
+![Companion mit Status „Bereit“](assets/companion-bereit.webp)
+
 Die Prüfung auf neue Versionen läuft **immer automatisch**: beim Start von Windows, alle paar Sekunden auf neue Veröffentlichungen, spätestens alle 2 Minuten und direkt nach dem Beenden von WoW. Du startest WoW ganz normal über Battle.net.
 
 Banklord braucht **keine Administratorrechte**, keine Blizzard-Zugangsdaten und verändert nichts am Spiel außer dem eigenen Addon-Ordner.
@@ -31,7 +33,11 @@ Banklord braucht **keine Administratorrechte**, keine Blizzard-Zugangsdaten und 
 
 Beim ersten Start zeigt Windows „Der Computer wurde durch Windows geschützt“. Das liegt daran, dass Banklord ein Fanprojekt ohne gekauftes Code-Signatur-Zertifikat ist – nicht daran, dass etwas Schädliches gefunden wurde.
 
-**„Weitere Informationen“ → „Trotzdem ausführen“.** Die Warnung kommt nur beim Setup. Updates prüfen ihre eigene digitale Signatur (Ed25519) und laufen danach ohne Warnung.
+**„Weitere Informationen“ → „Trotzdem ausführen“.**
+
+![Windows-Warnung: erst „Weitere Informationen“, dann „Trotzdem ausführen“](assets/skizze-smartscreen.webp)
+
+ Die Warnung kommt nur beim Setup. Updates prüfen ihre eigene digitale Signatur (Ed25519) und laufen danach ohne Warnung.
 
 Lade das Setup immer nur von der Website deiner Gilde oder den [GitHub-Releases](https://github.com/lastrevolution0410/banklord/releases).
 
@@ -40,6 +46,8 @@ Lade das Setup immer nur von der Website deiner Gilde oder den [GitHub-Releases]
 - **Addon, Companion, Updater:** automatisch über den Updater. Jedes Update ist signiert; manipulierte oder ältere Pakete werden abgelehnt. Eine neue Addon-Version ist im Spiel ab dem nächsten Spielstart aktiv.
 - **Website:** aktualisiert sich selbst (siehe [Selbst hosten](selbst-hosten.md#updates)).
 - **Von Hand:** Setup erneut starten und „Installieren / Aktualisieren“ klicken. Das repariert auch beschädigte Dateien.
+
+![Setup mit dem Knopf „Installieren / Aktualisieren“](assets/setup-installieren.webp)
 
 ## Deinstallieren
 

@@ -61,7 +61,9 @@ When you close it, Banklord asks whether to transfer the sent orders to the webs
 
 The window can be moved and remembers its position.
 
-> **Updating the stock:** When you open the guild bank, Banklord scans all tabs automatically. After `/reload` or logout the Companion uploads the scan. If an admin has turned on automatic reconciliation under **System**, the website takes over the scan of every bank manager, officer and admin right away; otherwise it waits under **Inventory** for confirmation.
+> **Updating the stock:** When you open the guild bank, Banklord scans all tabs automatically. After `/reload` or logout the Companion uploads the scan. If an admin has turned on automatic reconciliation under **Inventory scan → Auto-approval**, the website takes over the scan of every bank manager, officer and admin right away; otherwise it waits under **Inventory scan** for confirmation: **“Check now”**, compare the list with the bank, enter your password, tick the box, **“Accept stock”**.
+
+![Checking a scan: list, below it password, tick box and “Accept stock”](assets/website-scan-pruefen.webp)
 
 ## At the mailbox: send
 
@@ -153,12 +155,17 @@ Under **Members** you invite new members and assign roles.
 | **Log** | Who did what and when |
 | **Settings** | Game version, Discord, the guild's PCs (admins) |
 
+![Activity log on the website: who did what and when](assets/website-protokoll.webp)
+
 ## Cash book, bank value and Discord
 
 - **Cash book** (website → Management → Cash book): every time you open the guild bank, Banklord reads the bank log – gold and items, who deposited or withdrew what. WoW only shows the last 25 entries per tab; Banklord keeps everything. The Companion uploads it after the next `/reload`. Filter by gold, items or player, download as CSV for spreadsheets. **In game**, **Orders → Activity log** (or `/bl kasse`) shows the gold with coins like in the game and the latest entries – sorted into **Overview** (deposited, withdrawn and balance per player), **Gold** and **Items**.
 - **Order history and activity log in game:** the same window has two more tabs for bank managers and officers. **Order history** (`/bl verlauf`) lists the guild's last 40 orders with member, recipient, status and items – including delivered, rejected and cancelled ones. **Activity log** (`/bl protokoll`) shows the same as the website's “Activity”: who ordered, reviewed, mailed or cancelled what and when, new bank scans, joins and rule changes. Both arrive via the Companion when loading; newer entries are on the website.
 - **Gold and bank value:** the guild bank's gold is recorded when you open it. With **TSM** or **Auctionator** installed, Banklord records each item's market price. The website then shows the estimated value of the whole bank and per item.
 - **Discord** (website → Settings, administrators only): paste a channel's webhook URL and choose what is announced – new orders, approval needed, sent, below minimum stock. Check it with "Test message".
+
+  ![Guild settings with Discord notifications](assets/website-einstellungen.webp)
+
 - **Urgent orders** are marked **“Urgent”** under Orders; in game they have a red **!** before the number and are listed first.
 
 ![Cash book on the website with gold, bank value and contributions per player](assets/website-kassenbuch.webp)

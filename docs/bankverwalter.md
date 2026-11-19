@@ -59,7 +59,9 @@ Beim Schließen fragt Banklord, ob es die verschickten Bestellungen an die Websi
 
 Das Fenster lässt sich verschieben und merkt sich seine Position.
 
-> **Bestand aktualisieren:** Beim Öffnen der Gildenbank scannt Banklord automatisch alle Fächer. Nach `/reload` oder Logout lädt der Companion den Scan hoch. Hat ein Admin unter **System** den automatischen Abgleich eingeschaltet, übernimmt die Website den Scan jedes Bankverwalters, Offiziers und Admins sofort; sonst wartet er unter **Inventur** auf Bestätigung.
+> **Bestand aktualisieren:** Beim Öffnen der Gildenbank scannt Banklord automatisch alle Fächer. Nach `/reload` oder Logout lädt der Companion den Scan hoch. Hat ein Admin unter **Inventur → Automatische Freigabe** den automatischen Abgleich eingeschaltet, übernimmt die Website den Scan jedes Bankverwalters, Offiziers und Admins sofort; sonst wartet er unter **Inventur** auf Bestätigung: **„Jetzt prüfen“**, Liste mit der Bank vergleichen, Passwort eingeben, Haken setzen, **„Bestand übernehmen“**.
+
+![Scan prüfen: Liste, darunter Passwort, Haken und „Bestand übernehmen“](assets/website-scan-pruefen.webp)
 
 ## Am Briefkasten: versenden
 
@@ -151,12 +153,17 @@ Unter **Mitglieder** lädst du neue Mitglieder ein und vergibst Rollen.
 | **Protokoll** | Wer hat wann was getan |
 | **Einstellungen** | Spielversion, Discord, PCs der Gilde (Admins) |
 
+![Protokoll auf der Website: wer hat wann was getan](assets/website-protokoll.webp)
+
 ## Kassenbuch, Bankwert und Discord
 
 - **Kassenbuch** (Website → Verwaltung → Kassenbuch): Jedes Mal, wenn du die Gildenbank öffnest, liest Banklord das Bankprotokoll aus – Gold und Gegenstände, wer was eingezahlt oder entnommen hat. WoW zeigt nur die letzten 25 Einträge je Fach; Banklord hebt alles auf. Nach dem nächsten `/reload` überträgt der Companion es. Filter nach Gold, Gegenständen oder Spieler, Download als CSV für Tabellen. **Im Spiel** zeigt **Aufträge → Protokoll** (oder `/bl kasse`) den Goldstand mit Münzen wie im Spiel und die letzten Einträge – sortiert in **Übersicht** (pro Spieler eingezahlt, entnommen, Saldo), **Gold** und **Gegenstände**.
 - **Bestellverlauf und Protokoll im Spiel:** Im selben Fenster stehen für Bankverwalter und Offiziere zwei weitere Reiter. **Bestellverlauf** (`/bl verlauf`) zeigt die letzten 40 Bestellungen der ganzen Gilde mit Mitglied, Empfänger, Status und Gegenständen – auch ausgegebene, abgelehnte und stornierte. **Protokoll** (`/bl protokoll`) zeigt dasselbe wie die Website unter „Protokoll“: wer wann bestellt, geprüft, verschickt oder storniert hat, neue Bankscans, Beitritte und Regeländerungen. Beides kommt beim Laden über den Companion; Neueres steht auf der Website.
 - **Goldstand und Bankwert:** Der Goldstand der Gildenbank wird beim Öffnen mitgenommen. Hast du **TSM** oder **Auctionator** installiert, nimmt Banklord den Marktpreis jedes Gegenstands mit. Die Website zeigt dann den geschätzten Wert der ganzen Bank und pro Gegenstand.
 - **Discord** (Website → Einstellungen, nur Administratoren): Webhook-URL eines Kanals einfügen und wählen, was gemeldet wird – neue Bestellungen, Freigabe nötig, verschickt, unter Mindestbestand. Mit „Testnachricht“ prüfen.
+
+  ![Einstellungen der Gilde mit Discord-Benachrichtigungen](assets/website-einstellungen.webp)
+
 - **Dringende Bestellungen** sind in Aufträgen mit **„Dringend“** markiert, im Spiel mit einem roten **!** vor der Nummer und stehen oben.
 
 ![Kassenbuch auf der Website mit Goldstand, Bankwert und Beiträgen pro Spieler](assets/website-kassenbuch.webp)

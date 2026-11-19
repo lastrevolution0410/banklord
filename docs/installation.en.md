@@ -23,6 +23,8 @@
 
 There is **one** shortcut on the desktop and in the Start menu: **Banklord Companion**. It opens the Companion page in your browser (connection, status, other guilds, unlocking). The Companion keeps running without an open window.
 
+![Companion with status “Bereit” (ready)](assets/companion-bereit.webp)
+
 Checking for new versions **always runs automatically**: when Windows starts, every few seconds for new releases, at the latest every 2 minutes, and right after WoW closes. You start WoW as usual through Battle.net.
 
 Banklord needs **no administrator rights**, no Blizzard credentials, and changes nothing in the game except its own addon folder.
@@ -31,7 +33,11 @@ Banklord needs **no administrator rights**, no Blizzard credentials, and changes
 
 On first launch Windows shows “Windows protected your PC”. This is because Banklord is a fan project without a purchased code-signing certificate – not because anything harmful was found.
 
-**“More info” → “Run anyway”.** The warning only appears for the setup. Updates check their own digital signature (Ed25519) and then run without a warning.
+**“More info” → “Run anyway”.**
+
+![Windows warning: first “More info”, then “Run anyway”](assets/skizze-smartscreen.webp)
+
+ The warning only appears for the setup. Updates check their own digital signature (Ed25519) and then run without a warning.
 
 Only ever download the setup from your guild's website or the [GitHub releases](https://github.com/lastrevolution0410/banklord/releases).
 
@@ -40,6 +46,8 @@ Only ever download the setup from your guild's website or the [GitHub releases](
 - **Addon, Companion, Updater:** automatically through the Updater. Every update is signed; tampered or older packages are rejected. A new addon version becomes active in game from the next game start.
 - **Website:** updates itself (see [Self-hosting](selbst-hosten.en.md#updates)).
 - **By hand:** run the setup again and click “Install / Update”. This also repairs damaged files.
+
+![Setup with the “Install / Update” button](assets/setup-installieren.webp)
 
 ## Uninstalling
 

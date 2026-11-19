@@ -495,6 +495,7 @@ exact:{
 "Noch keine übertragenen Ingame-Entwürfe.":"No in-game drafts transferred yet.",
 "Noch nicht geprüft":"Not checked yet",
 "Noch nicht gezählt":"Not counted yet",
+"Gilde anmelden, einrichten, Mitglieder holen":"Register, set up, bring in members",
 "Für Gildenleiter":"For guild leaders",
 "Vergleiche die Liste mit der Gildenbank im Spiel. Stimmt alles, bestätigst du ganz unten.":"Compare the list with the guild bank in game. If everything matches, confirm at the very bottom.",
 "Technische Details":"Technical details",

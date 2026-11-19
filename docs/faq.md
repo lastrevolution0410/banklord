@@ -3,6 +3,7 @@
 [← Übersicht](README.md) · **Deutsch** · [English](faq.en.md)
 
 **Allgemein**
+- [Wie bekommt meine Gilde Banklord?](#wie-bekommt-meine-gilde-banklord)
 - [Kostet Banklord etwas?](#kostet-banklord-etwas)
 - [Ist das erlaubt? Verstößt es gegen Blizzards Regeln?](#ist-das-erlaubt)
 - [Brauche ich den Companion?](#brauche-ich-den-companion)
@@ -11,13 +12,20 @@
 **Benutzung**
 - [Warum muss ich so oft `/reload` machen?](#warum-muss-ich-so-oft-reload-machen)
 - [Warum ist der Bestand nicht live?](#warum-ist-der-bestand-nicht-live)
+- [Funktioniert Banklord mit WoW Forever?](#funktioniert-banklord-mit-wow-forever)
+- [Was passiert, wenn ich mehr bestelle, als in der Bank liegt?](#was-passiert-wenn-ich-mehr-bestelle-als-in-der-bank-liegt)
 - [Ich habe mehrere Charaktere und Gilden – geht das?](#mehrere-charaktere-und-gilden)
 
 **Hilfe**
+- [Ich habe mein Passwort vergessen](#ich-habe-mein-passwort-vergessen)
 - [Wie melde ich einen Fehler?](#wie-melde-ich-einen-fehler)
 - [Ich möchte Banklord in meiner Sprache](#ich-möchte-banklord-in-meiner-sprache)
 
 ---
+
+### Wie bekommt meine Gilde Banklord?
+
+Ganz einfach über unsere Website, kostenlos und ohne eigenen Server: [Anleitung für Gildenleiter](gildenleiter.md). Wer lieber alles selbst betreibt: [Selbst hosten](selbst-hosten.md).
 
 ### Kostet Banklord etwas?
 
@@ -71,7 +79,7 @@ Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde 
 
 ### Ich habe mein Passwort vergessen
 
-Auf der Startseite unter dem Anmelden **„Passwort vergessen?“** aufklappen, E-Mail eingeben – du bekommst einen Link, der eine Stunde gilt. Fehlt der Punkt, hat die Website keinen E-Mail-Versand eingerichtet; dann hilft der Betreiber der Website.
+Auf der Startseite im Reiter **„Anmelden“** auf **„Passwort vergessen?“** klicken, E-Mail eingeben – du bekommst einen Link, der eine Stunde gilt. Fehlt der Punkt, hat die Website keinen E-Mail-Versand eingerichtet; dann hilft der Betreiber der Website. Schritt für Schritt mit Bild: [Passwort vergessen?](mitglieder.md#passwort-vergessen)
 
 ### Wie melde ich einen Fehler?
 
