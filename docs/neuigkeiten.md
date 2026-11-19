@@ -23,6 +23,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.9.13: Registrieren mit Einladung verlangt jetzt wie alle anderen Wege ein Passwort mit mindestens 14 Zeichen (vorher stand dort 12).
 - 1.9.12: Beim Anlegen einer **WoW-Forever-Gilde** fragt die Website nicht mehr nach einem Realm (Forever hat keine).
 - 1.9.11: **Gildenbank ohne Bankfach** (z. B. neue Gilde in Forever): statt fünfmal „Anzahl der Bankfächer ist ungültig“ kommt kein Spam mehr; ein Scan von Hand erklärt es in einem Satz. Gold zählt trotzdem.
 - 1.9.11: **Mehr bestellen als da ist:** Spiel und Website sagen jetzt sofort „Nur X in der Bank – der Rest bleibt offen, bis nachgefüllt wird“.

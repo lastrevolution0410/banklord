@@ -7,7 +7,7 @@ use PDO;
 final class Community {
     public function __construct(private PDO $db) {}
     public static function inviteFormat(string $token): bool {return preg_match('/^wgi1_[a-f0-9]{64}$/D',$token)===1;}
-    public static function passwordAllowed(string $password): bool {return strlen($password)>=12 && strlen($password)<=256;}
+    public static function passwordAllowed(string $password): bool {return strlen($password)>=14 && strlen($password)<=256;}
     public static function characterAllowed(string $name): bool {return preg_match('/^[\p{L}][\p{L}\-\']{1,31}$/uD',$name)===1;}
     private function admin(int $guild,int $actor): void {
         $s=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");

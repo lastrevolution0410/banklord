@@ -534,7 +534,6 @@ exact:{
 "PCs der Gilde":"Guild PCs",
 "PHP-Erweiterung sodium fehlt":"PHP extension sodium missing",
 "Passwort":"Password",
-"Passwort (mind. 12 Zeichen)":"Password (min. 12 characters)",
 "Persönlichen Companion-Schlüssel erzeugen":"Create personal Companion key",
 "Physische Ausgabe bestätigen":"Confirm physical handover",
 "Positionen in den Web-Warenkorb übernommen. Bitte vor Bestellung prüfen.":"Items imported into the web cart. Please check before ordering.",
