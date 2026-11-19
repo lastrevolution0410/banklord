@@ -14,7 +14,13 @@ final class Mailer
 {
     private const KEYS=['mail_host','mail_port','mail_user','mail_from','mail_from_name','mail_pass','site_url'];
 
+    /** Where the last send failed, e.g. "connect", "auth:535" – never anything secret. */
+    public string $lastError='';
+    private string $stage='';
+
     public function __construct(private PDO $db, private string $root) {}
+
+    private function fail(string $what): never { $this->lastError=$what; throw new DomainError('MAIL_FAILED'); }
 
     private function get(string $k): string
     {
@@ -105,19 +111,26 @@ final class Mailer
         $from=$this->get('mail_from')?:$user;$fromName=$this->get('mail_from_name')?:'Banklord';
         $ctx=stream_context_create(['ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'peer_name'=>$host,'SNI_enabled'=>true]]);
         $sock=@stream_socket_client(($port===465?'ssl://':'tcp://').$host.':'.$port,$errno,$errstr,10,STREAM_CLIENT_CONNECT,$ctx);
-        if (!$sock) throw new DomainError('MAIL_FAILED');
+        if (!$sock) {
+            // Plain TCP works but SSL not: certificate or TLS problem on this server; nothing at all: port blocked or wrong host.
+            $probe=@stream_socket_client('tcp://'.$host.':'.$port,$e2,$s2,5);
+            if ($probe) {fclose($probe);$this->fail($port===465?'tls':'connect');}
+            $this->fail('connect');
+        }
         stream_set_timeout($sock,15);
         try {
-            $this->expect($sock,220);
+            $this->stage='greeting';$this->expect($sock,220);
             $me=parse_url($this->get('site_url'),PHP_URL_HOST)?:'localhost';
-            $this->cmd($sock,'EHLO '.$me,250);
+            $this->stage='ehlo';$this->cmd($sock,'EHLO '.$me,250);
             if ($port===587) {
-                $this->cmd($sock,'STARTTLS',220);
-                if (!stream_socket_enable_crypto($sock,true,STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT|STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT)) throw new DomainError('MAIL_FAILED');
+                $this->stage='starttls';$this->cmd($sock,'STARTTLS',220);
+                if (!@stream_socket_enable_crypto($sock,true,STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT|STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT)) $this->fail('tls');
                 $this->cmd($sock,'EHLO '.$me,250);
             }
-            $this->cmd($sock,'AUTH LOGIN',334);$this->cmd($sock,base64_encode($user),334);$this->cmd($sock,base64_encode($pass),235);
-            $this->cmd($sock,'MAIL FROM:<'.$from.'>',250);$this->cmd($sock,'RCPT TO:<'.$to.'>',[250,251]);$this->cmd($sock,'DATA',354);
+            $this->stage='auth';$this->cmd($sock,'AUTH LOGIN',334);$this->cmd($sock,base64_encode($user),334);$this->cmd($sock,base64_encode($pass),235);
+            $this->stage='from';$this->cmd($sock,'MAIL FROM:<'.$from.'>',250);
+            $this->stage='rcpt';$this->cmd($sock,'RCPT TO:<'.$to.'>',[250,251]);
+            $this->stage='data';$this->cmd($sock,'DATA',354);
             $headers=['Date: '.date('r'),'From: '.mb_encode_mimeheader($fromName,'UTF-8','Q').' <'.$from.'>','To: <'.$to.'>',
                 'Subject: '.mb_encode_mimeheader($subject,'UTF-8','Q'),'Message-ID: <'.bin2hex(random_bytes(12)).'@'.$me.'>',
                 'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','Auto-Submitted: auto-generated'];
@@ -134,9 +147,10 @@ final class Mailer
         $codes=(array)$code;
         while (true) {
             $l=fgets($sock,1024);
-            if ($l===false) throw new DomainError('MAIL_FAILED');
+            if ($l===false) $this->fail($this->stage.':timeout');
             if (strlen($l)>=4 && $l[3]==='-') continue;
-            if (!in_array((int)substr($l,0,3),$codes,true)) throw new DomainError('MAIL_FAILED');
+            $got=(int)substr($l,0,3);
+            if (!in_array($got,$codes,true)) $this->fail($this->stage.':'.$got);
             return;
         }
     }

@@ -22,7 +22,7 @@ async function api(path,opts={}){
   if(result.error==='ACCOUNT_LOCKED')throw Error('Dieses Konto ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='GUILD_LOCKED')throw Error('Diese Gilde ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
-  if(!r.ok)throw Error(result.error||'HTTP_'+r.status);
+  if(!r.ok){const e=Error(result.error||'HTTP_'+r.status);e.detail=result.detail||'';throw e;}
   return result;
 }
 // Game versions a guild can belong to: label, Wowhead path, Wowhead tooltip data environment.
@@ -1091,7 +1091,16 @@ $('mailSettings').onsubmit=async e=>{e.preventDefault();
       password:$('mailPass').value,from:$('mailFrom').value.trim(),from_name:$('mailFromName').value.trim()})});await loadMailSettings();notice('E-Mail-Einstellungen gespeichert. Jetzt „Test-E-Mail an mich“ klicken.');}
   catch(err){notice(err.message==='INVALID_MAIL_SETTINGS'?'Bitte Server, Benutzer und Absender prüfen.':err.message==='MAIL_KEY_UNAVAILABLE'?'Der Ordner private/ ist nicht beschreibbar – das Passwort kann nicht sicher gespeichert werden.':err.message,true);}};
 $('mailTest').onclick=async()=>{try{await api('/operator/mail/test',{method:'POST'});notice('Test-E-Mail verschickt – schau in dein Postfach.');}
-  catch(err){notice(err.message==='MAIL_NOT_CONFIGURED'?'Erst speichern (mit Passwort).':'Versand fehlgeschlagen. Server, Port, Benutzer und Passwort prüfen.',true);}};
+  catch(err){notice(err.message==='MAIL_NOT_CONFIGURED'?'Erst speichern (mit Passwort).':mailProblem(err.detail),true);}};
+// What went wrong with the test e-mail, in plain words (stage + SMTP code from the server).
+function mailProblem(d){const [stage,code]=String(d||'').split(':');
+  const t={connect:'Der Mailserver ist von der Website aus nicht erreichbar. Server und Port prüfen – oder der Webspace sperrt ausgehende Verbindungen auf diesem Port (dann 587 probieren).',
+    tls:'Die verschlüsselte Verbindung klappt nicht (Zertifikat oder TLS). Den anderen Port probieren (465 oder 587).',
+    greeting:'Der Mailserver antwortet nicht wie erwartet.',ehlo:'Der Mailserver lehnt die Begrüßung ab.',starttls:'Der Mailserver bietet auf diesem Port kein STARTTLS an – Port 465 probieren.',
+    auth:'Anmeldung am Mailserver abgelehnt: Benutzer oder Passwort stimmen nicht. Passwort neu eintragen und speichern.',
+    from:'Der Mailserver lehnt die Absender-Adresse ab. Sie muss zum Postfach passen (meist gleich dem Benutzer).',
+    rcpt:'Der Mailserver lehnt den Empfänger ab (deine eigene Konto-E-Mail).',data:'Der Mailserver hat die E-Mail nicht angenommen.'}[stage];
+  return (t||'Versand fehlgeschlagen.')+(d?` (Code: ${d})`:'');}
 $('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';$('joinGuildPanel').classList.add('hidden');await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){

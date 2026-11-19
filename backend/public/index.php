@@ -515,7 +515,7 @@ try {
         if ($method==='POST' && $path==='/operator/mail/test') {
             $e=$db->prepare('SELECT email FROM users WHERE id=?');$e->execute([$user]);
             try {$mailer->send((string)$e->fetchColumn(),'Banklord: Test-E-Mail',"Der E-Mail-Versand von Banklord funktioniert.\n\nBanklord");}
-            catch (DomainError $x) {reply(502,['error'=>$x->getMessage()]);}
+            catch (DomainError $x) {reply(502,['error'=>$x->getMessage(),'detail'=>$mailer->lastError]);}
             reply(200,['sent'=>true]);
         }
     }
