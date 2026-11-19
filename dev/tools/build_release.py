@@ -16,6 +16,10 @@ def zip_files(target, entries):
             info = zipfile.ZipInfo(name, FIXED); info.compress_type = zipfile.ZIP_DEFLATED; info.external_attr = mode << 16
             z.writestr(info, data)
 if DIST.exists(): shutil.rmtree(DIST)
+# README version badge always shows the released version.
+for rd in ('README.md', 'README.en.md'):
+    rp = ROOT / rd
+    rp.write_text(re.sub(r'badge/Version-[0-9.]+-green', f'badge/Version-{V}-green', rp.read_text(encoding='utf-8')), encoding='utf-8')
 # 1) web payload
 vf = ROOT / 'backend' / 'src' / 'Version.php'
 vf.write_text(re.sub(r"WEB = '[^']*'", f"WEB = '{V}'", vf.read_text()))
