@@ -7,7 +7,7 @@ const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className
 const add=(parent,...nodes)=>{parent.append(...nodes);return parent;};
 const freshId=()=>{const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return 'bl_'+Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');};
 let toastTimer;
-function notice(message,error=false){const toast=$('toast');toast.textContent=message;toast.className='toast'+(error?' error':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.add('hidden'),7000);}
+function notice(message,error=false){if(String(message).includes('LOGIN_REQUIRED'))return;const toast=$('toast');toast.textContent=message;toast.className='toast'+(error?' error':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.add('hidden'),7000);}
 async function api(path,opts={}){
   const headers={...(opts.headers||{})};
   if(opts.method && opts.method!=='GET')headers['X-CSRF-Token']=state.csrf;
@@ -18,6 +18,11 @@ async function api(path,opts={}){
     const fresh=await fetch('/api/v1/session',{credentials:'same-origin',cache:'no-store'}).then(x=>x.json()).catch(()=>null);
     if(fresh&&fresh.csrf){state.csrf=fresh.csrf;return api(path,{...opts,_retried:true});}
   }
+  // Not (or no longer) signed in: show the sign-in page instead of a raw error.
+  if(result.error==='LOGIN_REQUIRED'&&path!=='/session'){
+    if(state.user&&!state.expiring){state.expiring=true;state.user=null;state.guild=null;
+      initialize().catch(()=>{}).finally(()=>{state.expiring=false;notice('Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.',true);});}
+    const e=Error('LOGIN_REQUIRED');e.silent=true;throw e;}
   if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
   if(result.error==='ACCOUNT_LOCKED')throw Error('Dieses Konto ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='GUILD_LOCKED')throw Error('Diese Gilde ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');

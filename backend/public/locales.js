@@ -495,6 +495,7 @@ exact:{
 "Noch keine übertragenen Ingame-Entwürfe.":"No in-game drafts transferred yet.",
 "Noch nicht geprüft":"Not checked yet",
 "Noch nicht gezählt":"Not counted yet",
+"Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.":"Your sign-in has expired. Please sign in again.",
 "Bankbestand ansehen, Gegenstände bestellen und den Status verfolgen – direkt im Browser.":"Browse the bank, order items and follow their status – right in your browser.",
 "Neu hier?":"New here?",
 "Gilde anmelden":"Register guild",
