@@ -88,4 +88,28 @@ $db->prepare('UPDATE guilds SET locked_at=UTC_TIMESTAMP() WHERE id=?')->execute(
 $db->prepare('UPDATE guilds SET locked_at=NULL WHERE id=?')->execute([$sg]);
 [$st]=$su('GET',"/guilds/$sg/bridge-tokens");$ok($st===200,"unlocked guild open again ($st)");
 $db->exec("UPDATE site_settings SET value='0' WHERE name='self_signup'");$db->exec("UPDATE site_settings SET value='20' WHERE name='signups_per_day'");$db->exec("DELETE FROM login_attempts");
+// Forgot password: one-time link by e-mail (dev: mails land in BANKLORD_MAIL_SINK).
+$sink=getenv('BANKLORD_MAIL_SINK')?:'/tmp/banklord-mail.jsonl';@unlink($sink);$db->exec("DELETE FROM login_attempts");
+$mails=function() use($sink){return is_file($sink)?array_map(fn($l)=>json_decode($l,true),file($sink,FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES)):[];};
+$pw=$client();[$st,$r]=$pw('GET','/session');$ok(($r['password_reset']??null)===true,'forgot password offered when mail works');
+[$st,$r]=$pw('POST','/password/forgot',['email'=>"nobody$suf@x.invalid"]);$ok($st===200 && count($mails())===0,"unknown address: same answer, no mail ($st)");
+[$st,$r]=$pw('POST','/password/forgot',['email'=>"lead$suf@x.invalid"]);$ok($st===200 && count($mails())===0,"placeholder .invalid address gets no mail ($st)");
+$mail="reset$suf@example.org";$db->prepare("INSERT INTO users (email,password_hash,display_name) VALUES (?,?,?)")->execute([$mail,password_hash('altes-passwort-123',PASSWORD_DEFAULT),'Vergesslich']);$ru=(int)$db->lastInsertId();
+[$st,$r]=$pw('POST','/password/forgot',['email'=>strtoupper($mail)]);$mm=$mails();
+$ok($st===200 && count($mm)===1 && $mm[0]['to']===$mail && preg_match('/#reset=(bpr1_[a-f0-9]{64})/',$mm[0]['body'],$tm),"reset link mailed ($st)");
+$tok=$tm[1]??'';
+[$st,$r]=$pw('POST','/password/reset',['token'=>'bpr1_'.str_repeat('0',64),'password'=>'neues-passwort-123']);$ok(($r['error']??'')==='RESET_INVALID',"unknown link rejected ($st)");
+[$st,$r]=$pw('POST','/password/reset',['token'=>$tok,'password'=>'kurz']);$ok(($r['error']??'')==='WEAK_PASSWORD',"short password rejected ($st)");
+[$st,$r]=$pw('POST','/password/reset',['token'=>$tok,'password'=>'neues-passwort-123']);$ok($st===200 && ($r['user_id']??0)===$ru,"password reset and signed in ($st)");
+[$st,$r]=$pw('POST','/password/reset',['token'=>$tok,'password'=>'noch-ein-passwort-1']);$ok(($r['error']??'')==='RESET_INVALID',"link works only once ($st)");
+$nl=$client();$nl('GET','/session');[$st]=$nl('POST','/login',['email'=>$mail,'password'=>'neues-passwort-123']);$ok($st===200,"login with the new password ($st)");
+// SMTP settings: operator only, password write-only and stored encrypted.
+[$st]=$m('GET','/operator/mail');$ok($st===403,"member cannot see mail settings ($st)");
+$db->prepare('UPDATE users SET is_operator=1 WHERE id=?')->execute([$ru]);
+[$st,$r]=$nl('PUT','/operator/mail',['host'=>'bad host','port'=>465,'user'=>'x@example.org']);$ok(($r['error']??'')==='INVALID_MAIL_SETTINGS',"bad mail settings rejected ($st)");
+[$st,$r]=$nl('PUT','/operator/mail',['host'=>'smtp.example.org','port'=>587,'user'=>'noreply@example.org','password'=>'geheim-smtp-pass']);
+$ok($st===200 && ($r['mail']['has_password']??false)===true && !array_key_exists('password',$r['mail']??[]) && !str_contains(json_encode($r),'geheim-smtp-pass'),"mail settings saved, password never returned ($st)");
+$enc=(string)$db->query("SELECT value FROM site_settings WHERE name='mail_pass'")->fetchColumn();$ok($enc!=='' && !str_contains($enc,'geheim'),'smtp password stored encrypted');
+@unlink($sink);[$st]=$nl('POST','/operator/mail/test');$mm=$mails();$ok($st===200 && ($mm[0]['to']??'')===$mail,"test mail to the operator ($st)");
+$db->prepare('UPDATE users SET is_operator=0 WHERE id=?')->execute([$ru]);$db->exec("DELETE FROM site_settings WHERE name LIKE 'mail\\_%' OR name='site_url'");@unlink($sink);$db->exec("DELETE FROM login_attempts");
 echo $fail?"FAILED ($fail)\n":"PASS: token rights over HTTP session\n"; exit($fail?1:0);

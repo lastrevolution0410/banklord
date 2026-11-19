@@ -23,6 +23,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ### 1.9 – WoW Forever (18.11.2026)
 - **WoW Forever wird unterstützt:** eigene Spielversion auf der Website, das Setup erkennt den Ordner `_forever_`, Addon, Companion und Wowhead-Links passen dazu. Forever hat keine Realms; Gilden werden dann am Namen erkannt.
 - Anleitungsseiten zeigen jetzt auch das Banklord-Symbol im Browser-Tab.
+- 1.11.0: **Passwort vergessen?** Die Website kann jetzt E-Mails verschicken: Auf der Startseite gibt es einen Link zum Zurücksetzen (eine Stunde gültig, nur einmal nutzbar). Der Betreiber trägt dafür unter **Betreiber → Einstellungen → E-Mail-Versand** ein Postfach ein; das Passwort wird verschlüsselt gespeichert.
 - 1.10.0: **Gildenleiter melden sich selbst an:** Schaltet der Betreiber es ein, steht auf der Startseite „Eigene Gilde kostenlos anmelden“ – Konto und Gilde in einem Schritt, ohne Einladungscode. Mit Tageslimit, Bremse pro Anschluss und Konto-Limit. Der Betreiber kann einzelne Gilden **sperren**.
 - 1.9.13: Registrieren mit Einladung verlangt jetzt wie alle anderen Wege ein Passwort mit mindestens 14 Zeichen (vorher stand dort 12).
 - 1.9.12: Beim Anlegen einer **WoW-Forever-Gilde** fragt die Website nicht mehr nach einem Realm (Forever hat keine).

@@ -84,7 +84,7 @@ async function onGuildSelect(){
 const OP_PAGE=20;
 async function loadOperator(){
   if(!state.operator)return;
-  const r=await api('/operator/guilds');state.allGuilds=r.guilds;$('opGuildLimit').value=r.settings.guilds_per_account.value;$('opSelfSignup').checked=r.settings.self_signup.value===1;$('opSignupsPerDay').value=r.settings.signups_per_day.value;
+  const r=await api('/operator/guilds');state.allGuilds=r.guilds;loadMailSettings().catch(()=>{});$('opGuildLimit').value=r.settings.guilds_per_account.value;$('opSelfSignup').checked=r.settings.self_signup.value===1;$('opSignupsPerDay').value=r.settings.signups_per_day.value;
   const fl=$('opFlavor');if(fl.options.length<2)for(const [key,info] of Object.entries(GAME)){const o=el('option','',info[0]);o.value=key;fl.append(o);}
   state.opPage=0;renderOperatorGuilds();
   // The feedback inbox exists only on the site that receives reports (official site).
@@ -139,7 +139,7 @@ async function initialize(){
         history.replaceState(null,'',location.pathname);location.reload();}
       catch(err){notice('Registrierung fehlgeschlagen: '+err.message,true);}};
     return;}
-  if(!logged)$('signupBox').classList.toggle('hidden',!session.self_signup);
+  if(!logged){$('signupBox').classList.toggle('hidden',!session.self_signup);$('forgotBox').classList.toggle('hidden',!session.password_reset);showResetForm();}
   if(!logged){api('/demo').then(d=>$('demoBox').classList.toggle('hidden',!d.enabled)).catch(()=>{});return;}
   const data=await api('/guilds');state.guilds=data.guilds;state.operator=!!data.operator;state.createLimit=data.create_limit;state.created=data.created||0;
   await fillGuildSelector();
@@ -1036,6 +1036,27 @@ $('signupForm').onsubmit=async e=>{e.preventDefault();
       INVALID_REGISTRATION:'Bitte Anzeigename, E-Mail und Passwort prüfen (mindestens 14 Zeichen).',SIGNUP_CLOSED:'Neue Gilden können sich hier gerade nicht selbst anmelden.',
       SIGNUP_DAILY_LIMIT:'Heute haben sich schon sehr viele Gilden angemeldet. Bitte versuche es morgen noch einmal.',REGISTRATION_RATE_LIMIT:'Zu viele Versuche. Bitte in einer Stunde noch einmal.'};
     notice(m[err.message]||err.message,true);}};
+// Forgot password: link by e-mail; the page opens with #reset=<token>.
+function resetToken(){const m=location.hash.match(/^#reset=(bpr1_[a-f0-9]{64})$/);return m?m[1]:null;}
+function showResetForm(){const t=resetToken();$('resetForm').classList.toggle('hidden',!t);if(t)$('resetForm').scrollIntoView({block:'center'});}
+$('forgotForm').onsubmit=async e=>{e.preventDefault();
+  try{await post('/password/forgot',{email:$('forgotEmail').value.trim(),lang:webLocale().startsWith('en')?'en':'de'});
+    notice('Wenn es zu dieser E-Mail ein Konto gibt, ist jetzt ein Link unterwegs. Schau auch im Spam-Ordner nach.');$('forgotBox').open=false;}
+  catch(err){notice(err.message==='MAIL_UNAVAILABLE'?'Der E-Mail-Versand klappt gerade nicht. Bitte später noch einmal oder den Betreiber fragen.':err.message==='TOO_MANY_ATTEMPTS'?'Zu viele Versuche. Bitte in einer Stunde noch einmal.':'Bitte eine gültige E-Mail eingeben.',true);}};
+$('resetForm').onsubmit=async e=>{e.preventDefault();
+  try{const r=await post('/password/reset',{token:resetToken(),password:$('resetPass').value});state.csrf=r.csrf;$('resetPass').value='';
+    history.replaceState(null,'',location.pathname);await initialize();notice('Neues Passwort gespeichert. Du bist angemeldet.');}
+  catch(err){notice(err.message==='RESET_INVALID'?'Der Link ist abgelaufen oder wurde schon benutzt. Fordere unter „Passwort vergessen?“ einen neuen an.':err.message==='WEAK_PASSWORD'?'Das Passwort braucht mindestens 14 Zeichen.':err.message,true);}};
+// Operator: SMTP account for the website's e-mails. The password is write-only.
+async function loadMailSettings(){const m=(await api('/operator/mail')).mail;
+  $('mailHost').value=m.host;$('mailPort').value=String(m.port);$('mailUser').value=m.user;$('mailFrom').value=m.from;$('mailFromName').value=m.from_name;$('mailPass').value='';
+  $('mailStatus').textContent=m.ready?'✓ Eingerichtet. Links in E-Mails führen zu '+m.site_url:'Noch nicht eingerichtet – „Passwort vergessen?“ ist ausgeblendet.';}
+$('mailSettings').onsubmit=async e=>{e.preventDefault();
+  try{await api('/operator/mail',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:$('mailHost').value.trim(),port:Number($('mailPort').value),user:$('mailUser').value.trim(),
+      password:$('mailPass').value,from:$('mailFrom').value.trim(),from_name:$('mailFromName').value.trim()})});await loadMailSettings();notice('E-Mail-Einstellungen gespeichert. Jetzt „Test-E-Mail an mich“ klicken.');}
+  catch(err){notice(err.message==='INVALID_MAIL_SETTINGS'?'Bitte Server, Benutzer und Absender prüfen.':err.message==='MAIL_KEY_UNAVAILABLE'?'Der Ordner private/ ist nicht beschreibbar – das Passwort kann nicht sicher gespeichert werden.':err.message,true);}};
+$('mailTest').onclick=async()=>{try{await api('/operator/mail/test',{method:'POST'});notice('Test-E-Mail verschickt – schau in dein Postfach.');}
+  catch(err){notice(err.message==='MAIL_NOT_CONFIGURED'?'Erst speichern (mit Passwort).':'Versand fehlgeschlagen. Server, Port, Benutzer und Passwort prüfen.',true);}};
 $('joinGuildForm').onsubmit=async e=>{e.preventDefault();try{const r=await post('/invitations/redeem',{invitation:$('joinGuildCode').value.trim()});$('joinGuildCode').value='';$('joinGuildPanel').classList.add('hidden');await initialize();notice(`Du bist jetzt auch in der Gilde ${r.guild.name}. Oben kannst du zwischen deinen Gilden wechseln.`);}catch(err){notice(err.message==='ALREADY_MEMBER'?'Du bist schon Mitglied dieser Gilde.':err.message==='MEMBERSHIP_DISABLED'?'Dein Zugang zu dieser Gilde ist gesperrt. Bitte wende dich an den Admin der Gilde.':err.message==='INVITE_EXPIRED_OR_USED'?'Der Einladungscode ist abgelaufen oder schon benutzt. Bitte um einen neuen.':err.message,true);}};
 // Text-only addon cart transfer, never authoritative. Matches exact WoW item variation.
 function parseAddonTransfer(input){

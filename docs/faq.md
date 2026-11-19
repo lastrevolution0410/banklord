@@ -69,6 +69,10 @@ Auch verschiedene Spielversionen gehen mit einem Konto, zum Beispiel eine Gilde 
 - Bist du in Gilde 1 Bankverwalter und in Gilde 2 nur Mitglied, hat dein Charakter in Gilde 1 die Verwalter-Werkzeuge, dein Charakter in Gilde 2 nicht (seit 1.8.1).
 - Innerhalb **derselben Gilde** haben alle deine Charaktere dieselbe Rolle – es bist ja dieselbe Person. Was ein Charakter aus der Gildenbank nehmen darf, bestimmt weiterhin der Gildenrang im Spiel.
 
+### Ich habe mein Passwort vergessen
+
+Auf der Startseite unter dem Anmelden **„Passwort vergessen?“** aufklappen, E-Mail eingeben – du bekommst einen Link, der eine Stunde gilt. Fehlt der Punkt, hat die Website keinen E-Mail-Versand eingerichtet; dann hilft der Betreiber der Website.
+
 ### Wie melde ich einen Fehler?
 
 - **Im Spiel:** `/banklord feedback` oder im Banklord-Fenster der Reiter **Hilfe & Feedback**. Die Meldung wird beim nächsten `/reload` über den Companion gesendet.

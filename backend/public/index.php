@@ -19,6 +19,8 @@ use Banklord\Demo;
 use Banklord\StockReconciliation;
 use Banklord\Community;
 use Banklord\Operator;
+use Banklord\Mailer;
+use Banklord\PasswordReset;
 use Banklord\Preferences;
 use Banklord\Procurement;
 use Banklord\PeerRelay;
@@ -48,6 +50,8 @@ require dirname(__DIR__) . '/src/Demo.php';
 require dirname(__DIR__) . '/src/StockReconciliation.php';
 require dirname(__DIR__) . '/src/Community.php';
 require dirname(__DIR__) . '/src/Operator.php';
+require dirname(__DIR__) . '/src/Mailer.php';
+require dirname(__DIR__) . '/src/PasswordReset.php';
 require dirname(__DIR__) . '/src/Preferences.php';
 require dirname(__DIR__) . '/src/Procurement.php';
 require dirname(__DIR__) . '/src/PeerRelay.php';
@@ -238,7 +242,7 @@ try {
         reply(200,['ok'=>true]);
     }
     if ($method==='GET' && $path==='/session') reply(200,['demo'=>$isDemo,'csrf'=>$_SESSION['csrf'],'user_id'=>$_SESSION['uid']??null,
-        'self_signup'=>(new Operator($db))->setting('self_signup')===1]);
+        'self_signup'=>(new Operator($db))->setting('self_signup')===1,'password_reset'=>(new Mailer($db,dirname(__DIR__)))->ready()]);
     // Probe companion credentials without uploading any inventory. GET is still
     // bearer-only and the token grants no authority beyond scan staging.
     if ($method==='GET' && preg_match('~^/bridge/guilds/([1-9][0-9]{0,17})/status$~D',$path,$bm)) {
@@ -438,6 +442,23 @@ try {
         session_regenerate_id(true);unset($_SESSION['demo']);$_SESSION['uid']=$result['user_id'];$_SESSION['csrf']=bin2hex(random_bytes(32));
         reply(201,['user_id'=>$result['user_id'],'guild'=>$result['guild'],'csrf'=>$_SESSION['csrf']]);
     }
+    // Forgot password: a one-time link by e-mail. The answer never tells whether the address has an account.
+    if ($method==='POST' && $path==='/password/forgot') {
+        $key=hash('sha256','forgot|'.($_SERVER['REMOTE_ADDR']??'unknown'));
+        $db->prepare('INSERT INTO login_attempts (key_hash,attempts,window_started_at) VALUES (?,0,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE key_hash=key_hash')->execute([$key]);
+        $l=$db->prepare('SELECT attempts,window_started_at FROM login_attempts WHERE key_hash=?');$l->execute([$key]);$rl=$l->fetch();
+        if($rl && time()-strtotime($rl['window_started_at'].' UTC')<3600 && (int)$rl['attempts']>=10)reply(429,['error'=>'TOO_MANY_ATTEMPTS']);
+        $db->prepare('UPDATE login_attempts SET attempts=IF(TIMESTAMPDIFF(SECOND,window_started_at,UTC_TIMESTAMP()) >= 3600,1,attempts+1),window_started_at=IF(TIMESTAMPDIFF(SECOND,window_started_at,UTC_TIMESTAMP()) >= 3600,UTC_TIMESTAMP(),window_started_at) WHERE key_hash=?')->execute([$key]);
+        $b=body();
+        try {(new PasswordReset($db,new Mailer($db,dirname(__DIR__))))->request((string)($b['email']??''),($b['lang']??'')==='en'?'en':'de');}
+        catch (DomainError $e) {if(in_array($e->getMessage(),['MAIL_NOT_CONFIGURED','MAIL_FAILED','MAIL_KEY_UNAVAILABLE'],true))reply(503,['error'=>'MAIL_UNAVAILABLE']);throw $e;}
+        reply(200,['sent'=>true]);
+    }
+    if ($method==='POST' && $path==='/password/reset') {
+        $b=body();$uid=(new PasswordReset($db,new Mailer($db,dirname(__DIR__))))->reset((string)($b['token']??''),(string)($b['password']??''));
+        session_regenerate_id(true);unset($_SESSION['demo']);$_SESSION['uid']=$uid;$_SESSION['csrf']=bin2hex(random_bytes(32));
+        reply(200,['user_id'=>$uid,'csrf'=>$_SESSION['csrf']]);
+    }
     if ($method==='POST' && $path==='/login') {
         $b=body(); $email=mb_strtolower(trim((string)($b['email']??''))); $password=(string)($b['password']??'');
         if (strlen($email)>254 || strlen($password)>1024 || $email==='' || $password==='') reply(400,['error'=>'INVALID_LOGIN']);
@@ -471,6 +492,22 @@ try {
     // Site operator: every guild, site-wide limits.
     if ($method==='GET' && $path==='/operator/guilds') reply(200,['guilds'=>$operator->guilds($user),'settings'=>$operator->settings()]);
     if ($method==='PUT' && $path==='/operator/settings') reply(200,['settings'=>$operator->save($user,body())]);
+    if (str_starts_with($path,'/operator/mail')) {
+        if (!$isOperator) reply(403,['error'=>'FORBIDDEN']);
+        $mailer=new Mailer($db,dirname(__DIR__));
+        if ($method==='GET' && $path==='/operator/mail') reply(200,['mail'=>$mailer->settings()]);
+        if ($method==='PUT' && $path==='/operator/mail') {
+            // Links in mails point to the address the operator uses right now (never a Host header of a stranger).
+            $site=siteOrigin();
+            reply(200,['mail'=>$mailer->save(body(),$site)]);
+        }
+        if ($method==='POST' && $path==='/operator/mail/test') {
+            $e=$db->prepare('SELECT email FROM users WHERE id=?');$e->execute([$user]);
+            try {$mailer->send((string)$e->fetchColumn(),'Banklord: Test-E-Mail',"Der E-Mail-Versand von Banklord funktioniert.\n\nBanklord");}
+            catch (DomainError $x) {reply(502,['error'=>$x->getMessage()]);}
+            reply(200,['sent'=>true]);
+        }
+    }
     if ($method==='POST' && preg_match('~^/operator/guilds/([1-9][0-9]{0,17})/open$~D',$path,$om)) reply(200,['guild'=>$operator->open($user,id($om[1]))]);
     if ($method==='POST' && preg_match('~^/operator/guilds/([1-9][0-9]{0,17})/lock$~D',$path,$om)) {$b=body();
         if (!is_bool($b['locked']??null)) reply(400,['error'=>'BAD_REQUEST']);
@@ -937,7 +974,7 @@ try {
     $reason=preg_replace('/ at byte [0-9]+$/','',$e->getMessage());
     reply($reason==='SV_FILE_TOO_LARGE'?413:422,['error'=>$reason]);
 } catch (DomainError $e) {
-    $bad=['INVALID_GAME_VERSION','INVALID_GUILD','INVALID_DISCORD','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
+    $bad=['INVALID_MAIL_SETTINGS','RESET_INVALID','INVALID_GAME_VERSION','INVALID_GUILD','INVALID_DISCORD','DEMO_DISABLED','UPDATE_SOURCE_INVALID','MANIFEST_INVALID','MANIFEST_SIGNATURE_INVALID','RELEASE_FILE_NAME','RELEASE_FILE_HASH','RELEASE_FILE_MISSING','RELEASE_FILE_TOO_LARGE','RELEASE_CHUNK_TOO_LARGE','WEB_PAYLOAD_INVALID','WEB_PAYLOAD_INCOMPLETE','SODIUM_MISSING','SCHEMA_MIGRATIONS_MISSING','WEB_TARGET_NOT_WRITABLE','INVALID_QUANTITY','BAD_REQUEST_KEY','INVALID_LINES','NOTE_TOO_LONG','BAD_LINE','FOREIGN_OR_UNKNOWN_STOCK','BAD_APPROVAL','MISSING_DECISION','DECISION_MISMATCH','INVALID_FULFILLMENT','OVERFULFILL','BAD_OPERATION_KEY','LINE_NOT_APPROVED','EXPLICIT_CONFIRMATION_REQUIRED','INVALID_TOKEN_LABEL','INVALID_ORDER_RULES','BAD_PARTIAL_LINES'];
     $conflict=['RELEASE_NOT_NEWER','UPDATE_ALREADY_RUNNING','INSUFFICIENT_OR_UNVERIFIED_STOCK','STOCK_CONFLICT','ORDER_ALREADY_DECIDED','ORDER_NOT_FULFILLABLE','IDEMPOTENCY_KEY_REUSED','IMPORT_QUOTA_REACHED','BRIDGE_TOKEN_LIMIT','SNAPSHOT_NOT_PENDING','SNAPSHOT_TOO_OLD','SNAPSHOT_NOT_LATEST','MOVEMENTS_AFTER_SCAN','LEGACY_SCAN_REFRESH_REQUIRED','RESERVATION_EXCEEDS_SCAN','SNAPSHOT_LIMIT','SNAPSHOT_QUANTITY','ORDER_NOT_CANCELLABLE','VIEW_ONLY_STOCK','APPROVAL_REQUIRED','GAME_VERSION_LOCKED','GAME_VERSION_MISMATCH','GUILD_EXISTS','GUILD_LIMIT'];
     if (in_array($e->getMessage(),['FEEDBACK_UNREACHABLE','FEEDBACK_DISABLED'],true)) reply(503,['error'=>$e->getMessage()]);
     if ($e->getMessage()==='FEEDBACK_RATE_LIMIT') reply(429,['error'=>$e->getMessage()]);

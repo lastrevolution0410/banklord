@@ -32,6 +32,7 @@ The setup page only exists until Banklord is configured. Settings are stored in 
 The website updates itself from the official, signed release channel:
 
 - Check at most every 6 hours, signature verification, then a **backup of database and files**, then installation including database changes.
+- **Sending e-mail** (for “Forgot password?”): under **Operator → Settings → Sending e-mail** enter SMTP server, port (465 SSL or 587 STARTTLS), user and password of a mailbox, save, “Test e-mail to me”. The password is stored encrypted in the database, the key in `private/mail.key` (include it in your backup). Without e-mail, “Forgot password?” is simply hidden.
 - Under **Operator → Settings**: how many guilds an account may set up, whether **guild leaders may sign up on their own** (account and guild without an invitation, off by default) and how many such sign-ups are allowed per day. Under **Operator → Guilds** you can **lock** a guild (e.g. on abuse); its data is kept.
 - Status and “Check now” under **Operator → Updates & releases**.
 - In `config.local.php`:

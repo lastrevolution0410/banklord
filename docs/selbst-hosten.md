@@ -32,6 +32,7 @@ Die Einrichtungsseite existiert nur, bis Banklord konfiguriert ist. Die Einstell
 Die Website aktualisiert sich selbst aus dem offiziellen, signierten Release-Kanal:
 
 - Prüfung höchstens alle 6 Stunden, Signaturprüfung, danach **Backup von Datenbank und Dateien**, dann Installation inklusive Datenbank-Änderungen.
+- **E-Mail-Versand** (für „Passwort vergessen?“): unter **Betreiber → Einstellungen → E-Mail-Versand** SMTP-Server, Port (465 SSL oder 587 STARTTLS), Benutzer und Passwort eines Postfachs eintragen, speichern, „Test-E-Mail an mich“. Das Passwort liegt verschlüsselt in der Datenbank, der Schlüssel in `private/mail.key` (gehört ins Backup). Ohne E-Mail-Versand ist „Passwort vergessen?“ einfach ausgeblendet.
 - Unter **Betreiber → Einstellungen**: wie viele Gilden ein Konto anlegen darf, ob sich **Gildenleiter selbst anmelden** dürfen (Konto und Gilde ohne Einladung, standardmäßig aus) und wie viele solcher Anmeldungen pro Tag höchstens erlaubt sind. Unter **Betreiber → Gilden** kannst du eine Gilde **sperren** (z. B. bei Missbrauch); ihre Daten bleiben erhalten.
 - Status und „Jetzt prüfen“ unter **Betreiber → Updates & Releases**.
 - In `config.local.php`:

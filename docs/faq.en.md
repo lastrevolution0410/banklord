@@ -69,6 +69,10 @@ Different game versions work with one account too, for example one guild in MoP 
 - If you are bank manager in guild 1 and only a member in guild 2, your character in guild 1 has the manager tools and your character in guild 2 does not (since 1.8.1).
 - Within **the same guild** all your characters have the same role – it is the same person. What a character may take from the guild bank is still decided by the guild rank in game.
 
+### I forgot my password
+
+On the start page below sign-in open **“Forgot password?”** and enter your e-mail – you get a link that is valid for one hour. If the option is missing, the website has no e-mail set up; then the website operator can help.
+
 ### How do I report a bug?
 
 - **In game:** `/banklord feedback` or the **Help & Feedback** tab in the Banklord window. The report is sent through the Companion with the next `/reload`.

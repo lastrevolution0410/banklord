@@ -7,7 +7,7 @@ services:
     build: { context: ., dockerfile: php.Dockerfile }
     working_dir: /app/backend
     volumes: ["..:/app"]
-    environment: { DB_HOST: db, DB_NAME: banklord, DB_USER: banklord, DB_PASS: banklorddevpass, APP_HTTPS: "off", BANKLORD_DISCORD_OFF: "1" }
+    environment: { DB_HOST: db, DB_NAME: banklord, DB_USER: banklord, DB_PASS: banklorddevpass, APP_HTTPS: "off", BANKLORD_DISCORD_OFF: "1", BANKLORD_MAIL_SINK: /tmp/banklord-mail.jsonl }
     command: php -S 0.0.0.0:8080 -t public /app/dev/router.php
     ports: ["8080:8080"]
     depends_on: { db: { condition: service_healthy } }
