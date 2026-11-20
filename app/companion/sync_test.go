@@ -1,6 +1,7 @@
 package companion
 
 import (
+	"errors"
 	"bytes"
 	"context"
 	"io"
@@ -135,5 +136,16 @@ func TestAutoScopedProbeAndOutcome(t *testing.T) {
 	result, err := uploadWithResult(context.Background(), p, testToken(), []byte("test"))
 	if err != nil || result.ID != "99" || result.AutoStatus != "reconciled" {
 		t.Fatalf("auto outcome: %#v %v", result, err)
+	}
+}
+
+func TestBlockedConnectionsSendNothing(t *testing.T) {
+	p := Profile{Server: "https://a.example", GuildID: 1, Source: "x.lua", IntervalSeconds: 15, Blocked: true,
+		Extra: []Link{{Server: "https://b.example", GuildID: 2, Blocked: true}}}
+	if got := p.connections("bl1_" + strings.Repeat("a", 64)); len(got) != 0 {
+		t.Fatalf("blocked connections must not be used, got %d", len(got))
+	}
+	if !accessDenied(errors.New("Server meldet HTTP 401")) || accessDenied(errors.New("Server meldet HTTP 500")) || accessDenied(nil) {
+		t.Fatal("accessDenied must match only HTTP 401")
 	}
 }

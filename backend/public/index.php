@@ -261,7 +261,8 @@ try {
         $roleQ=$db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
         $roleQ->execute([$guildId,$auth['actor']]);
         $cap=in_array($roleQ->fetchColumn(),['admin','bank_manager','officer'],true)?$caps['scan.auto']:$caps['member.orders'];
-        reply(200,['ok'=>true,'scope'=>$auth['scope'],'guild_id'=>$guildId,'capabilities'=>$cap]);
+        $gn=$db->prepare('SELECT name FROM guilds WHERE id=?');$gn->execute([$guildId]);
+        reply(200,['ok'=>true,'scope'=>$auth['scope'],'guild_id'=>$guildId,'guild_name'=>(string)$gn->fetchColumn(),'capabilities'=>$cap]);
     }
     // Version heartbeat from a companion: device name + installed versions only.
     if ($method==='POST' && preg_match('~^/bridge/guilds/([1-9][0-9]{0,17})/heartbeat$~D',$path,$bm)) {

@@ -84,9 +84,9 @@ As the very first one, there is nobody yet who could confirm you in game. So you
    ![The new connect code with the “Copy code” button](assets/website-verbindungscode.webp)
 
 5. Open the **Banklord Companion**. It starts on its own after setup. Otherwise: double-click **Banklord Companion** on your desktop.
-6. Click into the **“Verbindungscode”** (connect code) field, paste the code (**Ctrl + V**) and click **“Konfiguration speichern und starten”** (save and start).
+6. Click into the **“Verbindungscode”** (connect code) field, paste the code (**Ctrl + V**) and click **“Speichern und verbinden”** (save and start).
 
-   ![Companion: connect code pasted, below it “Konfiguration speichern und starten”](assets/companion-verbindungscode.webp)
+   ![Companion: connect code pasted, below it “Speichern und verbinden”](assets/companion-verbindungscode.webp)
 
 The Companion now shows **“Bereit”** (ready).
 

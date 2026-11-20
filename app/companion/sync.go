@@ -36,6 +36,10 @@ type Profile struct {
 	EncryptedToken  string `json:"encrypted_token"`
 	// Further guilds on this PC: same file, own server/guild/token each.
 	Extra []Link `json:"extra_links,omitempty"`
+	// GuildName is shown in the companion; Blocked marks a key the website
+	// rejected (revoked, account or membership removed): nothing is sent then.
+	GuildName string `json:"guild_name,omitempty"`
+	Blocked   bool   `json:"blocked,omitempty"`
 }
 
 // Link is one more guild connection; the token stays sealed like the primary one.
@@ -45,7 +49,9 @@ type Link struct {
 	EncryptedToken string `json:"encrypted_token"`
 	// Banklord.lua of the WoW installation this guild plays in (e.g. _retail_);
 	// empty = the main file. Guilds of other game versions need their own file.
-	Source string `json:"saved_variables_file,omitempty"`
+	Source    string `json:"saved_variables_file,omitempty"`
+	GuildName string `json:"guild_name,omitempty"`
+	Blocked   bool   `json:"blocked,omitempty"`
 }
 
 // conn is a ready-to-use connection: profile view plus clear-text token.
@@ -56,14 +62,20 @@ type conn struct {
 
 // connections returns the primary connection followed by every extra guild.
 func (p Profile) connections(primary string) []conn {
-	out := []conn{{p, primary}}
+	out := []conn{}
+	if !p.Blocked {
+		out = append(out, conn{p, primary})
+	}
 	for _, l := range p.Extra {
+		if l.Blocked {
+			continue
+		}
 		tok, err := unprotectToken(l.EncryptedToken)
 		if err != nil || !tokenPattern.MatchString(tok) {
 			continue
 		}
 		q := p
-		q.Server, q.GuildID, q.Extra = l.Server, l.GuildID, nil
+		q.Server, q.GuildID, q.Extra, q.GuildName, q.Blocked = l.Server, l.GuildID, nil, l.GuildName, false
 		if l.Source != "" {
 			q.Source = l.Source
 		}
@@ -226,14 +238,29 @@ func requestJSON(ctx context.Context, p Profile, token, method, suffix string, b
 }
 
 func probe(ctx context.Context, p Profile, token string) error {
+	_, err := guildStatus(ctx, p, token)
+	return err
+}
+
+// guildStatus checks the key and returns the guild's name (if the website sends it).
+func guildStatus(ctx context.Context, p Profile, token string) (string, error) {
 	_, v, err := request(ctx, p, token, http.MethodGet, "/status", nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if (v["scope"] != "scan.stage" && v["scope"] != "scan.auto" && v["scope"] != "member.orders") || v["ok"] != true {
-		return errors.New("Bridge-Rechte nicht bestätigt")
+		return "", errors.New("Bridge-Rechte nicht bestätigt")
 	}
-	return nil
+	name, _ := v["guild_name"].(string)
+	if len(name) > 80 {
+		name = name[:80]
+	}
+	return name, nil
+}
+
+// accessDenied reports that the website no longer accepts this key.
+func accessDenied(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "HTTP 401")
 }
 
 type uploadOutcome struct {
