@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.9: **Companion startet beim Hochfahren still im Hintergrund** – kein Browserfenster mehr bei jedem Windows-Start. Reste der alten Version „WoWGuildBank“ (eigenes Fenster, Terminal, Autostart) werden automatisch entfernt.
 - 1.12.8: **Alle Anleitungen überarbeitet** und mit neuen Bildern: Einladungscode, Passwort vergessen, Mitteilungen, Konto & Gilden, Protokoll, Discord-Einstellungen, Installation und der Betreiber-Bereich (Einstellungen, E-Mail, Konten). Die häufigen Fragen haben ein vollständiges Inhaltsverzeichnis, und auf der Hilfe-Seite gibt es die Kachel „Für Gildenleiter“.
 - 1.12.7: **Neue [Anleitung für Gildenleiter](gildenleiter.md)** mit Bildern: Gilde kostenlos anmelden, PC verbinden, ersten Bankscan übernehmen, Mitglieder holen. Inventur zeigt bei einer neuen Gilde gleich den Knopf „Verbindungscode erzeugen“, und die Scan-Prüfung ist in einfacher Sprache. Beim Neuladen blitzt die Anmeldeseite nicht mehr kurz auf.
 - 1.12.6: Diese Seite ist wieder sauber nach Versionen sortiert.

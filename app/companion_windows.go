@@ -6,8 +6,12 @@ import (
 	"fmt"
 )
 
+// autostartFlag tells the companion it was started at login, so it stays
+// in the background instead of opening a browser tab.
+const autostartFlag = "--autostart"
+
 func setAutostart(path string) error {
-	out, err := command("reg.exe", "add", `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, "/v", "BanklordCompanion", "/t", "REG_SZ", "/d", fmt.Sprintf(`"%s"`, path), "/f").CombinedOutput()
+	out, err := command("reg.exe", "add", `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, "/v", "BanklordCompanion", "/t", "REG_SZ", "/d", fmt.Sprintf(`"%s" %s`, path, autostartFlag), "/f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, string(out))
 	}

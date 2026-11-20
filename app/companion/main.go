@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const companionVersion = "0.14.1"
+const companionVersion = "0.14.2"
 
 type controller struct {
 	mu           sync.Mutex
@@ -382,6 +382,17 @@ func briefError(err error) string {
 	// Do not print errors containing full URLs or credentials in logs/UI.
 	return "HTTPS/Server/Datei prüfen (" + strconv.Itoa(len(s)) + " Zeichen Fehlerdetails verborgen)"
 }
+// startedAtLogin reports whether Windows/the desktop started the companion
+// through its autostart entry.
+func startedAtLogin() bool {
+	for _, a := range os.Args[1:] {
+		if a == "--autostart" {
+			return true
+		}
+	}
+	return false
+}
+
 func browser(url string) {
 	if runtime.GOOS == "windows" {
 		_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
@@ -404,7 +415,9 @@ func secureKey() (string, error) {
 // Main runs the companion: local browser UI, uploads and in-game status.
 func Main() {
 	if existing, err := existingSession(); err == nil {
-		browser(existing)
+		if !startedAtLogin() {
+			browser(existing)
+		}
 		return
 	} else if errors.Is(err, errOldCompanionRunning) {
 		alertOldCompanion()
@@ -449,7 +462,8 @@ func Main() {
 	}
 	fmt.Println("Banklord Companion: Browseroberfläche " + u)
 	// The setup opens the page itself in its own tab after installing.
-	if os.Getenv("BANKLORD_NO_BROWSER") != "1" {
+	// At login (autostart) a configured companion stays in the background.
+	if os.Getenv("BANKLORD_NO_BROWSER") != "1" && !(startedAtLogin() && c.active) {
 		browser(u)
 	}
 	<-ctx.Done()

@@ -481,6 +481,8 @@ func main() {
 		}
 		defer release()
 		cleanupOldUpdater()
+		retireLegacyInstall()
+		quietCompanionAutostart()
 		watchUpdatesReliable()
 		return
 	}

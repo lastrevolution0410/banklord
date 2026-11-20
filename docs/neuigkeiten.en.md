@@ -21,6 +21,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ## Done
 
 ### 1.12 – Managing accounts (19 Nov 2026)
+- 1.12.9: **The Companion now starts quietly in the background** at login – no more browser window at every Windows start. Leftovers of the old “WoWGuildBank” version (its own window, a terminal, autostart) are removed automatically.
 - 1.12.8: **All guides revised** with new pictures: invite code, forgot password, notifications, account & guilds, activity log, Discord settings, installation and the operator area (settings, e-mail, accounts). The FAQ has a complete table of contents, and the help page has a “For guild leaders” tile.
 - 1.12.7: **New [guide for guild leaders](gildenleiter.en.md)** with pictures: register your guild for free, connect your PC, accept the first bank scan, bring in members. For a new guild the inventory scan page shows the “Create connect code” button right away, and checking a scan uses plain language. The sign-in page no longer flashes briefly when reloading.
 - 1.12.6: this page is neatly sorted by version again.
