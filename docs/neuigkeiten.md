@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.12: Neue Anleitung **„Neuen Bankverwalter ernennen“**: was der neue Verwalter tut und was der Admin tut.
 - 1.12.11: **Companion zeigt alle verbundenen Gilden** mit Namen, jede lässt sich einzeln entfernen. Wird ein Zugang auf der Website gesperrt oder gelöscht, erkennt der Companion das und **überträgt dorthin nichts mehr** (vorher versuchte er es alle 15 Sekunden erneut). **Companion übersichtlicher:** Oben steht nur noch der Verbindungscode mit dem richtigen Weg dorthin (Inventur → „Verbindungscode erzeugen“). Ist alles verbunden, steht dort „✓ Verbunden“. Gilden-ID, Schlüssel und Dateipfad liegen eingeklappt unter „Für Experten“.
 - 1.12.9: **Companion startet beim Hochfahren still im Hintergrund** – kein Browserfenster mehr bei jedem Windows-Start. Reste der alten Version „WoWGuildBank“ (eigenes Fenster, Terminal, Autostart) werden automatisch entfernt.
 - 1.12.8: **Alle Anleitungen überarbeitet** und mit neuen Bildern: Einladungscode, Passwort vergessen, Mitteilungen, Konto & Gilden, Protokoll, Discord-Einstellungen, Installation und der Betreiber-Bereich (Einstellungen, E-Mail, Konten). Die häufigen Fragen haben ein vollständiges Inhaltsverzeichnis, und auf der Hilfe-Seite gibt es die Kachel „Für Gildenleiter“.

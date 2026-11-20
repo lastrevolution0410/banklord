@@ -149,7 +149,7 @@ Doing it alone is a lot of work. Give trusted people a role: website → **Membe
 
 ![Members and roles on the website](assets/website-mitglieder.webp)
 
-What a bank manager's day looks like: [Guide for bank managers](bankverwalter.en.md).
+What a new bank manager has to do: [Appointing a new bank manager](bankverwalter.en.md#appointing-a-new-bank-manager). What their day looks like: [Guide for bank managers](bankverwalter.en.md).
 
 ## Not working?
 

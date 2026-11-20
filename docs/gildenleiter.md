@@ -147,7 +147,7 @@ Allein ist es viel Arbeit. Gib vertrauenswürdigen Leuten eine Rolle: Website �
 
 ![Mitglieder und Rollen auf der Website](assets/website-mitglieder.webp)
 
-Wie der Alltag als Bankverwalter aussieht: [Anleitung für Bankverwalter](bankverwalter.md).
+Was ein neuer Bankverwalter tun muss: [Neuen Bankverwalter ernennen](bankverwalter.md#neuen-bankverwalter-ernennen). Wie sein Alltag aussieht: [Anleitung für Bankverwalter](bankverwalter.md).
 
 ## Klappt nicht?
 

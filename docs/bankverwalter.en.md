@@ -6,6 +6,7 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 
 ## Contents
 
+1. [Appointing a new bank manager](#appointing-a-new-bank-manager)
 1. [In short: your routine in 3 steps](#in-short-your-routine-in-3-steps)
 1. [Noticing new orders](#noticing-new-orders)
 2. [At the guild bank: withdraw](#at-the-guild-bank-withdraw)
@@ -17,6 +18,30 @@ This guide applies to everyone with the role **bank manager**, **officer** or **
 8. [Together with other addons](#together-with-other-addons)
 
 ---
+
+## Appointing a new bank manager
+
+A new bank manager starts out as a normal member and gets the role afterwards. Here is how:
+
+**What the new bank manager does** (once, about 5 minutes):
+
+1. On [banklord.mgc-nom.net](https://banklord.mgc-nom.net), under **“New here?”**, download and install the **Windows setup** (close WoW first).
+2. Start WoW and log in with their character of the guild.
+3. As soon as a bank manager or admin is online, they are **confirmed automatically** in game. Click **“Verbinden”** (connect) in the Companion and choose a website password.
+
+   ![Companion with the “Verbinden” button](assets/companion-freischalten.webp)
+
+More detail in the [guide for members](mitglieder.en.md#set-up-once). Nobody online for a long time? Then an admin sends them an invitation (website → **Members**).
+
+**What you do as admin:**
+
+4. Website → **Members** → choose the role **“Bank manager”** for the new member.
+
+   ![Members and roles on the website](assets/website-mitglieder.webp)
+
+5. In game: to really withdraw items, their **guild rank** in WoW needs the right to take items from the bank tabs (guild control → ranks).
+
+**Finally:** the new bank manager types `/reload` once in game. From now on they see the orders at the guild bank, and their bank scans reach the website. They do **not** need a connect code of their own.
 
 ## In short: your routine in 3 steps
 

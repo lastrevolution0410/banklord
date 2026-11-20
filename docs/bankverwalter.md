@@ -6,6 +6,7 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 
 ## Inhalt
 
+1. [Neuen Bankverwalter ernennen](#neuen-bankverwalter-ernennen)
 1. [Kurz: Dein Alltag in 3 Schritten](#kurz-dein-alltag-in-3-schritten)
 1. [Neue Bestellungen bemerken](#neue-bestellungen-bemerken)
 2. [An der Gildenbank: entnehmen](#an-der-gildenbank-entnehmen)
@@ -17,6 +18,30 @@ Diese Anleitung gilt für alle mit der Rolle **Bankverwalter**, **Offizier** ode
 8. [Zusammen mit anderen Addons](#zusammen-mit-anderen-addons)
 
 ---
+
+## Neuen Bankverwalter ernennen
+
+Ein neuer Bankverwalter ist zuerst ein ganz normales Mitglied. Erst danach bekommt er die Rolle. So geht es:
+
+**Was der neue Bankverwalter tut** (einmalig, etwa 5 Minuten):
+
+1. Auf [banklord.mgc-nom.net](https://banklord.mgc-nom.net) unter **„Neu hier?“** das **Windows-Setup** herunterladen und installieren (WoW vorher schließen).
+2. WoW starten und mit seinem Charakter der Gilde einloggen.
+3. Sobald ein Bankverwalter oder Admin online ist, wird er im Spiel **automatisch bestätigt**. Im Companion auf **„Verbinden“** klicken und ein Website-Passwort festlegen.
+
+   ![Companion mit dem Knopf „Verbinden“](assets/companion-freischalten.webp)
+
+Genauer steht das in der [Anleitung für Mitglieder](mitglieder.md#einmal-einrichten). Lange niemand online? Dann schickt ihm ein Admin eine Einladung (Website → **Mitglieder**).
+
+**Was du als Admin tust:**
+
+4. Website → **Mitglieder** → beim neuen Mitglied die Rolle **„Bankverwalter“** wählen.
+
+   ![Mitglieder und Rollen auf der Website](assets/website-mitglieder.webp)
+
+5. Im Spiel: Damit er wirklich entnehmen kann, braucht sein **Gildenrang** in WoW das Recht, Gegenstände aus den Bankfächern zu nehmen (Gildenverwaltung → Ränge).
+
+**Zum Schluss:** Der neue Bankverwalter tippt im Spiel einmal `/reload`. Ab jetzt sieht er die Bestellungen an der Gildenbank, und seine Bankscans kommen auf der Website an. Einen eigenen Verbindungscode braucht er **nicht**.
 
 ## Kurz: Dein Alltag in 3 Schritten
 
