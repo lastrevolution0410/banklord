@@ -306,6 +306,8 @@ function A:StartScan(mode, auto)
   if not self:IsGuildBankOpen() then return self:Message(A:Tr("Bitte zuerst die Gildenbank öffnen. /banklord debug")) end
   local guild = GetGuildInfo and GetGuildInfo("player")
   local realm = GetRealmName and GetRealmName()
+  -- WoW Forever has no realms: the guild name alone identifies the guild.
+  if (not realm or realm == "") and self.GameFlavor and self:GameFlavor() == "forever" then realm = "Forever" end
   if not guild or guild == "" or not realm or realm == "" then
     -- Right after login the guild name can still be unknown: ask the server and retry quietly.
     if C_GuildInfo and C_GuildInfo.GuildRoster then pcall(C_GuildInfo.GuildRoster) elseif GuildRoster then pcall(GuildRoster) end

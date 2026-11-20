@@ -21,6 +21,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ## Done
 
 ### 1.12 – Managing accounts (19 Nov 2026)
+- 1.12.19: WoW Forever: guild bank scan now works (there are no realms there). Addon 0.16.7.
 - 1.12.18: Addon version raised to 0.16.6 so the changes from 1.12.16 and 1.12.17 reach the game automatically.
 - 1.12.17: WoW Forever: characters with first and last name are fully recognised and shown; existing characters stored with the first name only are updated automatically.
 - 1.12.16: The take-out window at the guild bank only opens when there are open orders. No more repeated “guild or realm unknown” message right after login.

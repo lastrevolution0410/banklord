@@ -11,7 +11,7 @@ final class ScanImport
     private const MAX_SLOTS = 98;
     private const MAX_SCANS = 3;
 
-    public static function fromSavedVariables(string $text, string $guild, string $realm, ?int $now = null): array
+    public static function fromSavedVariables(string $text, string $guild, string $realm, ?int $now = null, bool $anyRealm = false): array
     {
         $db = (new SavedVariablesParser($text))->parse();
         if (($db['schemaVersion'] ?? null) !== 2) self::bad('IMPORT_SCHEMA');
@@ -25,7 +25,7 @@ final class ScanImport
         // Never silently promote an older scan when the newest was partial/failed.
         $latest = end($entries);
         if (!is_array($latest)) self::bad('IMPORT_SCAN_MISSING');
-        return self::normalize($latest, $guild, $realm, $now ?? time());
+        return self::normalize($latest, $guild, $realm, $now ?? time(), $anyRealm);
     }
 
     private static function bad(string $reason): never { throw new \InvalidArgumentException($reason); }
@@ -40,8 +40,10 @@ final class ScanImport
         return $value;
     }
 
-    public static function normalize(array $scan, string $guild, string $realm, int $now): array
+    public static function normalize(array $scan, string $guild, string $realm, int $now, bool $anyRealm = false): array
     {
+        // WoW Forever has no realms: the guild name alone identifies the guild.
+        if ($anyRealm && is_string($scan['realm'] ?? null)) $scan['realm'] = $realm;
         if (($scan['formatVersion'] ?? null) !== 2 || ($scan['source'] ?? null) !== 'mop-classic-guildbank') self::bad('IMPORT_FORMAT');
         if (($scan['guild'] ?? null) !== $guild || ($scan['realm'] ?? null) !== $realm) self::bad('IMPORT_GUILD_REALM_MISMATCH');
         if (($scan['mode'] ?? null) !== 'all' || ($scan['quality'] ?? null) !== 'unverified') self::bad('IMPORT_COMPLETE_FULL_SCAN_REQUIRED');

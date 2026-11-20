@@ -369,7 +369,7 @@ try {
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
             reply(200,['ingame_orders'=>(object)$results,'ingame_state'=>$withFeedback($ingame->state($guildId,$actor,$results,$managed))]);
         }
-        try { $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm']); }
+        try { $candidate=ScanImport::fromSavedVariables($file,$record['name'],$record['realm'],null,($record['wow_flavor']??'')==='forever'); }
         catch (\InvalidArgumentException $e) {
             // No complete scan in this file (e.g. only orders or a mail handover): nothing to stage.
             $results=$ingame->processOutbox($guildId,$actor,$file,$record);
@@ -667,7 +667,7 @@ try {
         if (!$expected) reply(404,['error'=>'GUILD_NOT_FOUND']);
         $fileFlavor=GameFlavor::ofFile($raw);
         if ($fileFlavor!==null && $fileFlavor!==$expected['wow_flavor']) reply(409,['error'=>'GAME_VERSION_MISMATCH']);
-        $candidate=ScanImport::fromSavedVariables($raw,$expected['name'],$expected['realm']);
+        $candidate=ScanImport::fromSavedVariables($raw,$expected['name'],$expected['realm'],null,($expected['wow_flavor']??'')==='forever');
         $staged=(new ScanStaging($db))->stage($guild,$user,$candidate);
         $peers=(new PeerRelay($db))->stage($guild,$user,$raw);
         reply($staged['created'] ? 201 : 200, ['import'=>$staged,'new_peer_drafts'=>$peers]);
