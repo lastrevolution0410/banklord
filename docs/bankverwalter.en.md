@@ -27,7 +27,7 @@ A new bank manager starts out as a normal member and gets the role afterwards. H
 
 1. On [banklord.mgc-nom.net](https://banklord.mgc-nom.net), under **“New here?”**, download and install the **Windows setup** (close WoW first).
 2. Start WoW and log in with their character of the guild.
-3. As soon as a bank manager or admin is online, they are **confirmed automatically** in game. Click **“Verbinden”** (connect) in the Companion and choose a website password.
+3. As soon as a bank manager or admin is online, they are **confirmed automatically** in game. Click **“Verbinden”** (connect) in the Companion. The website then opens: choose **e-mail, display name and password**. That is their registration; no separate sign-up on the website is needed.
 
    ![Companion with the “Verbinden” button](assets/companion-freischalten.webp)
 

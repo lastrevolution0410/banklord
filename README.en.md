@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/neuigkeiten.en.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.12-green"></a>
+  <a href="docs/neuigkeiten.en.md"><img alt="Version" src="https://img.shields.io/badge/Version-1.12.13-green"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0%20%2B%20self--hosting-blue"></a>
   <img alt="WoW" src="https://img.shields.io/badge/WoW-Classic%20%C2%B7%20Anniversary%20%C2%B7%20MoP%20%C2%B7%20Forever%20%C2%B7%20Retail-orange">
 </p>

@@ -27,7 +27,7 @@ Ein neuer Bankverwalter ist zuerst ein ganz normales Mitglied. Erst danach bekom
 
 1. Auf [banklord.mgc-nom.net](https://banklord.mgc-nom.net) unter **„Neu hier?“** das **Windows-Setup** herunterladen und installieren (WoW vorher schließen).
 2. WoW starten und mit seinem Charakter der Gilde einloggen.
-3. Sobald ein Bankverwalter oder Admin online ist, wird er im Spiel **automatisch bestätigt**. Im Companion auf **„Verbinden“** klicken und ein Website-Passwort festlegen.
+3. Sobald ein Bankverwalter oder Admin online ist, wird er im Spiel **automatisch bestätigt**. Im Companion auf **„Verbinden“** klicken. Danach öffnet sich die Website: **E-Mail, Anzeigename und Passwort** festlegen. Das ist seine Registrierung, ein extra Anmelden auf der Website ist nicht nötig.
 
    ![Companion mit dem Knopf „Verbinden“](assets/companion-freischalten.webp)
 
