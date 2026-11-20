@@ -21,6 +21,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ## Done
 
 ### 1.12 – Managing accounts (19 Nov 2026)
+- 1.12.14: The website remembers the last selected guild (also after F5). Clear message instead of “FORBIDDEN”.
 - 1.12.13: Guide “Appointing a new bank manager”: registration explained more clearly.
 - 1.12.12: New guide **“Appointing a new bank manager”**: what the new manager does and what the admin does.
 - 1.12.11: **The Companion lists every connected guild** by name, and each one can be removed on its own. If access is revoked or deleted on the website, the Companion notices and **stops sending anything there** (before, it retried every 15 seconds). **Simpler Companion:** only the connect code is shown at the top, with the right way to get it (Inventory scan → “Create connect code”). Once connected it says “✓ Connected”. Guild ID, key and file path are folded away under “For experts”.

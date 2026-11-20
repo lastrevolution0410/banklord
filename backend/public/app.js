@@ -26,6 +26,7 @@ async function api(path,opts={}){
   if(result.error==='DEMO_READ_ONLY'||result.error==='DEMO_HIDDEN')throw Error(result.error==='DEMO_HIDDEN'?'In der Demo nicht verfügbar.':'Demo: Das geht nur mit einem echten Konto. Änderungen sind hier deaktiviert.');
   if(result.error==='ACCOUNT_LOCKED')throw Error('Dieses Konto ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
   if(result.error==='GUILD_LOCKED')throw Error('Diese Gilde ist vom Betreiber der Website gesperrt. Bitte wende dich an ihn.');
+  if(result.error==='FORBIDDEN'){const e=Error('Dafür fehlen dir in dieser Gilde die Rechte. Lade die Seite neu (F5). Hilft das nicht, frag den Gildenleiter nach deiner Rolle.');e.code='FORBIDDEN';e.detail=path;console.warn('FORBIDDEN',path);throw e;}
   if(result.error==='SETUP_REQUIRED'){location.href='install';throw Error('SETUP_REQUIRED');}
   if(!r.ok){const e=Error(result.error||'HTTP_'+r.status);e.detail=result.detail||'';throw e;}
   return result;
@@ -125,6 +126,7 @@ function showOperatorPane(name){
 function switchGuild(){state.bankSummary=null;
   const id=Number($('guildSelector').value);state.guild=state.guilds.find(g=>Number(g.id)===id)||state.guilds[0];
   if(!state.guild)return;
+  try{localStorage.setItem('bl.lastGuild',String(state.guild.id));}catch(_e){}
   state.cart.clear();state.pendingOrder=null;state.details.clear();state.appearances.clear();state.appearanceRequests.clear();state.selectedStockId=null;state.inventoryFilter='all';state.categoryKey='all';state.expandedCategories.clear();state.catalogPage=0;appearanceLoading.queue=[];appearanceLoading.queued.clear();iconLookupByItemId.clear();updateCartBadge();
   $('guildTitle').textContent=state.guild.name;
   document.title=(window.BLLang?.text||String)('Gildenbank – '+state.guild.name+' – Banklord');
@@ -151,6 +153,7 @@ async function initialize(){
   const data=await api('/guilds');state.guilds=data.guilds;state.operator=!!data.operator;state.createLimit=data.create_limit;state.created=data.created||0;
   await fillGuildSelector();
   if(!data.guilds.length){notice('Für dein Konto ist noch keine freigeschaltete Gilde hinterlegt.',true);return;}
+  try{const last=localStorage.getItem('bl.lastGuild');if(last&&data.guilds.some(g=>String(g.id)===last))$('guildSelector').value=last;}catch(_e){}
   switchGuild();loadNotifications().catch(()=>{});
 }
 async function loadItems(){

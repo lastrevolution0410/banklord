@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.14: Website merkt sich die zuletzt gewählte Gilde (auch nach F5). Verständliche Meldung statt „FORBIDDEN“.
 - 1.12.13: Anleitung „Neuen Bankverwalter ernennen“: Registrierung genauer erklärt.
 - 1.12.12: Neue Anleitung **„Neuen Bankverwalter ernennen“**: was der neue Verwalter tut und was der Admin tut.
 - 1.12.11: **Companion zeigt alle verbundenen Gilden** mit Namen, jede lässt sich einzeln entfernen. Wird ein Zugang auf der Website gesperrt oder gelöscht, erkennt der Companion das und **überträgt dorthin nichts mehr** (vorher versuchte er es alle 15 Sekunden erneut). **Companion übersichtlicher:** Oben steht nur noch der Verbindungscode mit dem richtigen Weg dorthin (Inventur → „Verbindungscode erzeugen“). Ist alles verbunden, steht dort „✓ Verbunden“. Gilden-ID, Schlüssel und Dateipfad liegen eingeklappt unter „Für Experten“.
