@@ -170,6 +170,7 @@ local EN={
   ['Datenbank noch nicht bereit.']='Database not ready yet.',
   ['Bitte zuerst die Gildenbank öffnen. /banklord debug']='Please open the guild bank first. /banklord debug',
   ['Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet.']='Guild or realm unknown; scan not started.',
+  ['Gildenname noch nicht geladen; Scan übersprungen. Gildenbank kurz schließen und wieder öffnen.']='Guild name not loaded yet; scan skipped. Close and reopen the guild bank.',
   ['Anzahl der Bankfächer ist ungültig/nicht verfügbar: %s']='Number of bank tabs is invalid/unavailable: %s',
   ['Diese Gildenbank hat noch kein Bankfach - es gibt nichts zu zählen. Gold wird trotzdem im Kassenbuch erfasst.']='This guild bank has no bank tab yet - there is nothing to count. Gold is still recorded in the ledger.',
   ['Bitte ein gültiges Bankfach auswählen.']='Please select a valid bank tab.',

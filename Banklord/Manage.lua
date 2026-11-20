@@ -962,9 +962,8 @@ function A:ActionCaption(action) return action and A:Tr(CAPTIONS[action]) or '' 
 
 function A:ShowManagePanel(mode,anchor)
   if not self.db or not self:IsBankManager() then return end
-  -- At the bank the panel always opens for managers (also with no orders),
-  -- at the mailbox only when there is something to send.
-  if #self:OpenManageOrders()==0 and mode=='mail' then return end
+  -- Only for bank managers and only when there is something to take out or send.
+  if #self:OpenManageOrders()==0 then return end
   if not panel then buildPanel() end
   self.manageMode=mode
   panel:ClearAllPoints()

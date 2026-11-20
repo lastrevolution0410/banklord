@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.16: Entnahmefenster an der Gildenbank öffnet nur noch bei offenen Bestellungen. Keine wiederholte Meldung „Gilden- oder Realmzuordnung fehlt“ mehr direkt nach dem Einloggen.
 - 1.12.15: Fehlermeldung „Dafür fehlen dir die Rechte“ nach dem Einloggen behoben (Browser-Autofill löste eine Betreiber-Suche aus).
 - 1.12.14: Website merkt sich die zuletzt gewählte Gilde (auch nach F5). Verständliche Meldung statt „FORBIDDEN“.
 - 1.12.13: Anleitung „Neuen Bankverwalter ernennen“: Registrierung genauer erklärt.

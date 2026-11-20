@@ -307,6 +307,9 @@ function A:StartScan(mode, auto)
   local guild = GetGuildInfo and GetGuildInfo("player")
   local realm = GetRealmName and GetRealmName()
   if not guild or guild == "" or not realm or realm == "" then
+    -- Right after login the guild name can still be unknown: ask the server and retry quietly.
+    if C_GuildInfo and C_GuildInfo.GuildRoster then pcall(C_GuildInfo.GuildRoster) elseif GuildRoster then pcall(GuildRoster) end
+    if auto then self.guildInfoMissing = true; return end
     return self:Message(A:Tr("Gilden- oder Realmzuordnung fehlt; Scan nicht gestartet."))
   end
   local count = GetNumGuildBankTabs and GetNumGuildBankTabs()

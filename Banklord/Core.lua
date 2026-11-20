@@ -108,6 +108,7 @@ function A:QueueAutomaticBankScan()
     A.autoOpenQueued = false
     if A.autoOpenTriggered or not A.db or not A:IsGuildBankOpen() then return end
     if A.scanRun then A.autoOpenTriggered = true; return end
+    A.guildInfoMissing = nil
     A:StartScan('all', true)
     if A.scanRun then
       A.autoOpenTriggered = true
@@ -115,6 +116,9 @@ function A:QueueAutomaticBankScan()
       -- Tab data has arrived and there really is no tab: say it once, quietly stop.
       A.autoOpenTriggered = true
       A:Message(A:Tr("Diese Gildenbank hat noch kein Bankfach - es gibt nichts zu zählen. Gold wird trotzdem im Kassenbuch erfasst."))
+    elseif A.guildInfoMissing and (A.autoOpenRetries or 0) >= 4 then
+      A.autoOpenTriggered = true
+      A:Message(A:Tr("Gildenname noch nicht geladen; Scan übersprungen. Gildenbank kurz schließen und wieder öffnen."))
     elseif (A.autoOpenRetries or 0) < 4 then
       -- The first event can precede the bank-tab metadata arriving.
       A.autoOpenRetries = (A.autoOpenRetries or 0) + 1
