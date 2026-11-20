@@ -47,7 +47,7 @@ function A:SubmitCartOrder()
     return self:Message(A:Tr('Zu viele Bestellungen warten auf Übertragung. Bitte /reload ausführen und den Companion laufen lassen.'))
   end
   local realm=type(GetRealmName)=='function' and GetRealmName() or ''
-  local name=type(UnitName)=='function' and UnitName('player') or ''
+  local name=self:PlayerName() or ''
   local guild,guildRealm
   if self.CurrentGuild then guild,guildRealm=self:CurrentGuild() end
   table.insert(self.db.orderOutbox,{

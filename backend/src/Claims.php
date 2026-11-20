@@ -84,6 +84,7 @@ final class Claims {
     private function grant(array $c, string $origin): array {
         $guild=(int)$c['guild_id'];$id=(int)$c['id'];
         $user=$c['user_id']!==null?(int)$c['user_id']:null;
+        Community::upgradeName($this->db,$guild,(string)$c['char_name'],(string)$c['char_realm'],$user);
         if ($user===null) {
             $f=$this->db->prepare('SELECT user_id FROM characters WHERE guild_id=? AND name=? AND realm=?');
             $f->execute([$guild,$c['char_name'],$c['char_realm']]);$found=$f->fetchColumn();

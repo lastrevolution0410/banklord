@@ -8,7 +8,7 @@ final class Community {
     public function __construct(private PDO $db) {}
     public static function inviteFormat(string $token): bool {return preg_match('/^wgi1_[a-f0-9]{64}$/D',$token)===1;}
     public static function passwordAllowed(string $password): bool {return strlen($password)>=14 && strlen($password)<=256;}
-    public static function characterAllowed(string $name): bool {return preg_match('/^[\p{L}][\p{L}\-\']{1,31}$/uD',$name)===1;}
+    public static function characterAllowed(string $name): bool {return preg_match('/^[\p{L}][\p{L}\-\']{1,31}( [\p{L}][\p{L}\-\']{1,29})?$/uD',$name)===1;}
     private function admin(int $guild,int $actor): void {
         $s=$this->db->prepare("SELECT role FROM guild_memberships WHERE guild_id=? AND user_id=? AND status='active'");
         $s->execute([$guild,$actor]);if($s->fetchColumn()!=='admin')throw new DomainError('ADMIN_REQUIRED');
@@ -111,6 +111,16 @@ final class Community {
             $s->execute([$guild,$actor,$user,json_encode(['role'=>$role,'status'=>$status],JSON_THROW_ON_ERROR)]);
             $this->db->commit();
         }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
+    /** WoW Forever: a character stored by first name only ("Shalicia") becomes "Shalicia Deláluna" once the full name is seen. */
+    public static function upgradeName(\PDO $db,int $guild,string $name,string $realm,?int $user=null): void {
+        if(!str_contains($name,' '))return;
+        $first=explode(' ',$name,2)[0];
+        $e=$db->prepare('SELECT COUNT(*) FROM characters WHERE guild_id=? AND name=? AND realm=?');$e->execute([$guild,$name,$realm]);
+        if((int)$e->fetchColumn()>0)return;
+        $s=$db->prepare('SELECT id FROM characters WHERE guild_id=? AND name=? AND realm=?'.($user!==null?' AND user_id=?':''));
+        $s->execute($user!==null?[$guild,$first,$realm,$user]:[$guild,$first,$realm]);$ids=$s->fetchAll(\PDO::FETCH_COLUMN);
+        if(count($ids)===1)$db->prepare('UPDATE characters SET name=? WHERE id=?')->execute([$name,(int)$ids[0]]);
     }
     public function addCharacter(int $guild,int $user,string $name,string $realm): int {
         $name=trim($name);$realm=trim($realm);

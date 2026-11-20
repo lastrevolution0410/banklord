@@ -134,6 +134,15 @@ function A:EndAutomaticBankSession()
 end
 
 -- retail, mop_classic, anniversary (TBC), forever or classic_era, from the client's interface number.
+-- WoW Forever characters have a first and a last name ("Shalicia Deláluna").
+function A:PlayerName()
+  if self:GameFlavor() == "forever" and type(GetUnitName) == "function" then
+    local full = GetUnitName("player", true)
+    if type(full) == "string" and full ~= "" then return full end
+  end
+  return type(UnitName) == "function" and UnitName("player") or nil
+end
+
 function A:GameFlavor()
   local toc = type(GetBuildInfo) == "function" and select(4, GetBuildInfo()) or 0
   toc = tonumber(toc) or 0

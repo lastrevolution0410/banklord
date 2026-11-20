@@ -68,7 +68,7 @@ end
 -- Remember character + guild so the website can offer it as order recipient.
 function A:RememberCharacter()
   if not self.db or not UnitName then return end
-  local name,realm=UnitName('player'),GetRealmName and GetRealmName() or ''
+  local name,realm=self:PlayerName(),GetRealmName and GetRealmName() or ''
   if not name or name=='' or realm=='' then return end
   local chars,key=store('characters'),name..'-'..realm:gsub('%s','')
   local guild,guildRealm=self:CurrentGuild()
@@ -294,7 +294,7 @@ local CLAIM_WINDOW,CLAIM_TTL,SENT_TTL=3,6*3600,30*86400
 local function now() return (GetServerTime and GetServerTime()) or time() end
 local function lname(s) return (tostring(s or ''):gsub("[%s'%-]",''):lower()) end
 local function short(n) n=tostring(n or ''); if Ambiguate then n=Ambiguate(n,'none') end; return (n:match('^[^-]+') or n) end
-local function meName() return (UnitName and UnitName('player')) or '?' end
+local function meName() return A:PlayerName() or '?' end
 local function guildSend(payload)
   local f=(C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
   if f and IsInGuild and IsInGuild() then pcall(f,PREFIX,payload,'GUILD') end

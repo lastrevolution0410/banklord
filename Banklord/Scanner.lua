@@ -347,7 +347,7 @@ function A:StartScan(mode, auto)
     id = self.scanIdCounter, token = 0, cursor = 0, queue = queue,
     totalTabs = count, skipped = skipped, completed = 0,
     uncertain = false, tabs = {}, errors = {}, guild = guild,
-    realm = realm, character = UnitName("player"),
+    realm = realm, character = self:PlayerName(),
     originalTab = selected, mode = mode, startedAt = time(),
   }
   self:Message(A:Tr(mode == "current" and "Starte Einzelfachscan: %d lesbare Fächer, %d übersprungen."

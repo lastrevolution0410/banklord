@@ -103,6 +103,7 @@ final class IngameOrders {
     public function rememberCharacter(int $guild, int $user, string $character): void {
         [$name,$realm]=array_pad(explode('-',$character,2),2,'');
         if (!Community::characterAllowed($name) || mb_strlen($realm)<2 || mb_strlen($realm)>100) return;
+        Community::upgradeName($this->db,$guild,$name,$realm,$user);
         $this->db->prepare("INSERT IGNORE INTO characters (guild_id,user_id,name,realm) VALUES (?,?,?,?)")->execute([$guild,$user,$name,$realm]);
     }
 
