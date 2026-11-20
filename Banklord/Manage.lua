@@ -859,7 +859,7 @@ function A:FillMail(o,to,partial)
   if MailFrameTab2 and MailFrameTab2.Click then MailFrameTab2:Click() end
   if ClearSendMail then ClearSendMail() end
   SendMailNameEditBox:SetText(to)
-  if SendMailSubjectEditBox then SendMailSubjectEditBox:SetText(('Banklord #%d'):format(o.id)) end
+  if SendMailSubjectEditBox then SendMailSubjectEditBox:SetText(('%s #%d'):format((A:CurrentGuild()) or 'Banklord',o.id)) end
   self.mailPrepared=o.id
   local i=0
   local function attach()
@@ -886,7 +886,7 @@ end
 -- Only mails whose subject we prepared count as handed over.
 if hooksecurefunc and SendMail then
   hooksecurefunc('SendMail',function(_,subject)
-    local id=tonumber(tostring(subject or ''):match('^Banklord #(%d+)$'))
+    local id=tonumber(tostring(subject or ''):match(' #(%d+)$'))
     A.mailSending=(id and id==A.mailPrepared) and id or nil
     if A.mailSending and not A.mailPartial then store('manageSent')[id]=now() end
   end)

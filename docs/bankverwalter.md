@@ -92,7 +92,7 @@ Das Fenster lässt sich verschieben und merkt sich seine Position.
 
 1. Öffne einen Briefkasten. Es erscheint **„Banklord – Bestellungen versenden“**.
 2. **„Versenden“** ist nur aktiv, wenn du alle Gegenstände der Bestellung in den Taschen hast.
-3. Banklord füllt **Empfänger**, **Betreff** (`Banklord #<Nummer>`) und die **Anhänge** aus. Du klickst nur noch auf **„Senden“**.
+3. Banklord füllt **Empfänger**, **Betreff** (`<Gildenname> #<Nummer>`) und die **Anhänge** aus. Du klickst nur noch auf **„Senden“**.
 4. Mit **„Alle versenden“** wird nach jedem Brief automatisch der nächste vorbereitet.
 5. Nach dem Senden gilt die Bestellung als ausgegeben; das Mitglied wird benachrichtigt. Beim Schließen des Briefkastens bietet Banklord **„Jetzt übertragen“** an, dann ist auch die Website sofort aktuell.
 

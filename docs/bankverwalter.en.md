@@ -94,7 +94,7 @@ The window can be moved and remembers its position.
 
 1. Open a mailbox. **“Banklord – send orders”** appears.
 2. **“Send”** is only active when you have all items of the order in your bags.
-3. Banklord fills in the **recipient**, **subject** (`Banklord #<number>`) and **attachments**. You only click **“Send”**.
+3. Banklord fills in the **recipient**, **subject** (`<guild name> #<number>`) and **attachments**. You only click **“Send”**.
 4. With **“Send all”** the next mail is prepared automatically after each one.
 5. After sending, the order counts as issued; the member is notified. When you close the mailbox Banklord offers **“Transfer now”**, then the website is up to date right away.
 

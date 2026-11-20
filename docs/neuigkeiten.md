@@ -21,6 +21,7 @@ Ideen ohne festen Termin. Wünsche gern über **Hilfe & Feedback → Idee vorsch
 ## Fertig
 
 ### 1.12 – Konten verwalten (19.11.2026)
+- 1.12.20: Betreff der Bestellpost: Gildenname und Bestellnummer statt „Banklord“. Addon 0.16.8.
 - 1.12.19: WoW Forever: Gildenbank-Scan klappt jetzt (dort gibt es keinen Realm). Addon 0.16.7.
 - 1.12.18: Addon-Version auf 0.16.6 angehoben, damit die Neuerungen aus 1.12.16 und 1.12.17 automatisch im Spiel ankommen.
 - 1.12.17: WoW Forever: Charaktere mit Vor- und Nachname werden vollständig erkannt und angezeigt; bereits gespeicherte Charaktere mit nur Vornamen werden automatisch ergänzt.
