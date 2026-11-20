@@ -21,6 +21,7 @@ Ideas without a fixed date. Send wishes via **Help & feedback → Suggest an ide
 ## Done
 
 ### 1.12 – Managing accounts (19 Nov 2026)
+- 1.12.15: Fixed the “missing rights” message after signing in (browser autofill triggered an operator search).
 - 1.12.14: The website remembers the last selected guild (also after F5). Clear message instead of “FORBIDDEN”.
 - 1.12.13: Guide “Appointing a new bank manager”: registration explained more clearly.
 - 1.12.12: New guide **“Appointing a new bank manager”**: what the new manager does and what the admin does.

@@ -902,6 +902,8 @@ $('opSearch').oninput=()=>{state.opPage=0;renderOperatorGuilds();};$('opFlavor')
 // Operator: accounts (lock, reset password). Passwords are never shown.
 let acTimer=null;state.acPage=0;
 async function loadAccounts(){
+  // Chrome autofills this hidden search box with the user's e-mail: only site operators may search accounts.
+  if(!state.operator||state.tab!=='operator')return;
   // Browsers sometimes autofill the search box with your own e-mail: never start filtered.
   if(!state.acLoaded){state.acLoaded=true;$('acSearch').value='';}
   const r=await api('/operator/accounts?q='+encodeURIComponent($('acSearch').value.trim())+'&page='+state.acPage);
